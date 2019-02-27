@@ -2,7 +2,7 @@ name: Edgar Blog
 description: "我的零散笔记"
 baseurl: /
 url: http://edgar615.github.io
-download: "https://github.com/edgar615/edgar615.github.io/archive/master.zip"
+download: "#"
 social:
   github: edgar615
   email: 67672283@qq.com

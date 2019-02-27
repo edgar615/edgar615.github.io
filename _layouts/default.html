@@ -7,12 +7,12 @@
     <meta name="description" content="{% if page.excerpt %}{{ page.excerpt | strip_html | strip_newlines | truncate: 160 }}{% else %}{{ site.description }}{% endif %}">
     <link rel="icon" href="{{ "/assets/images/favicon.png" | prepend: site.baseurl }}">
     <link rel="canonical" href="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}" />
-    <link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ site.baseurl }}/feed.xml" />
 
     <link rel="stylesheet" href="{{ "/assets/css/application.css" | prepend: site.baseurl }}" />
     <link rel="stylesheet" href="{{ "/assets/css/prism.css" | prepend: site.baseurl }}" />
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css" />
 	<link rel="stylesheet" href="//cdn.materialdesignicons.com/2.8.94/css/materialdesignicons.min.css" />
+	<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
 </head>
 <body>
   <div class="container">
@@ -124,21 +124,6 @@
           <div class="navbar-item">
             <div class="field is-grouped">
               <p class="control">
-                <a class="bd-tw-button button"
-                  data-social-network="Twitter"
-                  data-social-action="tweet"
-                  data-social-target="https://twitter.com/{{ site.social.twitter }}"
-                  target="_blank"
-                  href="https://twitter.com/intent/tweet?text=Jekyll Bulma—Jekyll theme based on modern CSS framework based on Flexbox&hashtags=bulmaio&url={{site.url}}{{site.baseurl}}&via={{ site.social.twitter }}">
-                  <span class="icon">
-                    <i class="mdi mdi-twitter"></i>
-                  </span>
-                  <span>
-                    Tweet
-                  </span>
-                </a>
-              </p>
-              <p class="control">
                 <a class="button is-primary" href="{{ site.download }}">
                   <span class="icon">
                     <i class="mdi mdi-download"></i>
@@ -199,6 +184,7 @@
     </div>
 </footer>
 <script src="{{ "/assets/js/main.js" | prepend: site.baseurl }}"></script>
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
 <script src="{{ site.baseurl }}{{ "/assets/js/jquery-3.1.1.min.js" | prepend: site.baseurl }}"></script>
 <script src="{{ "/assets/js/prism.js" | prepend: site.baseurl }}"></script>
 <script>
@@ -210,14 +196,6 @@
             menus.addClass('is-active');
         }
     });
-</script>
-<script>
-(function() {
-    var d = document, s = d.createElement('script');
-    s.src = '//aydineray.disqus.com/embed.js';
-    s.setAttribute('data-timestamp', +new Date());
-    (d.head || d.body).appendChild(s);
-})();
 </script>
 </body>
 </html>
