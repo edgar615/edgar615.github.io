@@ -1,13 +1,13 @@
-name: Jekyll Bulma
-description: "Jekyll Bulma Theme, Bulma.io CSS Framework Jekyll Template for Developers"
-baseurl: /jekyll-bulma
-url: http://erayaydin.github.io
-download: "https://github.com/erayaydin/jekyll-bulma/archive/master.zip"
+name: Edgar Blog
+description: "我的零散笔记"
+baseurl: /
+url: http://edgar615.github.io
+download: "https://github.com/edgar615/edgar615.github.io/archive/master.zip"
 social:
-  github: erayaydin
-  email: aydineray@mail.com
+  github: edgar615
+  email: 67672283@qq.com
   facebook:
-  twitter: erayaydi
+  twitter: 
   instagram:
   tumblr:
 author:
