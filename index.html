@@ -40,8 +40,8 @@ layout: default
         <br>
         {% endfor %}
         <nav class="pagination is-centered">
-            <a {% if paginator.previous_page %}href="..{{  paginator.previous_page_path }}"{% endif %} class="pagination-previous {% if paginator.previous_page %}{% else %} is-disabled {% endif %}">Önceki Yazılar</a>
-            <a {% if paginator.next_page %}href="..{{  paginator.next_page_path }}"{% endif %} class="pagination-next {% if paginator.next_page %}{% else %} is-disabled {% endif %}">Sonraki Yazılar</a>
+            <a {% if paginator.previous_page %}href="..{{  paginator.previous_page_path }}"{% endif %} class="pagination-previous {% if paginator.previous_page %}{% else %} is-disabled {% endif %}">上一页</a>
+            <a {% if paginator.next_page %}href="..{{  paginator.next_page_path }}"{% endif %} class="pagination-next {% if paginator.next_page %}{% else %} is-disabled {% endif %}">下一页</a>
             <ul class="pagination-list">
                 {% for page in (1..paginator.total_pages) %}
                 <li>
