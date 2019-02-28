@@ -20,11 +20,9 @@ layout: default
         </div>
     </div>
 </section>
-{% if site.author.show_on_post or page.comments %}
+{% if site.author.show_on_post%}
 <div class="section">
     <div class="container is-fluid">
-
-        {% if site.author.show_on_post %}
         <div class="box">
             <div class="media">
                 <div class="media-left">
@@ -80,15 +78,10 @@ layout: default
                 </div>
             </div>
         </div>
-        {% endif %}
-
-        {% if page.comments %}
-        <div class="box">
-            1111
-        </div>
-        {% endif %}
     </div>
 </div>
 {% endif %}
 
+{% if page.comments %}
 <div id="gitalk-container"></div>
+{% endif %}
