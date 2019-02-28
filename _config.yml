@@ -28,11 +28,11 @@ paginate: 5
 paginate_path: "/:num/"
 markdown: kramdown
 gitalk:
-    clientID: 6e81b3626e0333d89d9a,
-    clientSecret: f21d0f0812d9d2c89f9b5ca5e82d3492062aa32c,
-    repo: edgar615.github.io,
-    owner: edgar615,
-    admin: edgar615
+  clientID: 6e81b3626e0333d89d9a
+  clientSecret: f21d0f0812d9d2c89f9b5ca5e82d3492062aa32c
+  repo: edgar615.github.io
+  owner: edgar615
+  admin: edgar615
 
 plugins:
   - jekyll-paginate
