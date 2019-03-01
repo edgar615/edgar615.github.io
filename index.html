@@ -36,16 +36,18 @@ layout: default
         </div>
         <br>
         {% endfor %}
-        <nav class="pagination is-centered">
-            <a {% if paginator.previous_page %}href="..{{  paginator.previous_page_path }}"{% endif %} class="pagination-previous {% if paginator.previous_page %}{% else %} is-disabled {% endif %}">上一页</a>
-            <a {% if paginator.next_page %}href="..{{  paginator.next_page_path }}"{% endif %} class="pagination-next {% if paginator.next_page %}{% else %} is-disabled {% endif %}">下一页</a>
-            <ul class="pagination-list">
-                {% for page in (1..paginator.total_pages) %}
-                <li>
-                    <a {% if page == paginator.page %}{% else %} href="{% if page == 1 %}../{% else %}{% if paginator.page != 1 %}../{% endif %}{{ page }}{% endif %}" {% endif %} class="pagination-link {% if page == paginator.page %} is-current {% endif %}">{{ page }}</a>
-                </li>
-                {% endfor %}
-            </ul>
-        </nav>
+		{% if paginator.total_pages > 1 %}
+			<nav class="pagination is-centered">
+				<a {% if paginator.previous_page %}href="..{{  paginator.previous_page_path }}"{% endif %} class="pagination-previous {% if paginator.previous_page %}{% else %} is-disabled {% endif %}">上一页</a>
+				<a {% if paginator.next_page %}href="..{{  paginator.next_page_path }}"{% endif %} class="pagination-next {% if paginator.next_page %}{% else %} is-disabled {% endif %}">下一页</a>
+				<ul class="pagination-list">
+					{% for page in (1..paginator.total_pages) %}
+					<li>
+						<a {% if page == paginator.page %}{% else %} href="{% if page == 1 %}../{% else %}{% if paginator.page != 1 %}../{% endif %}{{ page }}{% endif %}" {% endif %} class="pagination-link {% if page == paginator.page %} is-current {% endif %}">{{ page }}</a>
+					</li>
+					{% endfor %}
+				</ul>
+			</nav>
+		{% endif %}
     </div>
 </section>
