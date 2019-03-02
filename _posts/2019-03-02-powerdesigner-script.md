@@ -10,7 +10,7 @@ permalink: powerdesigner-script.html
 ---
 
 # comment转为name
-{% highlight script %}
+<pre class="line-numbers "><code class="language-php">
 Option   Explicit    
 ValidationMode   =   True    
 InteractiveMode   =   im_Batch    
@@ -58,12 +58,12 @@ On Error Resume Next
             end   if    
       Next    
 end   sub 
-{% endhighlight %}
+</code></pre>
 
 # name转为comment
 
  如果comment为空,则填入name;如果comment不为空,则保留不变.这样可以避免已有的注释丢失.
-{% highlight script %}
+<pre class="line-numbers "><code class="language-php">
 Option Explicit
 ValidationMode = True
 InteractiveMode = im_Batch
@@ -112,10 +112,10 @@ For Each f In folder.Packages
     end if
 Next
 end sub
-{% endhighlight %}
+</code></pre>
 
 # 删除无用KEY
-{% highlight script %}
+<pre class="line-numbers "><code class="language-php">
 '*****************************************************************************
 '文件：Delete useless data items.vbs
 '版本：1.0
@@ -166,12 +166,12 @@ sub Visit(node)
       index = index + 1
    end if
 end sub
-{% endhighlight %}
+</code></pre>
 
 # 设置主键自增
 
 根据公司的数据库设计规范，数据库主键要求是bigint，但是用概念模型做Serial自增类型转换为物理模型都是int，所以需要将主键从自增改为long，然后在物理模型里在通过脚本增加自增
-{% highlight script %}
+<pre class="line-numbers "><code class="language-php">
 '*****************************************************************************
 dim model 'current model
 set model = ActiveModel
@@ -217,5 +217,5 @@ sub ProcessTable(table)
      end if
   next
 end sub
-{% endhighlight %}
+</code></pre>
 
