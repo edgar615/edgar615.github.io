@@ -64,7 +64,6 @@ end   sub
 
  如果comment为空,则填入name;如果comment不为空,则保留不变.这样可以避免已有的注释丢失.
 {% highlight script %}
-```
 Option Explicit
 ValidationMode = True
 InteractiveMode = im_Batch
@@ -117,7 +116,6 @@ end sub
 
 # 删除无用KEY
 {% highlight script %}
-```
 '*****************************************************************************
 '文件：Delete useless data items.vbs
 '版本：1.0
@@ -174,7 +172,6 @@ end sub
 
 根据公司的数据库设计规范，数据库主键要求是bigint，但是用概念模型做Serial自增类型转换为物理模型都是int，所以需要将主键从自增改为long，然后在物理模型里在通过脚本增加自增
 {% highlight script %}
-```
 '*****************************************************************************
 dim model 'current model
 set model = ActiveModel
