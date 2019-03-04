@@ -138,6 +138,7 @@ $ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/res
 
 # 参考资料
 [https://spring.io/blog/2017/08/22/introducing-actuator-endpoints-in-spring-boot-2-0]
+
 [https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint]
 
 [https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint]: https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint
