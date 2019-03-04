@@ -35,7 +35,7 @@ public class CustomHealth {
         this.healthDetails = healthDetails;
     }
 }
-</pre></code>
+</code></pre>
 
 自定义Endpoint
 <pre class="line-numbers " data-line="15,20,25,30"><code class="language-java">
@@ -72,7 +72,7 @@ public class CustomHealthEndPoint {
     health.getHealthDetails().remove(arg0);
   }
 }
-</pre></code>
+</code></pre>
 
 1.对应的API地址为 `GET /actuator/custom-health`
 2.对应的API地址为 `GET /actuator/custom-health/{arg0}`
