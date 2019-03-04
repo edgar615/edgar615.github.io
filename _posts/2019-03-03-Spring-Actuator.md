@@ -1,11 +1,29 @@
 ---
 layout: post
-title: Spring Actuator
+title: Spring 
+date: 2019-03-04
 categories:
     - Spring Boot
 comments: true
 permalink: Spring-Actuator.html
 ---
+
+在Spring Boot的众多Starter POMs中有一个特殊的模块，它不同于其他模块那样大多用于开发业务功能或是连接一些其他外部资源。它完全是一个用于暴露自身信息的模块，所以很明显，它的主要作用是用于监控与管理，它就是：`spring-boot-starter-actuator`。
+
+`spring-boot-starter-actuator`模块的实现对于实施微服务的中小团队来说，可以有效地减少监控系统在采集应用指标时的开发量。当然，它也并不是万能的，有时候我们也需要对其做一些简单的扩展来帮助我们实现自身系统个性化的监控需求。下面，在本文中，我们将详解的介绍一些关于`spring-boot-starter-actuator`模块的内容，包括它的原生提供的端点以及一些常用的扩展和配置方式。
+
+# get started
+
+引入依赖
+
+```
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+
 
 # 自定义Endpoint 
 本章节主要介绍Spring Boot 2.X如何自定义Endpoint，Spring Boot 1.X通过实现`Endpoint`接口实现，不做描述
@@ -121,11 +139,11 @@ public class RestCustomEndPoint {
   @GetMapping("/custom")
   public @ResponseBody
   CustomHealth customEndPoint() {
-    CustomHealth health = new CustomHealth();
-    Map<String, Object> details = new LinkedHashMap<>();
-    details.put("CustomHealthStatus", "Everything looks good");
-    health.setHealthDetails(details);
-    return health;
+​    CustomHealth health = new CustomHealth();
+​    Map<String, Object> details = new LinkedHashMap<>();
+​    details.put("CustomHealthStatus", "Everything looks good");
+​    health.setHealthDetails(details);
+​    return health;
   }
 }
 </code></pre>
