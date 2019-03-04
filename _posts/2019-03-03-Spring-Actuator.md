@@ -18,7 +18,7 @@ Spring Boot 2 提供了一个简单的方式实现自定义的Endpoint：`@Endpo
 
 下面我们通过一个例子来看如何自定义Endpoint
 
-1. 数据模型：
+数据模型：
 
 <pre class="line-numbers "><code class="language-java">
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -37,8 +37,8 @@ public class CustomHealth {
 }
 </pre></code>
 
-2. 自定义Endpoint
-<pre class="line-numbers "><code class="language-java">
+自定义Endpoint
+<pre class="line-numbers " data-line="15,20,25,30"><code class="language-java">
 @Component
 @Endpoint(id = "custom-health")
 public class CustomHealthEndPoint {
@@ -73,3 +73,8 @@ public class CustomHealthEndPoint {
   }
 }
 </pre></code>
+
+1.对应的API地址为 `GET /actuator/custom-health`
+2.对应的API地址为 `GET /actuator/custom-health/{arg0}`
+3.对应的API地址为 `POST /actuator/custom-health/{arg0}`
+4.对应的API地址为 `DELETE /actuator/custom-health/{arg0}`
