@@ -38,7 +38,7 @@ public class CustomHealth {
 </code></pre>
 
 自定义Endpoint
-<pre class="line-numbers " data-line="15,20,25,30" data-line-offset><code class="language-java">
+<pre class="line-numbers " data-line="15,20,25,30" data-line-offset="0"><code class="language-java">
 @Component
 @Endpoint(id = "custom-health")
 public class CustomHealthEndPoint {
@@ -75,11 +75,18 @@ public class CustomHealthEndPoint {
 </code></pre>
 
 1.对应的API地址为 `GET /actuator/custom-health`
+
 <pre class="line-numbers"><code class="language-shell">
 $ curl -s -H “Content-Type: application/json” http://localhost:9000/actuator/custom-health
 {"CustomHealthStatus":"Everything looks good"}
 </code></pre>
 
 2.对应的API地址为 `GET /actuator/custom-health/{arg0}`
+
+<pre class="line-numbers"><code class="language-shell">
+$ curl -s -H “Content-Type: application/json” http://localhost:9000/actuator/custom-health/CustomHealthStatus
+Everything looks good
+</code></pre>
+
 3.对应的API地址为 `POST /actuator/custom-health/{arg0}`
 4.对应的API地址为 `DELETE /actuator/custom-health/{arg0}`
