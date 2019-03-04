@@ -10,7 +10,7 @@ permalink: welcome-to-jekyll.html
 # 自定义Endpoint 
 本章节主要介绍Spring Boot 2.X如何自定义Endpoint，Spring Boot 1.X通过实现`Endpoint`接口实现，不做描述
 
-Spring Boot 2 提供了一个简单的方式实现自定义的Endpoint：`@Endpoint` 。.Spring Boot可以通过`@Endpoint`,`@WebEndpoint`，`@WebEndpointExtension`自动将endpoint通过HTTP协议暴露出来。`@Endpoint`通常和另外三个主键一起组合使用
+Spring Boot 2 提供了一个简单的方式实现自定义的Endpoint：`@Endpoint` 。.Spring Boot可以通过`@Endpoint`,`@WebEndpoint`，`@WebEndpointExtension`自动将endpoint通过HTTP协议暴露出来( using Jersey, Spring MVC, or Spring WebFlux)。`@Endpoint`通常和另外三个主键一起组合使用
 
 - `@ReadOperation` GET请求
 - `@WriteOperation` POST请求
@@ -100,11 +100,38 @@ bar
 </code></pre>
 
 4.对应的API地址为 `DELETE /actuator/custom-health/{arg0}`
-5.
+
 <pre class="line-numbers"><code class="language-shell">
 $ curl -s -X DELETE -H "Content-Type: application/json" http://localhost:9000/actuator/custom-health/foo
 
 Administrator@PC-201809260001 MINGW64 /d/dev/workspace/edgar615.github.io (master)
 $ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/custom-health/foo
+
+</code></pre>
+
+## Controller Endpoints
+使用`@ControllerEndpoint`和`@RestControllerEndpoint `，spring boot可以仅通过Spring MVC和Spring WebFlux暴露endpoint
+
+<pre class="line-numbers "><code class="language-java">
+@Component
+@RestControllerEndpoint(id = "rest-end-point")
+public class RestCustomEndPoint {
+
+  // GET /actuator/rest-end-point/custom
+  @GetMapping("/custom")
+  public @ResponseBody
+  CustomHealth customEndPoint() {
+    CustomHealth health = new CustomHealth();
+    Map<String, Object> details = new LinkedHashMap<>();
+    details.put("CustomHealthStatus", "Everything looks good");
+    health.setHealthDetails(details);
+    return health;
+  }
+}
+</code></pre>
+
+<pre class="line-numbers"><code class="language-shell">
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/rest-end-point/custom
+{"CustomHealthStatus":"Everything looks good"}
 
 </code></pre>
