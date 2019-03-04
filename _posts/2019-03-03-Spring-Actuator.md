@@ -25,12 +25,12 @@ Spring Boot 2 提供了一个简单的方式实现自定义的Endpoint：`@Endpo
 public class CustomHealth {
 
     private Map<String, Object> healthDetails;
-
+    
     @JsonAnyGetter
     public Map<String, Object> getHealthDetails() {
         return this.healthDetails;
     }
-
+    
     public void setHealthDetails(Map<String, Object> healthDetails) {
         this.healthDetails = healthDetails;
     }
@@ -38,7 +38,7 @@ public class CustomHealth {
 </code></pre>
 
 自定义Endpoint
-<pre class="line-numbers " data-line="15,20,25,30" data-line-offset="0"><code class="language-java">
+<pre class="line-numbers " data-line="15,20,25,30"><code class="language-java">
 @Component
 @Endpoint(id = "custom-health")
 public class CustomHealthEndPoint {
@@ -47,29 +47,29 @@ public class CustomHealthEndPoint {
 
   @PostConstruct
   public void init() {
-    Map<String, Object> details = new LinkedHashMap<>();
-    details.put("CustomHealthStatus", "Everything looks good");
-    health.setHealthDetails(details);
+​    Map<String, Object> details = new LinkedHashMap<>();
+​    details.put("CustomHealthStatus", "Everything looks good");
+​    health.setHealthDetails(details);
   }
 
   @ReadOperation
   public CustomHealth health() {
-    return health;
+​    return health;
   }
 
   @ReadOperation
   public Object customEndPointByName(@Selector String arg0) {
-    return health.getHealthDetails().get(arg0);
+​    return health.getHealthDetails().get(arg0);
   }
 
   @WriteOperation
   public void writeOperation(@Selector String arg0, String value) {
-    health.getHealthDetails().put(arg0, value);
+​    health.getHealthDetails().put(arg0, value);
   }
 
   @DeleteOperation
   public void deleteOperation(@Selector String arg0) {
-    health.getHealthDetails().remove(arg0);
+​    health.getHealthDetails().remove(arg0);
   }
 }
 </code></pre>
@@ -77,16 +77,34 @@ public class CustomHealthEndPoint {
 1.对应的API地址为 `GET /actuator/custom-health`
 
 <pre class="line-numbers"><code class="language-shell">
-$ curl -s -H “Content-Type: application/json” http://localhost:9000/actuator/custom-health
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/custom-health
 {"CustomHealthStatus":"Everything looks good"}
 </code></pre>
 
 2.对应的API地址为 `GET /actuator/custom-health/{arg0}`
 
 <pre class="line-numbers"><code class="language-shell">
-$ curl -s -H “Content-Type: application/json” http://localhost:9000/actuator/custom-health/CustomHealthStatus
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/custom-health/CustomHealthStatus
 Everything looks good
 </code></pre>
+**注意：这里的参数名一定要写成`arg0`，如`@Selector String arg0`，否则接口会报错，测试版本2.1.3**
 
 3.对应的API地址为 `POST /actuator/custom-health/{arg0}`
+<pre class="line-numbers"><code class="language-shell">
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/custom-health/foo
+
+curl -s -X POST -d '{"value": "bar"}' -H "Content-Type: application/json" http://localhost:9000/actuator/custom-health/foo
+
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/custom-health/foo
+bar
+</code></pre>
+
 4.对应的API地址为 `DELETE /actuator/custom-health/{arg0}`
+5.
+<pre class="line-numbers"><code class="language-shell">
+$ curl -s -X DELETE -H "Content-Type: application/json" http://localhost:9000/actuator/custom-health/foo
+
+Administrator@PC-201809260001 MINGW64 /d/dev/workspace/edgar615.github.io (master)
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/custom-health/foo
+
+</code></pre>
