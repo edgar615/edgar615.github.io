@@ -4,7 +4,7 @@ title: Spring Actuator
 categories:
     - Spring Boot
 comments: true
-permalink: welcome-to-jekyll.html
+permalink: Spring-Actuator.html
 ---
 
 # 自定义Endpoint 
@@ -135,3 +135,10 @@ $ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/res
 {"CustomHealthStatus":"Everything looks good"}
 
 </code></pre>
+
+# 参考资料
+[https://spring.io/blog/2017/08/22/introducing-actuator-endpoints-in-spring-boot-2-0]
+[https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint]
+
+[https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint]: https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint
+[https://spring.io/blog/2017/08/22/introducing-actuator-endpoints-in-spring-boot-2-0]: https://spring.io/blog/2017/08/22/introducing-actuator-endpoints-in-spring-boot-2-0
