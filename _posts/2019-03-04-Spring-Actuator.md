@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Spring 
+title: Spring Actuator
 date: 2019-03-04
 categories:
     - Spring Boot
@@ -23,7 +23,109 @@ permalink: Spring-Actuator.html
 </dependency>
 ```
 
+重新启动应用。此时，我们可以在控制台中看到如下所示的输出：
+```
+2019-03-06 23:00:18.774  INFO 5004 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+```
+spring boot默认启动了两个Endpoint：`/health` and `/info`，访问`/actuator`我们可以看到返回如下内容
+```
+{
+    "_links":{
+        "self":{
+            "href":"http://localhost:9000/actuator",
+            "templated":false
+        },
+        "health-component":{
+            "href":"http://localhost:9000/actuator/health/{component}",
+            "templated":true
+        },
+        "health-component-instance":{
+            "href":"http://localhost:9000/actuator/health/{component}/{instance}",
+            "templated":true
+        },
+        "health":{
+            "href":"http://localhost:9000/actuator/health",
+            "templated":false
+        },
+        "info":{
+            "href":"http://localhost:9000/actuator/info",
+            "templated":false
+        }
+    }
+}
+```
+`/health`用来获取应用的各类健康指标信息，`/info`用来返回一些应用自定义的信息。后面详细介绍
 
+# 开启端点（endpoint）
+默认情况下，除`shutdown`外，其他的端点都是开启的。我们可以通过配置开启
+```
+management:
+  endpoint:
+    shutdown:
+      enabled: true
+```
+我们也可以通过如下配置将所有端口关闭
+```
+management:
+  endpoints:
+    enabled-by-default: false
+```
+重新启动应用，我们可以看到如下输出
+```
+2019-03-06 23:16:40.495  INFO 7656 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 0 endpoint(s) beneath base path '/actuator'
+```
+再次访问`/actuator`，我们看到返回了如下内容
+```
+{
+    "_links":{
+        "self":{
+            "href":"http://localhost:9000/actuator",
+            "templated":false
+        }
+    }
+}
+```
+然后我们可以在通过下面的配置开启某个端点
+```
+management:
+  endpoint:
+    health:
+      enabled: true
+  endpoints:
+    enabled-by-default: false
+```
+# 暴露端点
+在上一章节我们提到，spring boot除`shutdown`外，其他的端点都是开启的。但是我们在启动日志中只看到了两个端点
+```
+Exposing 2 endpoint(s) beneath base path '/actuator'
+```
+是因为为了安全，Spring boot仅对外暴露了两个端口`/health` and `/info`，可以通过下面的配置暴露
+```
+management:
+  endpoints:
+    jmx:
+      exposure:
+      #        exclude:
+        include: "*"
+    web:
+      exposure:
+        exclude: env, beans #默认值null
+        include: "*" #默认值info, health
+```
+重启应用后看到启动日志
+```
+Exposing 13 endpoint(s) beneath base path '/actuator'
+```
+# 安全
+
+除`/health` and `/info`外，其他的actuator默认是关闭的，如果需要开启需要使用配置
+```
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+```
 
 # 自定义Endpoint 
 本章节主要介绍Spring Boot 2.X如何自定义Endpoint，Spring Boot 1.X通过实现`Endpoint`接口实现，不做描述
