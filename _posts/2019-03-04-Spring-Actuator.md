@@ -118,13 +118,56 @@ Exposing 13 endpoint(s) beneath base path '/actuator'
 ```
 # 安全
 
-除`/health` and `/info`外，其他的actuator默认是关闭的，如果需要开启需要使用配置
+可以通过 spring-security保护我们的http端点，**因为我并没有用spring-security，所以这部分并未测试**
+
+<pre class="line-numbers "><code class="language-java">
+@Configuration
+public class ActuatorSecurity extends WebSecurityConfigurerAdapter {
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http.requestMatcher(EndpointRequest.toAnyEndpoint()).authorizeRequests()
+				.anyRequest().hasRole("ENDPOINT_ADMIN")
+				.and()
+			.httpBasic();
+	}
+
+}
+</code></pre>
+
+<pre class="line-numbers "><code class="language-java">
+@Configuration
+public class ActuatorSecurity extends WebSecurityConfigurerAdapter {
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http.requestMatcher(EndpointRequest.toAnyEndpoint()).authorizeRequests()
+			.anyRequest().permitAll();
+	}
+
+}
+</code></pre>
+
+# 缓存
+可以用下面的配置设置端点的缓存**未测试**
+```
+management:
+  endpoint:
+    beans:
+      cache:
+        time-to-live: 10s
+```
+
+# 跨域
+可以用下面的配置设置端点的缓存**未测试**
 ```
 management:
   endpoints:
     web:
-      exposure:
-        include: '*'
+      cors:
+        allowed-origins: example.com
+        allowed-methods: GET, POST
+        allowed-headers: "*"
 ```
 
 # 自定义Endpoint 
@@ -255,6 +298,8 @@ $ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/res
 {"CustomHealthStatus":"Everything looks good"}
 
 </code></pre>
+
+# 自定义健康检查
 
 # 参考资料
 [https://spring.io/blog/2017/08/22/introducing-actuator-endpoints-in-spring-boot-2-0]
