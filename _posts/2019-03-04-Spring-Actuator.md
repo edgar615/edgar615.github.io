@@ -299,12 +299,211 @@ $ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/res
 
 </code></pre>
 
-# 自定义健康检查
+# 原生端点
+`spring-boot-starter-actuator`模块中已经实现了一些原生端点。如果根据端点的作用来说，我们可以原生端点分为三大类：
+
+- 应用配置类：获取应用程序中加载的应用配置、环境变量、自动化配置报告等与Spring Boot应用密切相关的配置类信息。
+- 度量指标类：获取应用程序运行过程中用于监控的度量指标，比如：内存信息、线程池信息、HTTP请求统计等。
+- 操作控制类：提供了对应用的关闭等操作类功能。
+
+## 健康检查 /health
+健康检查端点用来获取应用的各类健康指标信息。在`spring-boot-starter-actuator`模块中自带实现了一些常用资源的健康指标检测器。这些检测器都通过`HealthIndicator`接口实现，并且会根据依赖关系的引入实现自动化装配，可以通过配置是否显示健康检查的细节
+
+```
+management:
+  endpoint:
+    health:
+      show-details: "ALWAYS" 
+```
+
+这个配置有三个选项
+
+- `never` 不显示细节
+- `when-authorized` 仅对特定的角色显示，可以通过`management.endpoint.health.roles`设置
+- `always` 永远显示细节
+
+
+
+我们可以通过` HealthIndicatorRegistry`在运行时动态添加和删除健康检查
+
+## 编写自定义健康检查
+**方式1：实现HealthIndicator接口**
+
+对于响应式实现`ReactiveHealthIndicator `接口
+
+<pre class="line-numbers"><code class="language-java">
+@Component
+public class HealthCheck implements HealthIndicator {
+
+    @Override
+    public Health health() {
+        int errorCode = check(); // perform some specific health check
+        if (errorCode != 0) {
+            return Health.down()
+              .withDetail("Error Code", errorCode).build();
+        }
+        return Health.up().build();
+    }
+    
+    public int check() {
+        // Our logic to check health
+        return 1;
+    }
+}
+
+</code></pre>
+
+<pre class="line-numbers"><code class="language-shell">
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/health
+{"status":"DOWN","details":{"healthCheck":{"status":"DOWN","details":{"Error Code":1}},"diskSpace":{"status":"UP","details":{"total":253519544320,"free":161544491008,"threshold":10485760}}}}
+</code></pre>
+**方式2**
+<pre class="line-numbers"><code class="language-java">
+@Component
+public class DiskSpaceHealthIndicator extends AbstractHealthIndicator {
+ 
+    private final FileStore fileStore;
+    private final long thresholdBytes;
+     
+    @Autowired
+    public DiskSpaceHealthIndicator(@Value("${health.filestore.path:${user.dir}}") String path,
+                                    @Value("${health.filestore.threshold.bytes:10485760}") long thresholdBytes) throws IOException {
+        fileStore = Files.getFileStore(Paths.get(path));
+        this.thresholdBytes = thresholdBytes;
+    }
+     
+    @Override
+    protected void doHealthCheck(Health.Builder builder) throws Exception {
+        long diskFreeInBytes = fileStore.getUnallocatedSpace();
+        if (diskFreeInBytes >= thresholdBytes) {
+            builder.up();
+        } else {
+            builder.down();
+        }
+    }
+}
+</code></pre>
+
+Spring Boot 提供了4个状态
+
+- `DOWN` HTTP返回503
+- `OUT_OF_SERVICE` HTTP返回503
+- `UP`  HTTP返回200
+- `UNKNOWN` HTTP返回200
+
+我们也可以通过`Health.status(String)`方法指定自定义的状态，如`FATAL`然后通过`management.health.status.order=FATAL, DOWN, OUT_OF_SERVICE, UNKNOWN, UP`来指定状态的顺序
+
+同样，我们也可以通过`management.health.status.http-mapping.FATAL=503`来自定义状态的编码
+
+**配置说明**
+```
+management.health.db.enabled=true # Whether to enable database health check.
+management.health.cassandra.enabled=true # Whether to enable Cassandra health check.
+management.health.couchbase.enabled=true # Whether to enable Couchbase health check.
+management.health.defaults.enabled=true # Whether to enable default health indicators.
+management.health.diskspace.enabled=true # Whether to enable disk space health check.
+management.health.diskspace.path= # Path used to compute the available disk space.
+management.health.diskspace.threshold=0 # Minimum disk space, in bytes, that should be available.
+management.health.elasticsearch.enabled=true # Whether to enable Elasticsearch health check.
+management.health.elasticsearch.indices= # Comma-separated index names.
+management.health.elasticsearch.response-timeout=100ms # Time to wait for a response from the cluster.
+management.health.influxdb.enabled=true # Whether to enable InfluxDB health check.
+management.health.jms.enabled=true # Whether to enable JMS health check.
+management.health.ldap.enabled=true # Whether to enable LDAP health check.
+management.health.mail.enabled=true # Whether to enable Mail health check.
+management.health.mongo.enabled=true # Whether to enable MongoDB health check.
+management.health.neo4j.enabled=true # Whether to enable Neo4j health check.
+management.health.rabbit.enabled=true # Whether to enable RabbitMQ health check.
+management.health.redis.enabled=true # Whether to enable Redis health check.
+management.health.solr.enabled=true # Whether to enable Solr health check.
+management.health.status.http-mapping= # Mapping of health statuses to HTTP status codes. By default, registered health statuses map to sensible defaults (for example, UP maps to 200).
+management.health.status.order=DOWN,OUT_OF_SERVICE,UP,UNKNOWN # Comma-separated list of health statuses in order of severity.
+```
+## /info
+该端点用来返回一些应用自定义的信息，通过`InfoContributor `收集。默认情况下，该端点只会返回一个空的json内容。我们可以在application.properties配置文件中通过info前缀来设置一些属性，比如下面这样
+```
+info:
+  name: @project.artifactId@
+  build:
+    artifact:   @project.artifactId@
+    name: @project.artifactId@
+    version: @project.version@
+    description: 这是一个测试用例
+```
+<pre class="line-numbers"><code class="language-shell">
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/info
+{"name":"spring-actuator-info","build":{"artifact":"spring-actuator-info","name":"spring-actuator-info","version":"1.0-SNAPSHOT","description":"这是一个测试用例"}}
+</code></pre>
+
+spring boot内置了三个info
+
+- `EnvironmentInfoContributor` 环境变量
+- `GitInfoContributor` 如果存在`git.properties`显示git信息
+- `BuildInfoContributor`如果存在`META-INF/build-info.properties`显示build信息
+
+可以通过配置关闭它们
+```
+management:info.defaults.enabled
+```
+
+生成git信息
+```
+<build>
+	<plugins>
+		<plugin>
+			<groupId>pl.project13.maven</groupId>
+			<artifactId>git-commit-id-plugin</artifactId>
+		</plugin>
+	</plugins>
+</build>
+```
+生成build-info信息
+```
+<build>
+	<plugins>
+		<plugin>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-maven-plugin</artifactId>
+			<version>2.1.3.RELEASE</version>
+			<executions>
+				<execution>
+					<goals>
+						<goal>build-info</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+	</plugins>
+</build>
+```
+
+### 编写自定义info
+实现`InfoContributor`接口
+<pre class="line-numbers"><code class="language-java">
+@Component
+public class ExampleInfoContributor implements InfoContributor {
+
+	@Override
+	public void contribute(Info.Builder builder) {
+		builder.withDetail("example",
+				Collections.singletonMap("key", "value"));
+	}
+
+}
+</code></pre>
+<pre class="line-numbers"><code class="language-shell">
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/info
+{"name":"spring-actuator-info","build":{"artifact":"spring-actuator-info","name":"spring-actuator-info","version":"1.0-SNAPSHOT","description":"这是一个测试用例"},"example":{"key":"value"}}
+</code></pre>
+
 
 # 参考资料
+[https://docs.spring.io/spring-boot/docs/2.1.3.RELEASE/reference/htmlsingle/#production-ready-endpoints-cors]
+
 [https://spring.io/blog/2017/08/22/introducing-actuator-endpoints-in-spring-boot-2-0]
 
 [https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint]
 
+[https://docs.spring.io/spring-boot/docs/2.1.3.RELEASE/reference/htmlsingle/#production-ready-endpoints-cors]:https://docs.spring.io/spring-boot/docs/2.1.3.RELEASE/reference/htmlsingle/#production-ready-endpoints-cors
 [https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint]: https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint
 [https://spring.io/blog/2017/08/22/introducing-actuator-endpoints-in-spring-boot-2-0]: https://spring.io/blog/2017/08/22/introducing-actuator-endpoints-in-spring-boot-2-0
