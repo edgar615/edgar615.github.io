@@ -361,7 +361,7 @@ $ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/hea
 <pre class="line-numbers"><code class="language-java">
 @Component
 public class DiskSpaceHealthIndicator extends AbstractHealthIndicator {
- 
+
     private final FileStore fileStore;
     private final long thresholdBytes;
      
@@ -457,7 +457,25 @@ management:info.defaults.enabled
 	</plugins>
 </build>
 ```
+<pre class="line-numbers"><code class="language-shell">
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/info
+{"name":"spring-actuator-info","build":{"artifact":"spring-actuator-info","name":"spring-actuator-info","version":"1.0-SNAPSHOT","description":"这是一个测试用例"},"git":{"commit":{"time":"2019-03-10T03:24:35Z","id":"70b9f29"},"branch":"master"},"example":{"key":"value"}}
+</code></pre>
+我们可以看到git信息只显示了一部分，如果我们需要显示全部信息，可以使用下面配置
+```
+management:
+  info:
+    git:
+      mode: full
+```
+<pre class="line-numbers"><code class="language-shell">
+$ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/info
+{"name":"spring-actuator-info","build":{"artifact":"spring-actuator-info","name":"spring-actuator-info","version":"1.0-SNAPSHOT","description":"这是一个测试用例"},"git":{"build":{"host":"DESKTOP-CTAQIMV","version":"1.0-SNAPSHOT","time":"2019-03-10T13:23:02Z","user":{"name":"edgar615","email":"edgar615@gmail.com"}},"branch":"master","commit":{"message":{"short":"info","full":"info"},"id":{"describe":"70b9f29-dirty","abbrev":"70b9f29","describe-short":"70b9f29-dirty","full":"70b9f29fa4388f238fca5fc7b68e3663db79d7f5"},"time":"2019-03-10T03:24:35Z","user":{"email":"edgar615@gmail.com","name":"edgar615"}},"closest":{"tag":{"name":"","commit":{"count":""}}},"dirty":"true","remote":{"origin":{"url":"https://github.com/edgar615/spring-actuator-example.git"}},"tags":"","total":{"commit":{"count":"4"}}},"example":{"key":"value"}}
+</code></pre>
+
+
 生成build-info信息
+
 ```
 <build>
 	<plugins>
@@ -477,23 +495,64 @@ management:info.defaults.enabled
 </build>
 ```
 
+### 自定义端点
+Spring Boot提供了下列方法来实现自定义端点
+
+- `static properties` – we can add static information using key value pairs.
+- `maven build properties` – spring boot automatically exposes maven build properties. We can access them using the `@property.name@` syntax.
+- `environment variables` – we can expose environment variables.
+- `loading properties from java class` – we can load dynamic properties from java classes by implementing the `InfoContributor` interface.
+
+示例
+
+```
+info:
+
+  # static properties
+  app:
+    name: Spring Boot Actuator Info Endpoint Configuration Example
+    description: This tutorial demonstrates how to customize the Spring Boot Actuator Info Endpoint.
+
+  # build properties from maven
+  build:
+    groupId: @project.groupId@
+    artifact: @project.artifactId@
+    name: @project.name@
+    version: @project.version@
+
+  # environment variables
+  env:
+    java:
+      vendor: ${java.specification.vendor}
+      vm-name: ${java.vm.name}
+      runtime-version: ${java.runtime.version}
+```
+
+
+
+
 ### 编写自定义info
 实现`InfoContributor`接口
 <pre class="line-numbers"><code class="language-java">
 @Component
-public class ExampleInfoContributor implements InfoContributor {
+public class MetaDataContributor implements InfoContributor {
 
-	@Override
-	public void contribute(Info.Builder builder) {
-		builder.withDetail("example",
-				Collections.singletonMap("key", "value"));
-	}
+    @Autowired
+    private ApplicationContext ctx;
 
+    @Override
+    public void contribute(Info.Builder builder) {
+        Map<String, Object> details = new HashMap<>();
+        details.put("bean-definition-count", ctx.getBeanDefinitionCount());
+        details.put("startup-date", ctx.getStartupDate());
+
+        builder.withDetail("context", details);
+    }
 }
 </code></pre>
 <pre class="line-numbers"><code class="language-shell">
 $ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/info
-{"name":"spring-actuator-info","build":{"artifact":"spring-actuator-info","name":"spring-actuator-info","version":"1.0-SNAPSHOT","description":"这是一个测试用例"},"example":{"key":"value"}}
+{"app":{"name":"Spring Boot Actuator Info Endpoint Configuration Example","description":"This tutorial demonstrates how to customize the Spring Boot Actuator Info Endpoint."},"build":{"groupId":"com.github.edgar615","artifact":"spring-actuator-info","name":"spring-actuator-info","version":"1.0-SNAPSHOT"},"env":{"java":{"vendor":"Oracle Corporation","vm-name":"Java HotSpot(TM) 64-Bit Server VM","runtime-version":"1.8.0_181-b13"}},"git":{"build":{"host":"DESKTOP-CTAQIMV","version":"1.0-SNAPSHOT","time":"2019-03-10T13:23:02Z","user":{"name":"edgar615","email":"edgar615@gmail.com"}},"branch":"master","commit":{"message":{"short":"info","full":"info"},"id":{"describe":"70b9f29-dirty","abbrev":"70b9f29","describe-short":"70b9f29-dirty","full":"70b9f29fa4388f238fca5fc7b68e3663db79d7f5"},"time":"2019-03-10T03:24:35Z","user":{"email":"edgar615@gmail.com","name":"edgar615"}},"closest":{"tag":{"name":"","commit":{"count":""}}},"dirty":"true","remote":{"origin":{"url":"https://github.com/edgar615/spring-actuator-example.git"}},"tags":"","total":{"commit":{"count":"4"}}},"context":{"bean-definition-count":264,"startup-date":1552225060528}}
 </code></pre>
 
 
@@ -504,6 +563,9 @@ $ curl -s -H "Content-Type: application/json" http://localhost:9000/actuator/inf
 
 [https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint]
 
+[https://memorynotfound.com/spring-boot-customize-actuator-info-endpoint-example-configuration]
+
 [https://docs.spring.io/spring-boot/docs/2.1.3.RELEASE/reference/htmlsingle/#production-ready-endpoints-cors]:https://docs.spring.io/spring-boot/docs/2.1.3.RELEASE/reference/htmlsingle/#production-ready-endpoints-cors
 [https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint]: https://www.javadevjournal.com/spring-boot/spring-boot-actuator-custom-endpoint
 [https://spring.io/blog/2017/08/22/introducing-actuator-endpoints-in-spring-boot-2-0]: https://spring.io/blog/2017/08/22/introducing-actuator-endpoints-in-spring-boot-2-0
+[https://memorynotfound.com/spring-boot-customize-actuator-info-endpoint-example-configuration/]:https://memorynotfound.com/spring-boot-customize-actuator-info-endpoint-example-configuration/
