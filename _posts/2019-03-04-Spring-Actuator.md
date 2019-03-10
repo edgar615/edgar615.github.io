@@ -978,7 +978,11 @@ returns metrics like the previous one, but formatted to work with a Prometheus s
 
 ## /shutdown 
 
-performs a graceful shutdown of the application
+前面的章节已经介绍过`/shutdown`
+```
+$ curl -s -X POST localhost:9000/actuator/shutdown
+{"message":"Shutting down, bye..."}
+```
 
 ## /trace
 该端点用来返回基本的HTTP跟踪信息。默认情况下，跟踪信息的存储采用`org.springframework.boot.actuate.trace.InMemoryTraceRepository`实现的内存方式，始终保留最近的100条请求记录。它记录的内容格式如下：
