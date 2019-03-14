@@ -15,7 +15,7 @@ permalink: http-to-https.html
     server {  
         listen  192.168.1.111:80;  
         server_name test.com;  
-          
+
         rewrite ^(.*)$  https://$host$1 permanent;  
     }  
 </code></pre>
@@ -40,7 +40,7 @@ permalink: http-to-https.html
         ssl_certificate      /etc/nginx/test.pem;   
         #指定PEM格式的私钥文件  
         ssl_certificate_key  /etc/nginx/test.key;  
-          
+
         #让http请求重定向到https请求   
         error_page 497  https://$host$uri?$args;  
     }  
@@ -48,8 +48,8 @@ permalink: http-to-https.html
 
 # index刷新
 
-<pre class="line-numbers"><code class="language-html">
+```
 <html>  
     <meta http-equiv="refresh" content="0;url=https://test.com/">  
 </html>  
-</code></pre>
+```
