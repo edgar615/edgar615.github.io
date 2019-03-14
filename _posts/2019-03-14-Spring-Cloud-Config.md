@@ -190,7 +190,7 @@ public class MessageRestController {
 
     @Value("${msg:Hello world - Config Server is not working..pelase check}")
     private String msg;
-
+    
     @RequestMapping("/msg")
     String getMsg() {
         return this.msg;
@@ -243,7 +243,7 @@ public class MessageRestController {
 
     @Value("${msg:Hello world - Config Server is not working..pelase check}")
     private String msg;
-
+    
     @RequestMapping("/msg")
     String getMsg() {
         return this.msg;
@@ -251,14 +251,130 @@ public class MessageRestController {
 }
 </code></pre>
 一旦` /actuator/refresh` 被触发, 所有`@RefreshScope`标记的spring bean都会刷新
-```
+<pre class="line-numbers "><code class="language-shell">
 $ curl -s -X POST -H "Content-Type: application/json" http://localhost:9000/actuator/refresh
 ["msg","config.client.version"]
 $ curl -s -H "Content-Type: application/json" http://localhost:9000/msg        Hello world - this is from config server, updated
-```
+</code></pre>
 
 # /bus-refresh
 上面的`/refresh`存在一个问题：在分布式环境下，一个服务一般会部署多个示例，如果更新配置需要去每一台实例手动触发`/refresh`将会极大工作量，所以我们可以通过`spring-cloud-bus`提供的`/bus-refresh`来实现
+
+我使用kafka实现，也可以使用rabbitmq实现
+
+增加依赖
+
+```
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-bus-kafka</artifactId>
+</dependency>
+```
+
+**需要注意spring-boot，spring-cloud，kafka三个的版本**
+
+增加配置
+
+```
+management:
+  endpoints:
+    web:
+      exposure:
+        include: bus-refresh
+spring:
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+          minPartitionCount: 1
+          autoCreateTopics: true
+          autoAddPartitions: true
+```
+启动后观察日志我们可以看到暴露了一个`/actuator/bus-refresh`端点
+```
+Mapped "{[/actuator/bus-refresh/{destination}],methods=[POST]}" onto public java.lang.Object org.springframework.boot.actuate.endpoint.web.servlet.AbstractWebMvcEndpointHandlerMapping$OperationHandler.handle(javax.servlet.http.HttpServletRequest,java.util.Map<java.lang.String, java.lang.String>)
+Mapped "{[/actuator/bus-refresh],methods=[POST]}" onto public java.lang.Object org.springframework.boot.actuate.endpoint.web.servlet.AbstractWebMvcEndpointHandlerMapping$OperationHandler.handle(javax.servlet.http.HttpServletRequest,java.util.Map<java.lang.String, java.lang.String>)
+
+```
+启动成功后，我们可以发现kafka中多了一个topic
+<pre class="line-numbers "><code class="language-shell">
+kafka-topics.sh --list --zookeeper localhost:2181
+__consumer_offsets
+springCloudBus
+</code></pre>
+
+请求一下`/actuator/bus-refresh`我们可以看到springCloudBus的主题中多了一条消息
+<pre class="line-numbers "><code class="language-shell">
+$ curl -s -X POST -H "Content-Type: application/json" http://localhost:9001/actuator/bus-refresh
+
+$ ./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic springCloudBus --from-beginning
+{"type":"RefreshRemoteApplicationEvent","timestamp":1552546588187,"originService":"config-bus-refresh:9001:0e7842bbedb5cb2ff9ffdce822756310","destinationService":"**","id":"d1061741-1d49-45f2-aefc-3a2359ba6600"}
+{"type":"AckRemoteApplicationEvent","timestamp":1552546588346,"originService":"config-bus-refresh:9001:0e7842bbedb5cb2ff9ffdce822756310","destinationService":"**","id":"45d31331-2fda-49de-893e-25f38f5fa8c0","ackId":"d1061741-1d49-45f2-aefc-3a2359ba6600","ackDestinationService":"**","event":"org.springframework.cloud.bus.event.RefreshRemoteApplicationEvent"}
+
+</code></pre>
+
+**我们可以在构建另外一个config client来测试广播的效果，这里就不多余描述了**，`/bus-refresh`触发后，所有的服务都会刷新配置
+
+# Git Webhook
+上一章的`/bus-refresh`依然依赖于手动触发，我们可以通过`spring-cloud-config-monitor`来实现Git Webhook自动触发
+
+给config server增加依赖
+```
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-bus-kafka</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-config-monitor</artifactId>
+    </dependency>
+```
+
+增加配置
+```
+management:
+  endpoints:
+    web:
+      exposure:
+        include: monitor
+spring:
+  applicaiton:
+    name: config-server
+  cloud:
+    bus:
+      enabled: true
+    stream:
+      kafka:
+        binder:
+          brokers: 192.168.1.212:9092
+          minPartitionCount: 1
+          autoCreateTopics: true
+          autoAddPartitions: true
+
+```
+启动server，观察输出发现暴露了`/monitor`端点
+```
+ Mapped "{[/error],produces=[text/html]}" onto public org.springframework.web.servlet.ModelAndView org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController.errorHtml(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)
+ Mapped "{[/monitor],methods=[POST]}" onto public java.util.Set<java.lang.String> org.springframework.cloud.config.monitor.PropertyPathEndpoint.notifyByPath(org.springframework.http.HttpHeaders,java.util.Map<java.lang.String, java.lang.Object>)
+ Mapped "{[/monitor],methods=[POST],consumes=[application/x-www-form-urlencoded]}"
+```
+**注意/monitor端点只有`spring.cloud.bus.enabled=true`才起作用**
+
+当webhook被触发,  Config Server会发送一个refresh事件给配置被修改了的应用 ( RefreshRemoteApplicationEvent)
+
+模拟webhook的触发
+<pre class="line-numbers "><code class="language-shell">
+curl -v -X POST "http://localhost:8080/monitor" \
+-H "Content-Type: application/json" \
+-H "X-Event-Key: repo:push" \
+-H "X-Hook-UUID: webhook-uuid" \
+-d '{"push": {"changes": []} }'
+</code></pre>
 
 # 参考资料
 [https://springbootdev.com/2018/07/14/microservices-introduction-to-spring-cloud-config-server-with-client-examples/]
