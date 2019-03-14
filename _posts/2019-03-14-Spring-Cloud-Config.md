@@ -9,10 +9,6 @@ comments: true
 permalink: Spring-Cloud-Config.html
 ---
 
-[TOC]
-
-
-
 # 为什么要统一管理微服务配置
 
 对于Spring Boot应用，我们可以将配置内容写入`application.yml`，设置多个profile，也可以用多个`application-{profile}.properties`文件配置，并在启动时指定`spring.profiles.active={profile}`来加载不同环境下的配置。
@@ -380,6 +376,26 @@ curl -v -X POST "http://localhost:8080/monitor" \
 -H "X-Hook-UUID: webhook-uuid" \
 -d '{"push": {"changes": []} }'
 </code></pre>
+
+# 使用文件系统
+如果我们不想用git存储，也可以使用本地文件来存储配置文件
+
+修改配置
+```
+spring:
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          #多个文件,分隔
+          searchLocations: "classpath:/common-config"
+```
+然后我们将应用的配置文件存存放到`classpath:/common-config`目录下，就可以达到和git一样的效果。**但是无法实现更新**
+
+# 多repos
+
 
 # 参考资料
 [https://springbootdev.com/2018/07/14/microservices-introduction-to-spring-cloud-config-server-with-client-examples/]
