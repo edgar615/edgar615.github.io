@@ -48,8 +48,8 @@ permalink: http-to-https.html
 
 # index刷新
 
-<pre class="line-numbers"><code class="language-html">
+```
     <html>  
         <meta http-equiv="refresh" content="0;url=https://test.com/">  
     </html>  
-</code></pre>
+```
