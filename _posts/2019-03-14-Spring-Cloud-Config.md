@@ -9,7 +9,11 @@ comments: true
 permalink: Spring-Cloud-Config.html
 ---
 
-### 为什么要统一管理微服务配置
+[TOC]
+
+
+
+# 为什么要统一管理微服务配置
 
 对于Spring Boot应用，我们可以将配置内容写入`application.yml`，设置多个profile，也可以用多个`application-{profile}.properties`文件配置，并在启动时指定`spring.profiles.active={profile}`来加载不同环境下的配置。
 
@@ -21,7 +25,7 @@ permalink: Spring-Cloud-Config.html
 
 以上这些要求，传统方式是无法实现的，所以有必要借助一个通用的配置管理机制，通常使用配置服务器来管理配置。
 
-### Sping Cloud Config简介
+# Sping Cloud Config简介
 
 Spring Cloud Config分为Config Server和Config Client两部分，为分布式系统外部化配置提供了支持。 Spring Cloud Config非常适合Spring应用程序，也能与其他编程语言编写的应用组合使用。
 
@@ -143,7 +147,7 @@ $ curl -s -H "Content-Type: application/json" http://localhost:8080/config-serve
 </code></pre>
 
 
-## 创建客户端
+## Config Client
 添加依赖
 ```
   <dependencies>
