@@ -11,14 +11,14 @@ permalink: http-to-https.html
 
 # rewrite
 
-```
+<pre class="line-numbers"><code class="language-nginx">
     server {  
         listen  192.168.1.111:80;  
         server_name test.com;  
           
         rewrite ^(.*)$  https://$host$1 permanent;  
     }  
-```
+</code></pre>
 
 # 497错误码
 
@@ -27,8 +27,9 @@ permalink: http-to-https.html
 ```
 497 - normal request was sent to HTTPS  
 ```
+配置
 
-```
+<pre class="line-numbers"><code class="language-nginx">
     server {  
         listen       192.168.1.11:443;  #ssl端口  
         listen       192.168.1.11:80;   #用户习惯用http访问，加上80，后面通过497状态码让它自动跳到443端口  
@@ -43,65 +44,12 @@ permalink: http-to-https.html
         #让http请求重定向到https请求   
         error_page 497  https://$host$uri?$args;  
     }  
-```
+</code></pre>
 
 # index刷新
 
-```
-    <html>  
+<pre class="line-numbers"><code class="language-html">
+<html>  
     <meta http-equiv="refresh" content="0;url=https://test.com/">  
-    </html>  
-```
-
-<pre class="line-numbers "><code class="language-java">
-@RestController
-public class RestartController {
-
-    @PostMapping("/restart")
-    public void restart() {
-        Application.restart();
-    }
-}
-</code></pre>
-
-<pre class="line-numbers"><code class="language-shell">
-$ curl -s -X POST localhost:8080/restart
-</code></pre>
-
-方式2 RestartEndpoint
-引入依赖
-```
-    <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-context</artifactId>
-      <version>${cloud.start.version}</version>
-    </dependency>
-```
-配置
-```
-management:
-  endpoint:
-    restart:
-      enabled: true
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-```
-<pre class="line-numbers"><code class="language-shell">
-$ curl -s -X POST localhost:8080/actuator/restart
-{"message":"Restarting"}
-</code></pre>
-当然也可以通过`RestartEndpoint`来在任意地方重启应用
-<pre class="line-numbers "><code class="language-java">
-@Service
-public class RestartService {
-
-    @Autowired
-    private RestartEndpoint restartEndpoint;
-     
-    public void restartApp() {
-        restartEndpoint.restart();
-    }
-}
+</html>  
 </code></pre>
