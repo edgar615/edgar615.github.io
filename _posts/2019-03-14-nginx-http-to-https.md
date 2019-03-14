@@ -49,7 +49,7 @@ permalink: http-to-https.html
 # index刷新
 
 ```
-<html>  
-    <meta http-equiv="refresh" content="0;url=https://test.com/">  
-</html>  
+    <html>  
+        <meta http-equiv="refresh" content="0;url=https://test.com/">  
+    </html>  
 ```
