@@ -23,15 +23,19 @@ permalink: linux-firwall.html
 查看状态`firewall-cmd --state` //running 表示运行
 
 获取活动的区域`firewall-cmd --get-active-zones`
- 这条命令将用以下格式输出每个区域所含接口：
+这条命令将用以下格式输出每个区域所含接口：
+```
  <zone1>: <interface1> <interface2> ..<zone2>: <interface3> ..
+```
 
 获取所有支持的服务`firewall-cmd --get-service`
- 在不改变状态的条件下重新加载防火墙：`firewall-cmd --reload`
- 启用某个服务
+
+在不改变状态的条件下重新加载防火墙：`firewall-cmd --reload`
+
+启用某个服务
 
 ```
- firewall-cmd --zone=public --add-service=https //临时
+firewall-cmd --zone=public --add-service=https //临时
 
 firewall-cmd --permanent --zone=public --add-service=https //永久
 ```
