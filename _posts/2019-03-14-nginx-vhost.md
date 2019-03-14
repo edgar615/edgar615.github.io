@@ -10,7 +10,7 @@ permalink: nginx-vhost.html
 
 # 通配符
 
-<pre class="line-numbers"><code class="language-nginx">
+```
     server {		
         listen       80;
         server_name  "~^(?<name>\w+)\.example\.com$";
@@ -33,8 +33,7 @@ permalink: nginx-vhost.html
             location = /50x.html {
         }
     }
-
-</code></pre>
+```
 
 # 完整复杂的方法
 
@@ -42,7 +41,7 @@ http模块中增加一行
 
 <pre class="line-numbers"><code class="language-nginx">
 include /alidata/nginx/vhost/*.conf;
-```
+</code></pre>
 
 在vhost目录下增加www.conf, admin.conf shop.conf分别设置
 
@@ -61,7 +60,7 @@ server {
 	error_page 404 /404.html;
 		location = /40x.html {
 	}
-
+	
 	error_page 500 502 503 504 /50x.html;
 		location = /50x.html {
 	}
@@ -80,11 +79,11 @@ server {
 	   root /alidata/nginx/admin;
 	   index  index.html;
 	}
-
+	
 	error_page 404 /404.html;
 		location = /40x.html {
 	}
-
+	
 	error_page 500 502 503 504 /50x.html;
 		location = /50x.html {
 	}
@@ -103,11 +102,11 @@ server {
 	   root /alidata/nginx/shop;
 	   index  index.html;
 	}
-
+	
 	error_page 404 /404.html;
 		location = /40x.html {
 	}
-
+	
 	error_page 500 502 503 504 /50x.html;
 		location = /50x.html {
 	}
