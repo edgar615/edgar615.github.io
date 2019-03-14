@@ -1,5 +1,12 @@
----# Service Discovery
-
+---
+layout: post
+title: Vert.x的服务发现模块
+date: 2019-03-14
+categories:
+    - Vert.x
+comments: true
+permalink: vertx-service-discovery.html
+---
 **前部分内容基本来自于官方文档**
 
 Vert.x提供了服务发现组件，每个服务都被封装为一个Record对象
@@ -37,7 +44,7 @@ Vert.x提供了服务发现组件，每个服务都被封装为一个Record对�
 **Service types 服务类型**
 
 服务可以是各种类型的服务，比如功能性服务，数据库，REST API等。每个服务类型定义了：
-	
+​	
 - 这个服务的地址（URL，事件总线地址，IP/DNS）
 - 服务对象的性质（服务代理，HTTP客户端，消息消费者）
 
@@ -275,7 +282,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    8433, // the port
 	    "/api" // the root of the service
 	);
-	
+
 	discovery.publish(record1, ar -> {
 	  // ...
 	});
@@ -297,7 +304,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    ServiceReference reference = discovery.getReference(ar.result());
 	    // Retrieve the service object
 	    HttpClient client = reference.get();
-	
+
 	    // You need to path the complete path
 	    client.getNow("/api/persons", response -> {
 	
@@ -315,7 +322,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	HttpEndpoint.getClient(discovery, new JsonObject().put("name", "some-http-service"), ar -> {
 	  if (ar.succeeded()) {
 	    HttpClient client = ar.result();
-	
+
 	    // You need to path the complete path
 	    client.getNow("/api/persons", response -> {
 	
@@ -338,7 +345,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    new JsonObject()
 	        .put("some-metadata", "some value")
 	);
-	
+
 	discovery.publish(record, ar -> {
 	  // ...
 	});
@@ -350,7 +357,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
         "address", // the service address,
         MyService.class // the service interface
         );
-	
+
 	discovery.publish(record, ar -> {
 	// ...
 	});
@@ -366,8 +373,8 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 
         // Dont' forget to release the service
         reference.release();
-	}
-	});
+    }
+    });
 </code></pre>
 ### Message source
 **发布**
@@ -376,7 +383,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    "some-message-source-service", // The service name
 	    "some-address" // The event bus address
 	);
-	
+
 	discovery.publish(record, ar -> {
 	  // ...
 	});
@@ -394,12 +401,12 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
         "some-address", // The event bus address
         JsonObject.class // The message payload type
         );
-	
+
 	Record record2 = MessageSource.createRecord(
-        "some-other-message-source-service", // The service name
-        "some-address", // The event bus address
-        JsonObject.class, // The message payload type
-        new JsonObject().put("some-metadata", "some value")
+	    "some-other-message-source-service", // The service name
+	    "some-address", // The event bus address
+	    JsonObject.class, // The message payload type
+	    new JsonObject().put("some-metadata", "some value")
 	);
 </code></pre>
 **消费**
@@ -410,7 +417,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    ServiceReference reference = discovery.getReference(ar.result());
 	    // Retrieve the service object
 	    MessageConsumer<JsonObject> consumer = reference.get();
-	
+
 	    // Attach a message handler on it
 	    consumer.handler(message -> {
 	      // message handler
@@ -428,7 +435,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	MessageSource.<JsonObject>getConsumer(discovery, new JsonObject().put("name", "some-message-source-service"), ar -> {
 	  if (ar.succeeded()) {
 	    MessageConsumer<JsonObject> consumer = ar.result();
-	
+
 	    // Attach a message handler on it
 	    consumer.handler(message -> {
 	      // message handler
@@ -450,7 +457,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    new JsonObject().put("url", "some jdbc url"), // The location
 	    new JsonObject().put("some-metadata", "some-value") // Some metadata
 	);
-	
+
 	discovery.publish(record, ar -> {
 	  // ...
 	});
@@ -465,7 +472,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	        ServiceReference reference = discovery.getReferenceWithConfiguration(
 	            ar.result(), // The record
 	            new JsonObject().put("username", "clement").put("password", "*****")); // Some additional metadata
-	
+
 	        // Retrieve the service object
 	        JDBCClient client = reference.get();
 	
@@ -484,7 +491,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    ar -> {
 	      if (ar.succeeded()) {
 	        JDBCClient client = ar.result();
-	
+
 	        // ...
 	
 	        // Dont' forget to release the service
@@ -501,7 +508,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	  new JsonObject().put("url", "localhost"), // The location
 	  new JsonObject().put("some-metadata", "some-value") // Some metadata
 	);
-	
+
 	discovery.publish(record, ar -> {
 	  // ...
 	});
@@ -513,7 +520,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    if (ar.succeeded() && ar.result() != null) {
 	      // Retrieve the service reference
 	      ServiceReference reference = discovery.getReference(ar.result());
-	
+
 	      // Retrieve the service instance
 	      RedisClient client = reference.get();
 	
@@ -531,7 +538,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	  ar -> {
 	    if (ar.succeeded()) {
 	      RedisClient client = ar.result();
-	
+
 	      // ...
 	
 	      // Dont' forget to release the service
@@ -570,7 +577,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
     vertx.eventBus().consumer("vertx.discovery.usage", msg -> {
       System.out.println("usage: " + msg.body());
     });
-
+    
     vertx.setPeriodic(5000, l -> {
       discovery.getRecords(r -> true, ar -> {
         List<Record> records = ar.result();
@@ -615,7 +622,7 @@ Vert.x官方的Zookeeper桥接尚未正式发布，下面是参考Consul实现�
 创建一个辅助类，维护了Record和服务ID之间的关系，并且封装了服务的发布和注销方法
 <pre class="line-numbers "><code class="language-java">
 	public class ImportedZookeeperService {
-	
+
 	  private final String name;
 	
 	  private final Record record;
@@ -719,7 +726,7 @@ start方法会创建zookeeper的连接，并通过retrieveIndividualServices方�
 	                                                           new RetryNTimes(retryTimes,
 	                                                                           sleepMsBetweenRetries));
 	                client.start();
-	
+
 	                serviceDiscovery =
 	                        ServiceDiscoveryBuilder.builder(String.class)
 	                                .basePath(basePath)
@@ -788,7 +795,7 @@ retrieveIndividualServices方法是服务导入的核心逻辑，它先从zookee
 	                services.stream().map(ImportedZookeeperService::id).collect(Collectors.toList());
 	        List<String> existingIds =
 	                imports.stream().map(ImportedZookeeperService::id).collect(Collectors.toList());
-	
+
 	        LOGGER.trace("Imported services: " + existingIds + ", Retrieved services form Zookeeper: "
 	                     + retrievedIds);
 	
@@ -824,7 +831,7 @@ close方法中将所有的服务实例注销
 	    Future<Void> done = Future.future();
 	    //删除所有服务实例
 	    unregisterAllServices(done);
-	
+
 	    done.setHandler(v -> {
 	      try {
 	        if (cache != null) {
@@ -842,7 +849,7 @@ close方法中将所有的服务实例注销
 	      closeHandler.handle(null);
 	    });
 	  }
-
+	
 	  private synchronized void unregisterAllServices(Future<Void> completed) {
 	    List<Future> list = new ArrayList<>();
 	
@@ -881,7 +888,7 @@ close方法中将所有的服务实例注销
 	    this.vertx = vertx;
 	    this.announce = options.getAnnounceAddress();
 	    this.usage = options.getUsageAddress();
-	
+
 	    this.backend = getBackend(options.getBackendConfiguration().getString("backend-name", null));
 	    this.backend.init(vertx, options.getBackendConfiguration());
 	
@@ -907,7 +914,7 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	    } else {
 	      conf = configuration;
 	    }
-	
+
 	    Future<Void> completed = Future.future();
 	    completed.setHandler(
 	        ar -> {
@@ -943,7 +950,7 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	      importer.stop(vertx, this, future);
 	      futures.add(future);
 	    }
-	
+
 	    for (ServiceExporter exporter : exporters) {
 	      Future<Void> future = Future.future();
 	      exporter.close(future::complete);
@@ -972,7 +979,7 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	        && record.getStatus() != Status.UNKNOWN
 	        && record.getStatus() != Status.DOWN
 	        ? record.getStatus() : Status.UP;
-	
+
 	    backend.store(record.setStatus(status), resultHandler);
 	    for (ServiceExporter exporter : exporters) {
 	      exporter.onPublish(new Record(record));
@@ -995,7 +1002,7 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	        resultHandler.handle(Future.failedFuture(record.cause()));
 	        return;
 	      }
-	
+
 	      for (ServiceExporter exporter : exporters) {
 	        exporter.onUnpublish(id);
 	      }
@@ -1040,7 +1047,7 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 服务实例的存储类，默认使用分布式内存存储（DefaultServiceDiscoveryBackend）。DefaultServiceDiscoveryBackend并不复杂，它内部使用一个AsyncMap来保存服务实例。
 <pre class="line-numbers "><code class="language-java">
 	  private AsyncMap<String, String> registry;
-	
+
 	  @Override
 	  public void init(Vertx vertx, JsonObject config) {
 	    this.registry = new AsyncMap<>(vertx, "service.registry");
