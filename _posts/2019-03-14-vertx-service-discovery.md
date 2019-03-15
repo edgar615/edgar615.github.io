@@ -137,6 +137,7 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
 如果JsonObject为null或者空，会匹配所有的服务记录
 
 **搜索全部记录**
+
 <pre class="line-numbers "><code class="language-java">
     discovery.getRecords(r -> true, ar -> {
         List<Record> records = ar.result();
@@ -145,7 +146,9 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
         }
     });
 </code></pre>
+
 或者
+
 <pre class="line-numbers "><code class="language-java">
     discovery.getRecords((JsonObject) null, ar -> {
         List<Record> records = ar.result();
@@ -154,14 +157,18 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
         }
     });
 </code></pre>
+
 输出
+
 ```
 	some-rest-api4:{"num":1}
 	some-rest-api3:{"color":"white"}
 	some-rest-api1:{}
 	some-rest-api2:{"color":"red"}
 ```
+
 **搜索所有http类型的记录**
+
 <pre class="line-numbers "><code class="language-java">
     discovery.getRecords(r -> r.getType().equals("http-endpoint"), ar -> {
         List<Record> records = ar.result();
@@ -170,7 +177,9 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
         }
     });
 </code></pre>
+
 或者
+
 <pre class="line-numbers "><code class="language-java">
     discovery.getRecords(new JsonObject().put("type", "http-endpoint"), ar -> {
         List<Record> records = ar.result();
@@ -179,14 +188,18 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
         }
     });
 </code></pre>
+
 输出
+
 ```
 	some-rest-api4:{"num":1}
 	some-rest-api3:{"color":"white"}
 	some-rest-api1:{}
 	some-rest-api2:{"color":"red"}
 ```
+
 **搜索所有名称为some-rest-api1**的记录
+
 <pre class="line-numbers "><code class="language-java">
     discovery.getRecords(r -> r.getName().equals("some-rest-api1"), ar -> {
         List<Record> records = ar.result();
@@ -203,7 +216,9 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
         }
     });
 </code></pre>
+
 **搜索所有color=red的记录**
+
 <pre class="line-numbers "><code class="language-java">
     discovery.getRecords(r -> "red".equals(r.getMetadata().getString("color")), ar -> {
         List<Record> records = ar.result();
@@ -219,7 +234,9 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
         }
     });
 </code></pre>
+
 **搜索所有包含color属性的记录**
+
 <pre class="line-numbers "><code class="language-java">
     discovery.getRecords(r -> r.getMetadata().containsKey("color"), ar -> {
         List<Record> records = ar.result();
@@ -235,13 +252,16 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
         }
     });
 </code></pre>
+
 **只搜索单个记录**
+
 <pre class="line-numbers "><code class="language-java">
     discovery.getRecord(r -> true, ar -> {
         Record record = ar.result();
         System.out.println(record.getName() + ":" + record.getMetadata());
     });
 </code></pre>
+
 **getRecords和getRecord默认只会查询status=UP的记录**，如果需要查询其他状态的记录，有两种方式：
 
 - 使用JsonObject过滤status属性，可以指定某个具体的status或者使用*表示全部
@@ -250,6 +270,7 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
 ## 获取服务引用
 一旦你获取到了一个服务记录，就可以获取到一个ServiceReference以及服务对象。
 ServiceReference用来表示与服务提供者之间的绑定关系
+
 <pre class="line-numbers "><code class="language-java">
     ServiceReference serviceReference = discovery.getReference(record);
     HttpClient httpClient = serviceReference.get();
@@ -259,6 +280,7 @@ ServiceReference用来表示与服务提供者之间的绑定关系
       serviceReference.release();
     });
 </code></pre>
+
 一旦使用完ServiceReference，需要释放它.
 
 我们也可以用discovery.getReferenceWithConfiguration来配置服务对象
@@ -275,6 +297,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 
 ### HTTP endpoints
 **发布**
+
 <pre class="line-numbers "><code class="language-java">
 	Record record1 = HttpEndpoint.createRecord(
 	    "some-http-service", // The service name
@@ -296,7 +319,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    new JsonObject().put("some-metadata", "some value")
 	);
 </code></pre>
+
 **消费**
+
 <pre class="line-numbers "><code class="language-java">
 	discovery.getRecord(new JsonObject().put("name", "some-http-service"), ar -> {
 	  if (ar.succeeded()  && ar.result() != null) {
@@ -317,7 +342,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	  }
 	});
 </code></pre>
+
 或者
+
 <pre class="line-numbers "><code class="language-java">
 	HttpEndpoint.getClient(discovery, new JsonObject().put("name", "some-http-service"), ar -> {
 	  if (ar.succeeded()) {
@@ -335,8 +362,10 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	  }
 	});
 </code></pre>
+
 ### Event bus services
 **发布**
+
 <pre class="line-numbers "><code class="language-java">
 	Record record = EventBusService.createRecord(
 	    "some-eventbus-service", // The service name
@@ -350,7 +379,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	  // ...
 	});
 </code></pre>
+
 也可以直接使用接口的class
+
 <pre class="line-numbers "><code class="language-java">
 	Record record = EventBusService.createRecord(
         "some-eventbus-service", // The service name
@@ -362,7 +393,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	// ...
 	});
 </code></pre>
+
 **消费**
+
 <pre class="line-numbers "><code class="language-java">
 	discovery.getRecord(new JsonObject().put("name", "some-eventbus-service"), ar -> {
 	if (ar.succeeded() && ar.result() != null) {
@@ -376,8 +409,10 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
     }
     });
 </code></pre>
+
 ### Message source
 **发布**
+
 <pre class="line-numbers "><code class="language-java">
 	Record record = MessageSource.createRecord(
 	    "some-message-source-service", // The service name
@@ -394,7 +429,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    "examples.MyData" // The payload type
 	);
 </code></pre>
+
 也可以直接使用Payload的class
+
 <pre class="line-numbers "><code class="language-java">
 	Record record1 = MessageSource.createRecord(
         "some-message-source-service", // The service name
@@ -409,7 +446,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    new JsonObject().put("some-metadata", "some value")
 	);
 </code></pre>
+
 **消费**
+
 <pre class="line-numbers "><code class="language-java">
 	discovery.getRecord(new JsonObject().put("name", "some-message-source-service"), ar -> {
 	  if (ar.succeeded() && ar.result() != null) {
@@ -430,7 +469,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	  }
 	});
 </code></pre>
+
 或者
+
 <pre class="line-numbers "><code class="language-java">
 	MessageSource.<JsonObject>getConsumer(discovery, new JsonObject().put("name", "some-message-source-service"), ar -> {
 	  if (ar.succeeded()) {
@@ -449,8 +490,10 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	  }
 	});
 </code></pre>
+
 ### JDBC Data source
 **发布**
+
 <pre class="line-numbers "><code class="language-java">
 	Record record = JDBCDataSource.createRecord(
 	    "some-data-source-service", // The service name
@@ -462,7 +505,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	  // ...
 	});
 </code></pre>
+
 **消费**
+
 <pre class="line-numbers "><code class="language-java">
 	discovery.getRecord(
 	    new JsonObject().put("name", "some-data-source-service"),
@@ -483,7 +528,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	      }
 	    });
 </code></pre>
+
 或者
+
 <pre class="line-numbers "><code class="language-java">
 	JDBCDataSource.<JsonObject>getJDBCClient(discovery,
 	    new JsonObject().put("name", "some-data-source-service"),
@@ -500,8 +547,10 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	      }
 	    });
 </code></pre>
+
 ### Redis Data source
 **发布**
+
 <pre class="line-numbers "><code class="language-java">
 	Record record = RedisDataSource.createRecord(
 	  "some-redis-data-source-service", // The service name
@@ -513,7 +562,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	  // ...
 	});
 </code></pre>
+
 **消费**
+
 <pre class="line-numbers "><code class="language-java">
 	discovery.getRecord(
 	  new JsonObject().put("name", "some-redis-data-source-service"), ar -> {
@@ -531,7 +582,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    }
 	  });
 </code></pre>
+
 或者
+
 <pre class="line-numbers "><code class="language-java">
 	RedisDataSource.getRedisClient(discovery,
 	  new JsonObject().put("name", "some-redis-data-source-service"),
@@ -547,6 +600,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 	    }
 	  });
 </code></pre>
+
 ## 监听服务的发布和注销
 每次服务提供者发布或者注销，都会有一个事件被发布到vertx.discovery.announce地址上（这个地址可以通过ServiceDiscoveryOptions修改）
 
@@ -568,6 +622,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 也可以将usage的地址设为null来关闭usage事件的触发
 
 示例
+
 <pre class="line-numbers "><code class="language-java">
     ServiceDiscovery discovery = ServiceDiscovery.create(vertx);
     vertx.eventBus().consumer("vertx.discovery.announce", msg -> {
@@ -590,7 +645,9 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
     });
     discovery.close();
 </code></pre>
+
 输出
+
 ```
 	announce: {"location":{"endpoint":"http://localhost:8080/api","host":"localhost","port":8080,"root":"/api","ssl":false},"metadata":{},"name":"some-rest-api","status":"UP","type":"http-endpoint"}
 	announce: {"location":{"host":"localhost","endpoint":"http://localhost:8080/api","port":8080,"ssl":false,"root":"/api"},"metadata":{},"name":"some-rest-api","status":"DOWN","type":"http-endpoint"}
@@ -620,6 +677,7 @@ Vert.x还定义了一种unknown类型的服务类型，但这种类型无法获�
 Vert.x官方的Zookeeper桥接尚未正式发布，下面是参考Consul实现的zookeeper桥接
 
 创建一个辅助类，维护了Record和服务ID之间的关系，并且封装了服务的发布和注销方法
+
 <pre class="line-numbers "><code class="language-java">
 	public class ImportedZookeeperService {
 
@@ -703,9 +761,11 @@ Vert.x官方的Zookeeper桥接尚未正式发布，下面是参考Consul实现�
 	  }
 	}
 </code></pre>
+
 2. 实现Zookeeper的ServiceImporter
 
 start方法会创建zookeeper的连接，并通过retrieveIndividualServices方法来从zookeeper中导入服务记录;
+
 <pre class="line-numbers "><code class="language-java">
 	  @Override
 	  public void start(Vertx vertx, ServicePublisher publisher, JsonObject configuration,
@@ -763,7 +823,9 @@ start方法会创建zookeeper的连接，并通过retrieveIndividualServices方�
 	    );
 	  }
 </code></pre>
+
 retrieveIndividualServices方法是服务导入的核心逻辑，它先从zookeeper中读取到所有的服务实例，然后将zookeeper中的服务实例发布，并将zookeeper中不存在的服务实例注销
+
 <pre class="line-numbers "><code class="language-java">
 	  private synchronized void retrieveIndividualServices(Future<Void> completed) {
 	    List<ServiceInstance<String>> instances = new ArrayList<>();
@@ -824,7 +886,9 @@ retrieveIndividualServices方法是服务导入的核心逻辑，它先从zookee
 	    });
 	  }
 </code></pre>
+
 close方法中将所有的服务实例注销
+
 <pre class="line-numbers "><code class="language-java">
 	  @Override
 	  public void close(Handler<Void> closeHandler) {
@@ -868,7 +932,9 @@ close方法中将所有的服务实例注销
 	    });
 	  }
 </code></pre>
+
 同时，我们还需要监听整个服务节点的变化，来重新导入服务实例
+
 <pre class="line-numbers "><code class="language-java">
 	  @Override
 	  public void childEvent(CuratorFramework curatorFramework,
@@ -883,6 +949,7 @@ close方法中将所有的服务实例注销
 
 ## ServiceDiscovery
 **构造方法**
+
 <pre class="line-numbers "><code class="language-java">
 	  public DiscoveryImpl(Vertx vertx, ServiceDiscoveryOptions options) {
 	    this.vertx = vertx;
@@ -896,6 +963,7 @@ close方法中将所有的服务实例注销
 	    this.options = options;
 	  }
 </code></pre>
+
 DiscoveryImpl的构造方法主要做一些配置工作
 - 配置announce和usage事件的地址
 - 初始化对应的backend
@@ -905,6 +973,7 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 
 **registerServiceImporter**
 直接调用importer.start方法启动对应的importer，在成功之后将import加入到importers中
+
 <pre class="line-numbers "><code class="language-java">
 	  public ServiceDiscovery registerServiceImporter(ServiceImporter importer, JsonObject configuration,
 	                                                  Handler<AsyncResult<Void>> completionHandler) {
@@ -938,8 +1007,10 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	    return this;
 	  }
 </code></pre>
+
 **close方法**
 将所有import、export关闭，将所有的ServiceReference释放，并删除绑定关系。
+
 <pre class="line-numbers "><code class="language-java">
 	  public void close() {
 	    LOGGER.info("Stopping service discovery");
@@ -969,9 +1040,11 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	    });
 	  }
 </code></pre>
+
 **publish 发布服务记录**
 
 将服务记录保存到ServiceDiscoveryBackend。如果注册有exporter，还需要调用exporter的onPublish方法向对应的Bridges发布服务。然后触发announce对象。
+
 <pre class="line-numbers "><code class="language-java">
 	  @Override
 	  public void publish(Record record, Handler<AsyncResult<Record>> resultHandler) {
@@ -991,9 +1064,11 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	    vertx.eventBus().publish(announce, announcedRecord.toJson());
 	  }
 </code></pre>
+
 **unpublish 注销服务**
 
 从ServiceDiscoveryBackend中删除服务记录。如果注册有exporter，还需要调用exporter的onUnpublish方法向对应的Bridges注销服务。然后触发announce事件
+
 <pre class="line-numbers "><code class="language-java">
 	  @Override
 	  public void unpublish(String id, Handler<AsyncResult<Void>> resultHandler) {
@@ -1017,9 +1092,11 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	
 	  }
 </code></pre>
+
 **getReferenceWithConfiguration方法**
 
 创建对应的ServiceReference，然后在bindings中保存绑定关系，发布bind类型的usage事件
+
 <pre class="line-numbers "><code class="language-java">
 	  @Override
 	  public ServiceReference getReferenceWithConfiguration(Record record, JsonObject configuration) {
@@ -1029,9 +1106,11 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	    return reference;
 	  }
 </code></pre>
+
 **release方法**
 
 删除bindings中的绑定关系，释放ServiceReference，发布release类型的usage事件
+
 <pre class="line-numbers "><code class="language-java">
 	  @Override
 	  public boolean release(ServiceReference reference) {
@@ -1041,10 +1120,12 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	    return removed;
 	  }
 </code></pre>
+
 **getRecord方法比较简单，不做描述**
 
 ## ServiceDiscoveryBackend
 服务实例的存储类，默认使用分布式内存存储（DefaultServiceDiscoveryBackend）。DefaultServiceDiscoveryBackend并不复杂，它内部使用一个AsyncMap来保存服务实例。
+
 <pre class="line-numbers "><code class="language-java">
 	  private AsyncMap<String, String> registry;
 
@@ -1053,7 +1134,9 @@ getBackend主要送从classpath中读取对应的ServiceDiscoveryBackend对象�
 	    this.registry = new AsyncMap<>(vertx, "service.registry");
 	  }
 </code></pre>
+
 AsyncMap的构造方法会判断节点是否在集群模式下，如果在集群模式下会使用clusterManager提供的分布式MAP，否则使用一个本地MAP(多个ServiceDiscovery共享同一个map).(LocalMapWrapper是借助ConcurrentMap对map的一个简单封装)
+
 <pre class="line-numbers "><code class="language-java">
 	//这是3.4.X版本的源码，会有性能问题，3.5.0之后的版本已经修改了实现方式
 	  public AsyncMap(Vertx vertx, String name) {
@@ -1066,8 +1149,10 @@ AsyncMap的构造方法会判断节点是否在集群模式下，如果在集群
 	    }
 	  }
 </code></pre>
+
 **store方法**
 为每个服务记录生成一个唯一ID，**只有ID为null的服务记录才表示未被发布**
+
 <pre class="line-numbers "><code class="language-java">
   @Override
   public void store(Record record, Handler<AsyncResult<Record>> resultHandler) {
@@ -1086,8 +1171,10 @@ AsyncMap的构造方法会判断节点是否在集群模式下，如果在集群
     });
   }
 </code></pre>
+
 **remove方法**
 从AsyncMap中删除对应的ID
+
 <pre class="line-numbers "><code class="language-java">
   @Override
   public void remove(String uuid, Handler<AsyncResult<Record>> resultHandler) {
@@ -1107,8 +1194,10 @@ AsyncMap的构造方法会判断节点是否在集群模式下，如果在集群
     });
   }
 </code></pre>
+
 ## ServiceReference
 所有服务类型的ServiceReference都可以继承自AbstractServiceReference。AbstractServiceReference提供了一个简单的缓存处理。ServiceReference未被释放时都从缓存中取.
+
 <pre class="line-numbers "><code class="language-java">
 	  public synchronized <X> X get() {
 	    if (service == null) {
@@ -1125,11 +1214,15 @@ AsyncMap的构造方法会判断节点是否在集群模式下，如果在集群
 	    }
 	  }
 </code></pre>
+
 它有一个retrieve的抽象方法用于获取每个服务类型对应的服务对象，需要各个子类实现
+
 <pre class="line-numbers "><code class="language-java">
 	protected abstract T retrieve();
 </code></pre>
+
 例如HTTP类型的实现如下
+
 <pre class="line-numbers "><code class="language-java">
     public HttpClient retrieve() {
       HttpClientOptions options;
