@@ -137,7 +137,7 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
 
 <pre class="line-numbers "><code class="language-java">
     discovery.getRecords(r -> true, ar -> {
-        List<Record> records = ar.result();
+        ListRecord records = ar.result();
         for (Record record : records) {
         System.out.println(record.getName() + ":" + record.getMetadata());
         }
