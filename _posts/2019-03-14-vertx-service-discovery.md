@@ -132,3 +132,14 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
 - { "name" = "a" } => 匹配所有name属性为a的记录
 - { "color" = "*" } => 匹配所有设置了color属性的记录
 - { "color" = "red" } => 匹配所有color属性为red的记录
+
+**搜索全部记录**
+
+<pre class="line-numbers "><code class="language-java">
+    discovery.getRecords(r -> true, ar -> {
+        List<Record> records = ar.result();
+        for (Record record : records) {
+            System.out.println(record.getName() + ":" + record.getMetadata());
+        }
+    });
+</code></pre>
