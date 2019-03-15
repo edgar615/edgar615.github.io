@@ -143,3 +143,14 @@ Vert.x也提供了一下基本服务类型用于创建服务记录（后面再�
         }
     });
 </code></pre>
+
+或者
+
+<pre class="line-numbers "><code class="language-java">
+    discovery.getRecords((JsonObject) null, ar -> {
+        List<Record> records = ar.result();
+        for (Record record : records) {
+            System.out.println(record.getName() + ":" + record.getMetadata());
+        }
+    });
+</code></pre>
