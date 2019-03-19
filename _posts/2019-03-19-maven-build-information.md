@@ -8,7 +8,7 @@ comments: true
 permalink: maven-build-information.html
 ---
 
-1. 设置日期格式化
+设置日期格式化
 
 ```
 <properties>
@@ -17,7 +17,7 @@ permalink: maven-build-information.html
 </properties>
 ```
 
-2. 增加build配置
+增加build配置
 
 ```
 <build>
@@ -30,7 +30,7 @@ permalink: maven-build-information.html
 </build>
 ```
 
-3. 增加build.properties
+增加build.properties
 
 ```
 build.version=${pom.version}
@@ -38,7 +38,7 @@ build.date=${timestamp}
 build.url=${pom.url}
 build.name=${pom.name}
 ```
-5. 运行 `mvn clean package`，查看打包文件中的build.properties
+运行 `mvn clean package`，查看打包文件中的build.properties
 
 ```
 build.version=1.0-SNAPSHOT
