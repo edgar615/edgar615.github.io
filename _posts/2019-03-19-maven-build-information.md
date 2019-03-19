@@ -66,3 +66,7 @@ Maven自带时间戳使用`${maven.build.timestamp}`，但是时区是UTC。我�
 	<inherited>false</inherited>
 </plugin>
 ```
+
+参考资料
+
+https://memorynotfound.com/maven-build-information-properties-file/
