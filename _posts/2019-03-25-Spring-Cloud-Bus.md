@@ -135,10 +135,12 @@ Received remote environment change request. Keys/values to update {key1=value1}
 - `app`  通过 `vcap.application.name`设置，如果不存在使用 `spring.application.name`
 - `index` 通过 `vcap.application.instance_index`设置,如果不存在，按照下面的顺序设置, `spring.application.index`, `local.server.port`, `server.port`, or `0`
 - `id` 通过 `vcap.application.instance_id`设置, 如果不存在，使用随机数
+
+
 我们按照上述规则配置后重新观察`springCloudBus`主题，发现服务的ID已经变化了
+
 ```
 {"type":"AckRemoteApplicationEvent","timestamp":1553496976970,"originService":"cloud-bus-kafka2:9001:15b4c214558697788aa4a47d01f1e2c7","destinationService":"**","id":"3c4d0e87-f3de-40b8-9169-3bc33d8eacd3","ackId":"4f7be4b5-009b-482c-9888-4b63dce6bb88","ackDestinationService":"**","event":"org.springframework.cloud.bus.event.EnvironmentChangeRemoteApplicationEvent"}
-
 ```
 我们可以在端点指定具体的应用，例如`/bus-refresh/cloud-bus-kafka2:9001`，当应用收到消息后首先判断是否是它的消息，如果是处理这个消息，其他消息将被忽略
 
