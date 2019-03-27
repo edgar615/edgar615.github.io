@@ -46,7 +46,11 @@ public class Application {
 }
 </code></pre>
 
-启动应用后，
+启动应用后，访问`localhost:8671`可以看到eureka的信息
+
+![](/assets/images/posts/eureka/Eureka1.png)
+
+## Client
 
 
 
