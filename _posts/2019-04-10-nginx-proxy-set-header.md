@@ -8,7 +8,7 @@ comments: true
 permalink: nginx-proxy-set-header.html
 ---
 
-<pre class="line-numbers " data-line="2,3"><code>
+<pre class="line-numbers " data-line="2,3"><code class="language-shell">
 location /header {
 	proxy_set_header   iden    "student";
 	proxy_set_header   age     "21";
