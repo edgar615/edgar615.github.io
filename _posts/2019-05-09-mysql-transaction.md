@@ -45,6 +45,8 @@ permalink: mysql-transaction.html
 **Read committed**  可避免脏读的发生
 **Read uncommitted** 最低级别，任何情况都无法保证。
 
+不可重复读和幻读容易搞混，确实这两者有些相似。但不可重复读重点在于update和delete，而幻读的重点在于insert。
+
 # 测试
 准备数据
 
@@ -324,21 +326,12 @@ Query OK, 0 rows affected (0.00 sec)
 mysql> start transaction;
 Query OK, 0 rows affected (0.00 sec)
 
-mysql> select * from user;
-+----+-------+
-| id | name  |
-+----+-------+
-|  1 | edgar |
-+----+-------+
-1 row in set (0.03 sec)
+mysql> begin;
+Query OK, 0 rows affected (0.00 sec)
 
-mysql> select * from user where id = 1;
-+----+-------+
-| id | name  |
-+----+-------+
-|  1 | edgar |
-+----+-------+
-1 row in set (0.03 sec)
+mysql> select * from user where id > 1;
+Empty set
+
 </code></pre>
 sessionB
 <pre class="line-numbers"><code class="language-sql">
@@ -347,17 +340,14 @@ Query OK, 1 row affected (0.00 sec)
 </code></pre>
 sessionA 
 <pre class="line-numbers"><code class="language-sql">
-mysql> select * from user;
-+----+-------+
-| id | name  |
-+----+-------+
-|  1 | edgar |
-+----+-------+
-1 row in set (0.03 sec)
-
-mysql> select * from user where id = 2;
+mysql> select * from user where id > 1;
 Empty set
+
+mysql> insert user(id, name) values(3, 'leona');
+-- 卡住，当sessionB commit的时候返回如下信息
+1062 - Duplicate entry '3' for key 'PRIMARY'
 </code></pre>
+通过上面的操作，我们已经看到sessionB对sessionA造成的**幻读**影响：sessionA看到大于1的数据为空集，insert的时候却返回主键冲突
 
 ## Serializable
 打开两个session，分别设置为事务隔离级别为**Serializable**，事务不自动提交
@@ -392,7 +382,7 @@ Rows matched: 1  Changed: 1  Warnings: 0
 sessionB
 <pre class="line-numbers"><code class="language-sql">
 mysql> select * from user where id = 1;
-//会卡住没有返回，
+-- 会卡住没有返回，
 </code></pre>
 sessionA 
 <pre class="line-numbers"><code class="language-sql">
