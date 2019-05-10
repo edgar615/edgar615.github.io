@@ -12,7 +12,7 @@ permalink: nginx-vhost.html
 
 ```
     server {		
-        listen       80;
+        listen       80 default_server;
         server_name  "~^(?<name>\w+)\.example\.com$";
 		root /alidata/nginx/content/$name;
 		#access_log /alidata/nginx/log/$name/access.log; #不起作用
@@ -49,7 +49,7 @@ www.conf
 
 <pre class="line-numbers"><code class="language-nginx">
 server {
-	listen       80 #default_server;
+	listen       80 default_server;
 	server_name  www.example.com;
 	root         /alidata/nginx/content;
 	location / {
@@ -112,6 +112,10 @@ server {
 	}
 }
 </code></pre>
+
+备注：不要忘记设置一个default_server，不然nginx找了一圈都没有匹配后，会直接路由到它找到的第一个配置的虚拟主机上.
+
+> 网上看到是按虚拟主机的conf文件名字的字母表顺序，没有实测出这种规律，有点像是按我创建vhost的顺序
 
 # 参考资料
 
