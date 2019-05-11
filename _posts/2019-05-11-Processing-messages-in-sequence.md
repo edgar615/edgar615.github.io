@@ -11,6 +11,7 @@ permalink: Processing-messages-in-sequence.html
 消息队列是应用开发的常用工具, 也是系统解耦的必备利器。保证同一用户的消息按照顺序处理是应用的常见需求，  譬如在微博应用中， 发表微博、删除微博这两个操作必须按序处理，乱序势必造成业务逻辑错误。
 
 如何保证消息处理顺序？以下是常见的几种做法。
+
 **设计一**： 单线程处理。 虽然单线程处理非常简单好用，但是单线程限制了系统吞吐率。
 
 **设计二**： 每个用户一个队列。看起来很美，实际上基本不可行。首先，每个消息队列基本都没啥消息， 其次， 不可能为每个用户安排一个线程。
@@ -118,65 +119,4 @@ public class SequentialQueue<E> {
 }
 </code></pre>
 
-修改nginx配置
-
-<pre class="line-numbers"><code class="language-javascript">
-location / {
-   index  index.html;
-
-   if (!-e $request_filename) {
-​		rewrite ^/(.*) /index.html last;
-​		break;
-​	}
-}
-</code></pre>
-
-增加access_by_lua_block
-<pre class="line-numbers"><code class="language-javascript">
-location / {
-	access_by_lua_block  {
-		local cjson = require "cjson"
-		local requestUri = ngx.var.uri
-		local appid = "xxxxxxx"
-		local args, err = ngx.req.get_uri_args()
-		local wechatCode = nil
-		for key, val in pairs(args) do
-			 if key == "code" then
-				 wechatCode = val
-			 end
-		end
-		if (wechatCode ~= nil) then
-			local res = ngx.location.capture("/api/wx/access-token",
-				 { method=ngx.HTTP_GET, args = { code = wechatCode} }
-			 )
-			 ngx.log(ngx.ERR, res.body)
-			if 200 ~= res.status then
-			  ngx.exit(res.status)
-			end
-			local resBody = cjson.decode(res.body)
-			local cookieStr = "wechat-token=" .. resBody.result .. "; path=/"
-			ngx.header["Set-Cookie"] = {cookieStr}						
-			ngx.log(ngx.ERR, cookieStr)
-		else
-			-- authorize get wechat code						
-			local redirectUri = "https://wx.tabaosmart.com" .. ngx.var.request_uri
-			local openIdUrl = "https://open.weixin.qq.com/connect/oauth2/authorize?" 
-				.. "appid=" .. appid
-				.. "&redirect_uri=" .. ngx.escape_uri(redirectUri)
-				.. "&response_type=code&scope=snsapi_userinfo"
-				.. "&state=" .. ngx.now()
-				.. "#wechat_redirect"
-			ngx.redirect(openIdUrl)
-		end
-	}
-
-   index  index.html;
-
-   if (!-e $request_filename) {
-​		rewrite ^/(.*) /index.html last;
-​		break;
-​	}
-}
-</code></pre>
-
-有时候还有点小问题，后面在调
+PS：在分布式环境下，可以用Redis做注册表
