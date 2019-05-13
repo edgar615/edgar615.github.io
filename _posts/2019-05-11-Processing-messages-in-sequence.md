@@ -26,7 +26,7 @@ permalink: Processing-messages-in-sequence.html
 
 设计四的简易实现
 
-<pre class="line-numbers"><code class="language-java">
+```
 public class SequentialQueue<E> {
   /**
    * 任务列表
@@ -117,6 +117,7 @@ public class SequentialQueue<E> {
   }
 
 }
-</code></pre>
+```
+
 
 PS：在分布式环境下，可以用Redis做注册表
