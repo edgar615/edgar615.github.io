@@ -90,8 +90,11 @@ InnoDB的MVCC多版本（Read Committed和Repeatable Read隔离级别）是利�
 - **REPEATABLE READ** 事务在begin/start transaction之后的第一条select读操作后, 会创建一个ReadView 将当前系统中活跃的其他事务记录记录起来，**只生成一次**
 
 > With REPEATABLE READ isolation level, the snapshot is based on the time when the first read operation is performed.
+> 
 >  使用REPEATABLE READ隔离级别，快照是基于执行第一个读操作的时间。
+> 
 > With READ COMMITTED isolation level, the snapshot is reset to the time of each consistent read operation.
+> 
 > 使用READ COMMITTED隔离级别，快照被重置为每个一致的读取操作的时间。
 
 # 参考资料
