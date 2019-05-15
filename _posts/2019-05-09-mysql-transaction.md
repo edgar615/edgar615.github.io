@@ -343,9 +343,9 @@ sessionA
 mysql> select * from user where id > 1;
 Empty set
 
-mysql> insert user(id, name) values(3, 'leona');
+mysql> insert user(id, name) values(2, 'jennifer');
 -- 卡住，当sessionB commit的时候返回如下信息
-1062 - Duplicate entry '3' for key 'PRIMARY'
+1062 - Duplicate entry '2' for key 'PRIMARY'
 </code></pre>
 通过上面的操作，我们已经看到sessionB对sessionA造成的**幻读**影响：sessionA看到大于1的数据为空集，insert的时候却返回主键冲突
 
