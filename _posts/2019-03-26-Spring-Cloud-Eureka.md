@@ -129,6 +129,109 @@ com.netflix.discovery.DiscoveryClient    : The response status is 200
 我们在观察Server
 
 
+
+# 集群
+
+server1的配置
+
+<pre class="line-numbers " data-line="2"><code class="language-yml">
+eureka:
+  instance:
+    #集群这个名字必须相同，如果没有填写，默认为unkown
+    appname: eureka-peer
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://localhost:8092/eureka/
+</code></pre>
+
+server2的配置
+
+<pre class="line-numbers " data-line="2"><code class="language-yml">
+eureka:
+  instance:
+    #集群这个名字必须相同，如果没有填写，默认为unkown
+    appname: eureka-peer
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://localhost:8091/eureka/
+</code></pre>
+
+启动server1，我们可以看到日志中有一条错误信息
+```
+Getting all instance registry info from the eureka server
+Request execution error
+
+com.sun.jersey.api.client.ClientHandlerException: java.net.ConnectException: Connection refused: connect
+
+...
+
+DiscoveryClient_EUREKA-PEER/PC-201809260001:8091 - was unable to send heartbeat!
+
+com.netflix.discovery.shared.transport.TransportException: Cannot execute request on any known server
+
+```
+启动server2，我们可以看到日志中没有错误信息
+```
+DiscoveryClient_EUREKA-PEER/PC-201809260001:8092 - registration status: 204
+Initializing Spring FrameworkServlet 'dispatcherServlet'
+FrameworkServlet 'dispatcherServlet': initialization started
+FrameworkServlet 'dispatcherServlet': initialization completed in 19 ms
+Registered instance EUREKA-PEER/PC-201809260001:8092 with status UP (replication=true)
+```
+server1也不再报错
+```
+Registered instance EUREKA-PEER/PC-201809260001:8092 with status UP (replication=false)
+Got 1 instances from neighboring DS node
+Renew threshold is: 1
+Changing status to UP
+Started Eureka Server
+Disable delta property : false
+Single vip registry refresh property : null
+Force full registry fetch : false
+Application is null : false
+Registered Applications size is zero : true
+Application version is -1: true
+Getting all instance registry info from the eureka server
+DiscoveryClient_EUREKA-PEER/PC-201809260001:8091 - Re-registering apps/EUREKA-PEER
+DiscoveryClient_EUREKA-PEER/PC-201809260001:8091: registering service...
+DiscoveryClient_EUREKA-PEER/PC-201809260001:8091 - registration status: 204
+The response status is 200
+Registered instance EUREKA-PEER/PC-201809260001:8091 with status UP (replication=true)
+```
+访问`http://localhost:8091`，可以看到`instances`处有了eureka-peer的信息
+![](/assets/images/posts/eureka/eureka_peer1.png)
+
+但是我我们发现`8092`在unavailable-replicas中，这是因为eureka集群不能工作在同一个hostname中，我们做如下修改
+server1
+<pre class="line-numbers " data-line="2"><code class="language-yml">
+eureka:
+  instance:
+    appname: eureka-peer
+    hostname: eureka-peer1
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://eureka-peer2:8092/eureka/
+</code></pre>
+server2
+<pre class="line-numbers " data-line="2"><code class="language-yml">
+eureka:
+  instance:
+    appname: eureka-peer
+    hostname: eureka-peer2
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://eureka-peer1:8091/eureka/
+</code></pre>
+在hosts文件中设置好`eureka-peer1`和`eureka-peer2`，重新启动server后发现`8092`出现在了`available-replicas`
+![](/assets/images/posts/eureka/eureka_peer2.png)
 参考资料
 
 https://thepracticaldeveloper.com/2018/03/18/spring-boot-service-discovery-eureka/
