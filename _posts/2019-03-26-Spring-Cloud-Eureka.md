@@ -35,7 +35,7 @@ server:
 
 增加启动类
 
-<pre class="line-numbers " data-line="2"><code class="language-java">
+<pre class="line-numbers"><code class="language-java">
 @SpringBootApplication
 @EnableEurekaServer
 public class Application {
@@ -80,7 +80,7 @@ spring:
 ```
 增加启动类
 
-<pre class="line-numbers " data-line="2"><code class="language-java">
+<pre class="line-numbers"><code class="language-java">
 @SpringBootApplication
 @EnableEurekaClient
 public class EurekaClientApplication {
@@ -134,7 +134,7 @@ com.netflix.discovery.DiscoveryClient    : The response status is 200
 
 server1的配置
 
-<pre class="line-numbers " data-line="2"><code class="language-yml">
+<pre class="line-numbers"><code class="language-yml">
 eureka:
   instance:
     #集群这个名字必须相同，如果没有填写，默认为unkown
@@ -148,7 +148,7 @@ eureka:
 
 server2的配置
 
-<pre class="line-numbers " data-line="2"><code class="language-yml">
+<pre class="line-numbers"><code class="language-yml">
 eureka:
   instance:
     #集群这个名字必须相同，如果没有填写，默认为unkown
@@ -207,7 +207,7 @@ Registered instance EUREKA-PEER/PC-201809260001:8091 with status UP (replication
 
 但是我我们发现`8092`在unavailable-replicas中，这是因为eureka集群不能工作在同一个hostname中，我们做如下修改
 server1
-<pre class="line-numbers " data-line="2"><code class="language-yml">
+<pre class="line-numbers"><code class="language-yml">
 eureka:
   instance:
     appname: eureka-peer
@@ -219,7 +219,7 @@ eureka:
       defaultZone: http://eureka-peer2:8092/eureka/
 </code></pre>
 server2
-<pre class="line-numbers " data-line="2"><code class="language-yml">
+<pre class="line-numbers"><code class="language-yml">
 eureka:
   instance:
     appname: eureka-peer
@@ -232,6 +232,28 @@ eureka:
 </code></pre>
 在hosts文件中设置好`eureka-peer1`和`eureka-peer2`，重新启动server后发现`8092`出现在了`available-replicas`
 ![](/assets/images/posts/eureka/eureka_peer2.png)
+
+修改并启动client
+<pre class="line-numbers"><code class="language-yml">
+server:
+  port: 9000
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://eureka-peer1:8091/eureka/
+spring:
+  application:
+    name: eureka-client
+</code></pre>
+观察`eureka-peer1`和`eureka-peer2`，可以看到client已经注册
+![](/assets/images/posts/eureka/eureka_peer3.png)
+
+理想的eureka架构
+![](/assets/images/posts/eureka/eureka-architecture.png)
+
 参考资料
 
 https://thepracticaldeveloper.com/2018/03/18/spring-boot-service-discovery-eureka/
+
+https://blog.asarkar.org/technical/netflix-eureka/
