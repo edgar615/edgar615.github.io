@@ -240,18 +240,132 @@ server:
 
 eureka:
   client:
-    serviceUrl:
-      defaultZone: http://eureka-peer1:8091/eureka/
+​    serviceUrl:
+​      defaultZone: http://eureka-peer1:8091/eureka/
 spring:
   application:
-    name: eureka-client
+​    name: eureka-client
 </code></pre>
-观察`eureka-peer1`和`eureka-peer2`，可以看到client已经注册
+观察`eureka-peer1`和`eureka-peer2`，可以看到client已经注册(换了台电脑测试，所以账有些内容和上面的图有差别)
 ![](/assets/images/posts/eureka/eureka_peer3.png)
 
 理想的eureka架构
+
 ![](/assets/images/posts/eureka/eureka-architecture.png)
 
+> High level architecture by Netflix, licensed under Apache License v2.0
+
+# 配置
+## client
+<pre class="line-numbers"><code class="language-yml">
+eureka:
+  client:
+  	#关闭eureka client，默认true
+    enabled: false 
+    # 注册自身到eureka服务器，默认true
+    register-with-eureka: true
+    # 表示是否从eureka服务器获取注册信息，默认true
+    fetch-registry: false
+    # 客户端从Eureka Server集群里更新Eureka Server信息的频率，单位秒，默认5分钟
+    eureka-service-url-poll-interval-seconds: 60 
+    # 从Eureka服务器端获取注册信息的间隔时间，单位：秒,默认值30秒
+    registry-fetch-interval-seconds: 5
+    # 连接 Eureka Server 的超时时间，单位：秒，默认值5
+    eureka-server-connect-timeout-seconds: 5
+    # 读取 Eureka Server 信息的超时时间，单位：秒，默认值8
+    eureka-server-read-timeout-seconds: 8
+    #  获取实例时是否过滤，只保留UP状态的实例，默认值true
+    filter-only-up-instances: true
+    # Eureka 服务端连接空闲关闭时间，单位：秒，默认值30
+    eureka-connection-idle-timeout-seconds：30
+    # 从Eureka 客户端到所有Eureka服务端的连接总数
+    eureka-server-total-connections: 200
+    # 从Eureka客户端到每个Eureka服务主机的连接总数
+    eureka-server-total-connections-per-host: 50
+    # 复制实例变化信息到eureka服务器所需要的时间间隔（s），默认为30秒
+    instance-info-replication-interval-seconds:30
+    #   最初复制实例信息到eureka服务器所需的时间（s），默认为40秒
+    initial-instance-info-replication-interval-seconds:40
+    #  获取eureka服务的代理主机，默认为null
+    proxy-host: null
+    # 获取eureka服务的代理端口, 默认为null 
+    proxy-port: null
+    # 获取eureka服务的代理用户名，默认为null
+    proxy-user-name
+    # 获取eureka服务的代理密码，默认为null 
+    proxy-password
+    # eureka注册表的内容是否被压缩，默认为true，并且是在最好的网络流量下被压缩
+    gZip-content: true
+    # 获取实现了eureka客户端在第一次启动时读取注册表的信息作为回退选项的实现名称
+    backup-registry-impl: null
+    # 实例是否使用同一zone里的eureka服务器，默认为true，理想状态下，eureka客户端与服务端是在同一zone下
+    prefer-same-zone-eureka: true
+    #服务器是否能够重定向客户端请求到备份服务器。 如果设置为false，服务器将直接处理请求，如果设置为true，它可能发送HTTP重定向到客户端。默认为false
+    allow-redirects: false
+    # 是否记录eureka服务器和客户端之间在注册表的信息方面的差异，默认为false
+    log-delta-diff: false
+    # ndicates whether the eureka client should disable fetching of delta and should rather resort to getting the full registry information.
+    disable-delta: false
+    # eureka服务注册表信息里的以逗号隔开的地区名单，如果不这样返回这些地区名单，则客户端启动将会出错。默认为null
+    fetch-remote-regions-registry: null
+    # 获取实例所在的地区。默认为us-east-1
+    region: us-east-1
+    # 获取实例所在的地区下可用性的区域列表
+    availability-zones: 
+    # 设置eureka服务器所在的地址，查询服务和注册服务都需要依赖这个地址，类型为 HashMap，并设置有一组默认值，默认的Key为 defaultZone；默认的Value为 http://localhost:8761/eureka ，如果服务注册中心为高可用集群时，多个注册中心地址以逗号分隔。如果服务注册中心加入了安全验证，这里配置的地址格式为： http://<username>:<password>@localhost:8761/eureka 其中 <username> 为安全校验的用户名；<password> 为该用户的密码
+    serviceUrl:
+       # 设置eureka服务器所在的地址，可以同时向多个服务注册服务
+      defaultZone: http://127.0.0.1:8000/eureka/
+    #  心跳执行程序线程池的大小,默认为2
+    heartbeat-executor-thread-pool-size: 2
+    # 心跳执行程序回退相关的属性，是重试延迟的最大倍数值，默认为10
+    heartbeat-executor-exponential-back-off-bound: 10
+    # 执行程序缓存刷新线程池的大小，默认为2
+    cache-refresh-executor-thread-pool-size: 2
+    # 执行程序指数回退刷新的相关属性，是重试延迟的最大倍数值，默认为10
+    cache-refresh-executor-exponential-back-off-bound: 10
+    # Eureka服务器序列化/反序列化的信息中获取“$”符号的的替换字符串。默认为“_-”
+    dollar-replacement: _-
+    # eureka服务器序列化/反序列化的信息中获取“_”符号的的替换字符串。默认为“__”
+    escape-char-replacement: __
+    #  如果设置为true,客户端的状态更新将会点播更新到远程服务器上，默认为true
+    on-demand-update-status-change: true
+    # 此客户端只对一个单一的VIP注册表的信息感兴趣。默认为null
+    registry-refresh-single-vip-address: null
+</code></pre>
+## instance
+<pre class="line-numbers"><code class="language-yml">
+eureka:
+  instance:
+  	#此实例注册到eureka服务端的唯一的实例ID,其组成为{spring.application.instance_id:${random.value}}
+  	instance-id: 
+  	# 不使用主机名来定义注册中心的地址，而使用IP地址的形式，如果设置eureka.instance.ip-address 属性，则使用该属性配置的IP，否则自动获取除环路IP外的第一个IP地址
+  	prefer-ip-address: false
+  	# IP地址
+  	ip-address: 127.0.0.1
+  	# 当前实例的主机名
+  	hostname: eureka-client
+  	# 服务名，默认取 spring.application.name 配置值，如果没有则为 unknown
+  	appname: eureka-client
+  	#  获得在eureka服务上注册的应用程序组的名字，默认为unknown
+  	app-group-name: unkown
+  	# 实例注册到eureka服务器时，是否开启通讯，默认为false
+  	instance-enabled-onit: false
+  	# 获取该实例应该接收通信的非安全端口。默认为80
+  	# 定义服务续约任务（心跳）的调用间隔，单位：秒，默认值30
+  	lease-renewal-interval-in-seconds: 30
+  	# 定义服务失效的时间，单位：秒，默认值90
+  	lease-expiration-duration-in-seconds: 90
+  	# 状态页面的URL，相对路径，默认使用 HTTP 访问，如果需要使用 HTTPS则需要使用绝对路径配置
+  	status-page-url-path: /info
+  	# 状态页面的URL，绝对路径
+  	status-page-url: 
+  	# 健康检查页面的URL，相对路径，默认使用 HTTP 访问，如果需要使用 HTTPS则需要使用绝对路径配置
+  	health-check-url-path: /health
+  	# 健康检查页面的URL，绝对路径
+  	health-check-url:
+
+</code></pre>
 参考资料
 
 https://thepracticaldeveloper.com/2018/03/18/spring-boot-service-discovery-eureka/
