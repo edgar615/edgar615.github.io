@@ -1,11 +1,11 @@
 ---
 layout: post
-title: MySQL索引
+title: MySQL索引-文件存储结构（第一部分）
 date: 2019-05-31
 categories:
     - MySQL
 comments: true
-permalink: mysql-index.html
+permalink: mysql-index-1.html
 ---
 
 # 文件存储结构
