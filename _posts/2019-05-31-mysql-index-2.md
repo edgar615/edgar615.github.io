@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引-树（第部分）
+title: MySQL索引-二叉树（第2部分）
 date: 2019-05-31
 categories:
     - MySQL
