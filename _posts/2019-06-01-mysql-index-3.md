@@ -224,7 +224,11 @@ B+树是B树的改进版
 
 ![](/assets/images/posts/mysql-index/balance-tree-9.png)
 
+绕5左旋
+
 ![](/assets/images/posts/mysql-index/balance-tree-10.png)
+
+绕8右旋
 
 ![](/assets/images/posts/mysql-index/balance-tree-11.png)
 
@@ -232,7 +236,11 @@ B+树是B树的改进版
 
 ![](/assets/images/posts/mysql-index/balance-tree-12.png)
 
+绕12右旋
+
 ![](/assets/images/posts/mysql-index/balance-tree-13.png)
+
+绕8左旋
 
 ![](/assets/images/posts/mysql-index/balance-tree-14.png)
 
