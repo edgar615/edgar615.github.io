@@ -60,19 +60,19 @@ B+树的插入需要考虑3种情况
 
 向下图的B+树（每个节点只能存放3个数据）插入7时，叶子节点和索引节点均未满，直接插入到叶子节点
 
-![](/assets/images/posts/mysql-index/btree-3.jpg)
+![](/assets/images/posts/mysql-index/btree-3.png)
 
 接着插入8，叶子节点已满，需要分裂，选取待分裂节点中间位置的项进行分裂，而索引节点未满，直接将分裂后的索引插入索引节点
 
-![](/assets/images/posts/mysql-index/btree-4.jpg)
+![](/assets/images/posts/mysql-index/btree-4.png)
 
 继续插入节点20
 
-![](/assets/images/posts/mysql-index/btree-5.jpg)
+![](/assets/images/posts/mysql-index/btree-5.png)
 
 叶子节点已满，选取待分裂节点中间位置的项进行分裂，分裂后索引节点已满，继续分裂
 
-![](/assets/images/posts/mysql-index/btree-6.jpg)
+![](/assets/images/posts/mysql-index/btree-6.png)
 
 ## 删除
 
@@ -84,35 +84,35 @@ B+树的删除也需要考虑多种情况
 
 向下图的B+树（每个节点只能存放3个数据）删除3时，删除后节点的关键字>M/2，不会破坏B+树，可以直接删除
 
-![](/assets/images/posts/mysql-index/btree-7.jpg)
+![](/assets/images/posts/mysql-index/btree-7.png)
 
 删除后
 
-![](/assets/images/posts/mysql-index/btree-8.jpg)
+![](/assets/images/posts/mysql-index/btree-8.png)
 
 向下图的B+树删除1时，会导致索引节点的修改
 
-![](/assets/images/posts/mysql-index/btree-9.jpg)
+![](/assets/images/posts/mysql-index/btree-9.png)
 
 删除后
 
-![](/assets/images/posts/mysql-index/btree-10.jpg)
+![](/assets/images/posts/mysql-index/btree-10.png)
 
 向下图的B+树删除5时，删除后节点的关键字<M/2，如果其兄弟结点中含有多余的关键字，从兄弟结点中借关键字完成删除操作
 
-![](/assets/images/posts/mysql-index/btree-11.jpg)
+![](/assets/images/posts/mysql-index/btree-11.png)
 
 删除后
 
-![](/assets/images/posts/mysql-index/btree-12.jpg)
+![](/assets/images/posts/mysql-index/btree-12.png)
 
 向下图的B+树删除7时，删除后节点的关键字<M/2，如果其兄弟结点中含有多余的关键字，从兄弟结点中借关键字完成删除操作
 
-![](/assets/images/posts/mysql-index/btree-11.jpg)
+![](/assets/images/posts/mysql-index/btree-11.png)
 
 删除后
 
-![](/assets/images/posts/mysql-index/btree-12.jpg)
+![](/assets/images/posts/mysql-index/btree-12.png)
 
 ## 按50%分裂的不足
 - 空间利用率不高：按照传统50%的页面分裂策略，索引页面的空间利用率在50%左右；
@@ -120,7 +120,7 @@ B+树的删除也需要考虑多种情况
 
 基于上面的考虑，InnoDb对分裂做了优化，为每个索引页面维护了一个上次插入的位置，以及上次的插入是递增/递减的标识。根据这些信息，InnoDB能够判断出新插入到页面中的记录，是否仍旧满足递增/递减的约束，若满足约束，则采用优化后的分裂策略
 
-![](/assets/images/posts/mysql-index/btree-13.jpg)
+![](/assets/images/posts/mysql-index/btree-13.png)
 
 - 不移动原有页面的任何记录，只是将新插入的记录写到新页面之中，分裂的代价小
 - 原有页面的利用率，仍旧是100%；
