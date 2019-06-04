@@ -165,11 +165,15 @@ permalink: mysql-index-2.html
 
 ![](/assets/images/posts/mysql-index/balance-tree-5.png)
 
+找到失衡点9，右旋
+
 ![](/assets/images/posts/mysql-index/balance-tree-6.png)
 
 **右右插入**，左旋
 
 ![](/assets/images/posts/mysql-index/balance-tree-7.png)
+
+找到失衡点10，左旋
 
 ![](/assets/images/posts/mysql-index/balance-tree-8.png)
 
@@ -177,7 +181,11 @@ permalink: mysql-index-2.html
 
 ![](/assets/images/posts/mysql-index/balance-tree-9.png)
 
+绕5左旋
+
 ![](/assets/images/posts/mysql-index/balance-tree-10.png)
+
+绕8右旋
 
 ![](/assets/images/posts/mysql-index/balance-tree-11.png)
 
@@ -185,7 +193,11 @@ permalink: mysql-index-2.html
 
 ![](/assets/images/posts/mysql-index/balance-tree-12.png)
 
+绕12右旋
+
 ![](/assets/images/posts/mysql-index/balance-tree-13.png)
+
+绕8左旋
 
 ![](/assets/images/posts/mysql-index/balance-tree-14.png)
 
