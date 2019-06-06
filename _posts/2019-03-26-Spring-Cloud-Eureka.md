@@ -255,6 +255,23 @@ spring:
 
 > High level architecture by Netflix, licensed under Apache License v2.0
 
+# 自我保护机制
+Eureka各个节点都是平等的，没有ZK中角色的概念， 即使N-1个节点挂掉也不会影响其他节点的正常运行。
+
+默认情况下，如果Eureka Server在一定时间内（默认90秒）没有接收到某个微服务实例的心跳，Eureka Server将会移除该实例。但是当网络分区故障发生时，微服务与Eureka Server之间无法正常通信，而微服务本身是正常运行的，此时不应该移除这个微服务，所以引入了自我保护机制。
+
+自我保护模式正是一种针对网络异常波动的安全保护措施，使用自我保护模式能使Eureka集群更加的健壮、稳定的运行。
+
+自我保护机制的工作机制是如果在15分钟内超过85%的客户端节点都没有正常的心跳，那么Eureka就认为客户端与注册中心出现了网络故障，Eureka Server自动进入自我保护机制，此时会出现以下几种情况：
+
+1、Eureka Server不再从注册列表中移除因为长时间没收到心跳而应该过期的服务。
+2、Eureka Server仍然能够接受新服务的注册和查询请求，但是不会被同步到其它节点上，保证当前节点依然可用。
+3、当网络稳定时，当前Eureka Server新的注册信息会被同步到其它节点中。
+
+因此Eureka Server可以很好的应对因网络故障导致部分节点失联的情况，而不会像ZK那样如果有一半不可用的情况会导致整个集群不可用而变成瘫痪。
+
+Eureka自我保护机制，通过配置 eureka.server.enable-self-preservation来true打开/false禁用自我保护机制，默认打开状态，建议生产环境打开此配置。
+
 # 配置
 ## client
 <pre class="line-numbers"><code class="language-yml">
@@ -333,6 +350,7 @@ eureka:
     # 此客户端只对一个单一的VIP注册表的信息感兴趣。默认为null
     registry-refresh-single-vip-address: null
 </code></pre>
+
 ## instance
 <pre class="line-numbers"><code class="language-yml">
 eureka:
@@ -349,8 +367,31 @@ eureka:
   	appname: eureka-client
   	#  获得在eureka服务上注册的应用程序组的名字，默认为unknown
   	app-group-name: unkown
+	# 指定服务实例所属数据中心
+	data-center-info
   	# 实例注册到eureka服务器时，是否开启通讯，默认为false
   	instance-enabled-onit: false
+	# http通信端口 默认值80
+	non-secure-port: 80
+	eureka.instance.
+	# 是否启用HTTP通信端口 	默认为true
+	non-secure-port-enabled: true
+	# HTTPS通信端口 默认为443
+	secure-port: 443
+	# 是否启用HTTPS通信端口 	默认为false
+	secure-port-enabled: false
+	# 服务实例安全主机名称（HTTPS） 	unknown
+	secure-virtual-host-name: unknown
+	# 该服务实例环境配置
+ 	environment:
+	# 默认地址解析顺序
+	default-address-resolution-order:
+	# 该服务实例注册到Eureka Server 的初始状态 	up
+	initial-status: up
+	# 【Eureka Server 端属性】默认开启通信的数量 	
+	registry.default-open-for-traffic-count: 1
+	# 【Eureka Server 端属性】每分钟续约次数 	
+	expected-number-of-renews-per-min: 1
   	# 获取该实例应该接收通信的非安全端口。默认为80
   	# 定义服务续约任务（心跳）的调用间隔，单位：秒，默认值30
   	lease-renewal-interval-in-seconds: 30
@@ -364,10 +405,64 @@ eureka:
   	health-check-url-path: /health
   	# 健康检查页面的URL，绝对路径
   	health-check-url:
+	# 该服务实例安全健康检查地址（URL），绝对地址
+	secure-health-check-url:
+	# 该服务实例的主页地址（url），绝对地址 
+	home-page-url:
+	# 该服务实例的主页地址，相对地址 	
+	home-page-url-path:	/
 
 </code></pre>
+
+## server
+<pre class="line-numbers"><code class="language-yml">
+eureka:
+	server:
+	# 启用自我保护机制，默认为true 
+	enable-self-preservation: true
+	# 清除无效服务实例的时间间隔（ms），默认1分钟
+	eviction-interval-timer-in-ms: 60000
+	# 清理无效增量信息的时间间隔（ms），默认30秒 
+	delta-retention-timer-interval-in-ms: 30000
+	# 禁用增量获取服务实例信息 	
+	disable-delta: false
+	# 是否记录登录日志 
+	log-identity-headers: true
+	# 限流大小
+	rate-limiter-burst-size: 10
+	# 是否启用限流
+	rate-limiter-enabled: false
+	# 平均请求速率
+	rate-limiter-full-fetch-average-rate: 100
+	# 是否对标准客户端进行限流
+	rate-limiter-throttle-standard-clients: false
+	# 服务注册与拉取的平均速率
+	rate-limiter-registry-fetch-average-rate: 500
+	# 信任的客户端列表
+	rate-limiter-privileged-clients: 
+	# 15分钟内续约服务的比例小于0.85，则开启自我保护机制，再此期间不会清除已注册的任何服务（即便是无效服务）
+	renewal-percent-threshold: 0.85
+	# 更新续约阈值的间隔（分钟），默认15分钟 	
+	renewal-threshold-update-interval-ms: 15
+	# 注册信息缓存有效时长（s），默认180秒
+	response-cache-auto-expiration-in-seconds: 180
+	# 注册信息缓存更新间隔（s），默认30秒 
+	response-cache-update-interval-ms: 30
+	# 保留增量信息时长（分钟），默认3分钟 
+	retention-time-in-m-s-in-delta-queue: 3
+	# 当时间戳不一致时，是否进行同步
+	sync-when-timestamp-differs: true
+	# 是否使用只读缓存策略
+	use-read-only-response-cache: true
+</code></pre>
+
+还有些集群相关的配置就不写了，o(╥﹏╥)o
 参考资料
 
 https://thepracticaldeveloper.com/2018/03/18/spring-boot-service-discovery-eureka/
 
 https://blog.asarkar.org/technical/netflix-eureka/
+
+https://github.com/Netflix/eureka/wiki/Understanding-Eureka-Peer-to-Peer-Communication
+
+https://mp.weixin.qq.com/s/vwPstQ0R0s_PsEhZnALP9Q
