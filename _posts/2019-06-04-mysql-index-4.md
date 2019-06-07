@@ -109,7 +109,7 @@ mysql会一直向右匹配直到遇到范围查询(>、<、between)就停止匹�
 
 =和in可以乱序，比如`a = 1 and b = 2 and c = 3` 建立(a,b,c)索引可以任意顺序，mysql的查询优化器会帮你优化成索引可以识别的形式
 
-`A BETWEEN 2 AND 4 AND B = 5` 只有A使用了索引，改为`A IN (2, 4) AND B = 5` 都可以使用索引
+`A BETWEEN 2 AND 4 AND B = 5` ~~只有A使用了索引，改为`A IN (2, 4) AND B = 5` 都可以使用索引~~ 好像MySQL5.6会通过**索引下推优化**优化这个语句 ，在索引内部就判断了B是否等于5，对应不等于5的记录直接跳过
 
 可以伪造IN来填补查询形成最左前缀匹配，例如`SELECT * FROM PEOPLE WHERE CITY=“WH”`可以改成`SELECT * FROM PEOPLE WHERE GENDER IN(“M”,”F”) AND CITY=“WH”`。**只有在缺少列的值值比较少的情况下，可以考虑用“IN”来填补从而形成最左前缀**
 
