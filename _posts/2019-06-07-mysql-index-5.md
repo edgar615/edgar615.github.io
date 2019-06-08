@@ -10,7 +10,7 @@ permalink: mysql-index-5.html
 
 # 索引条件下推
 
-** Index Condition Pushdown (ICP)，索引条件下推**是MySQL提供的用**某一个索引**对**一个**特定的表从表中获取元组。注意：这样的索引优化不是用于多表连接而是用于单表扫描，确切地说，是单表利用索引进行扫描以获取数据的一种方式。
+**Index Condition Pushdown (ICP)，索引条件下推**是MySQL提供的用**某一个索引**对**一个**特定的表从表中获取元组。注意：这样的索引优化不是用于多表连接而是用于单表扫描，确切地说，是单表利用索引进行扫描以获取数据的一种方式。
 
 > The goal of ICP is to reduce the number of full-record reads and thereby reduce IO operations. For InnoDB clustered indexes, the complete record is already read into the InnoDB buffer. Using ICP in this case does not reduce IO.
 
@@ -52,23 +52,50 @@ key idx_emp_info(deptno,ename)
 insert into emp values(1,'zhangsan',1,'CEO'),(2,'lisi',2,'CFO'),(3,'wangwu',3,'CTO'),(4,'jeanron100',3,'Enginer');
 </code></pre>
 
-`explain select * from emp where deptno between 1 and 100 and ename ='jeanron100';`的extra显示`Using where`
+先关闭索引条件下推
+
 ```
-+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
-| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra       |
-+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
-|  1 | SIMPLE      | emp   | NULL       | ALL  | idx_emp_info  | NULL | NULL    | NULL |    4 |    25.00 | Using where |
-+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
-1 row in set (0.08 sec)
+SET optimizer_switch = 'index_condition_pushdown=off';
 ```
 
-然而`explain select * from emp where deptno between 10 and 3000 and ename ='jeanron100';`的extra显示`Using index condition`
+`explain select * from emp where deptno between 10 and 3000 and ename ='jeanron100';`的extra显示`Using where`
+
 ```
+mysql> explain select * from emp where deptno between 10 and 3000 and ename ='jeanron100';
++----+-------------+-------+------------+-------+---------------+--------------+---------+------+------+----------+-------------+
+| id | select_type | table | partitions | type  | possible_keys | key          | key_len | ref  | rows | filtered | Extra       |
++----+-------------+-------+------------+-------+---------------+--------------+---------+------+------+----------+-------------+
+|  1 | SIMPLE      | emp   | NULL       | range | idx_emp_info  | idx_emp_info | 94      | NULL |    1 |    25.00 | Using where |
++----+-------------+-------+------------+-------+---------------+--------------+---------+------+------+----------+-------------+
+1 row in set (0.11 sec)
+```
+
+在开启索引下推
+
+```
+SET optimizer_switch = 'index_condition_pushdown=on';
+```
+
+`explain select * from emp where deptno between 10 and 3000 and ename ='jeanron100';`的extra显示`Using index condition`
+```
+mysql> explain select * from emp where deptno between 10 and 3000 and ename ='jeanron100';
 +----+-------------+-------+------------+-------+---------------+--------------+---------+------+------+----------+-----------------------+
 | id | select_type | table | partitions | type  | possible_keys | key          | key_len | ref  | rows | filtered | Extra                 |
 +----+-------------+-------+------------+-------+---------------+--------------+---------+------+------+----------+-----------------------+
 |  1 | SIMPLE      | emp   | NULL       | range | idx_emp_info  | idx_emp_info | 94      | NULL |    1 |    25.00 | Using index condition |
 +----+-------------+-------+------------+-------+---------------+--------------+---------+------+------+----------+-----------------------+
+1 row in set (0.08 sec)
+```
+
+然而
+`explain select * from emp where deptno between 1 and 100 and ename ='jeanron100';`的extra显示`Using where`
+```
+mysql> explain select * from emp where deptno between 1 and 100 and ename ='jeanron100';
++----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
+| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra       |
++----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
+|  1 | SIMPLE      | emp   | NULL       | ALL  | idx_emp_info  | NULL | NULL    | NULL |    4 |    25.00 | Using where |
++----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
 1 row in set (0.08 sec)
 ```
 
