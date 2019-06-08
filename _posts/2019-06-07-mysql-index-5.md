@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引（第5部分）
+title: MySQL索引之MRR和ICP（第5部分）
 date: 2019-06-07
 categories:
     - MySQL
@@ -8,7 +8,34 @@ comments: true
 permalink: mysql-index-5.html
 ---
 
-# 索引条件下推
+# MRR
+
+**Multi-Range Read (MRR )**，是优化器将随机 IO 转化为顺序 IO 以降低查询过程中 IO 开销的一种手段
+
+- MRR使数据访问变得较为顺序，在查询辅助索引时，首先根据得到的查询结果按照主键进行排序，并按照主键排序的顺序进行书签查找
+- 减少缓冲池中页被替换的次数
+- 批量处理对键值的查询操作
+
+## MRR 原理
+
+在不使用 MRR 时，优化器需要根据二级索引返回的记录来进行“回表”，这个过程一般会有较多的随机 IO, 使用 MRR 时，SQL 语句的执行过程是这样的：
+
+- 优化器将二级索引查询到的记录放到一块缓冲区中；
+- 如果二级索引扫描到文件的末尾或者缓冲区已满，则使用快速排序对缓冲区中的内容按照主键进行排序；
+- 用户线程调用 MRR 接口取 cluster index，然后根据cluster index 取行数据；
+- 当根据缓冲区中的 cluster index 取完数据，则继续调用过程 2) 3)，直至扫描结束；
+
+通过上述过程，优化器将二级索引随机的 IO 进行排序，转化为主键的有序排列，从而实现了随机 IO 到顺序 IO 的转化，提升性能
+
+我们可以通过参数 optimizer_switch 
+的标记来控制是否使用MRR，当设置mrr=on时，表示启用MRR优化。mrr_cost_based 表示是否通过 cost 
+base的方式来启用MRR.如果选择mrr=on,mrr_cost_based=off,则表示总是开启MRR优化。参数read_rnd_buffer_size 用来控制键值缓冲区的大小。
+
+extra会显示`Using MRR`
+
+我还没找到合适的数据测试
+
+# ICP
 
 **Index Condition Pushdown (ICP)，索引条件下推**是MySQL提供的用**某一个索引**对**一个**特定的表从表中获取元组。注意：这样的索引优化不是用于多表连接而是用于单表扫描，确切地说，是单表利用索引进行扫描以获取数据的一种方式。
 
@@ -101,7 +128,7 @@ mysql> explain select * from emp where deptno between 1 and 100 and ename ='jean
 
 我们可以看到两条语句范围不同一个使用了ICP，一个没有，这是为什么？仔细查看上面的语句，发现没有使用ICP的type是`ALL`，而`ALL`是不支持ICP的。为什么条件不同有的是`range`有的是`ALL`？^_^
 
-- ICP只能用于辅助索引，不能用于聚集索引。
+- ICP只能用于辅助索引，不能用于聚集索引,**对于Innodb的聚集索引，完整的记录已经被读取到Innodb Buffer，此时使用ICP并不能降低IO操作**。
 - ICP只用于单表，不是多表连接是的连接条件部分
 - 如果表访问的类型为`EQ_REF`,`REF_OR_NULL`,`REF`,`SYSTEM`,`CONST` 可以使用ICP
 - 如果表访问的类型为 `range` 如果不是`index tree only`（只读索引）”，则有机会使用ICP
