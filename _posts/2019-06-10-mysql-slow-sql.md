@@ -17,18 +17,13 @@ MySQL的慢查询日志是MySQL提供的一种日志记录，它用来记录在M
 
 # 参数
 
-    slow_query_log ：是否开启慢查询日志，1表示开启，0表示关闭。
-    
-    log-slow-queries：旧版（5.6以下版本）MySQL数据库慢查询日志存储路径。可以不设置该参数，系统则会默认给一个缺省的文件host_name-slow.log
-    
-    slow-query-log-file：新版（5.6及以上版本）MySQL数据库慢查询日志存储路径。可以不设置该参数，系统则会默认给一个缺省的文件host_name-slow.log
-    
-    long_query_time：慢查询阈值，当查询时间多于设定的阈值时，记录日志。
-    
-    log_queries_not_using_indexes：未使用索引的查询也被记录到慢查询日志中（可选项）。
-    
-    log_output：日志存储方式。
-	
+- slow_query_log ：是否开启慢查询日志，1表示开启，0表示关闭。    
+- log-slow-queries：旧版（5.6以下版本）MySQL数据库慢查询日志存储路径。可以不设置该参数，系统则会默认给一个缺省的文件host_name-slow.log    
+- slow-query-log-file：新版（5.6及以上版本）MySQL数据库慢查询日志存储路径。可以不设置该参数，系统则会默认给一个缺省的文件host_name-slow.log    
+- long_query_time：慢查询阈值，当查询时间多于设定的阈值时，记录日志。    
+- log_queries_not_using_indexes：未使用索引的查询也被记录到慢查询日志中（可选项）。   
+- log_output：日志存储方式。
+
 ## log_output说明	
 
 - log_output='FILE'表示将日志存入文件，默认值是'FILE'。
@@ -148,7 +143,7 @@ mysql> show variables like '%log_queries_not_using_indexes%';
 mysql> set global log_queries_not_using_indexes=1;
 Query OK, 0 rows affected (0.00 sec)
 
-mysql> show variables like '%log_queries_not_using_indexes%';                                                                                                                                             
+mysql> show variables like '%log_queries_not_using_indexes%';                                                      
 +-------------------------------+-------+
 | Variable_name                 | Value |
 +-------------------------------+-------+
@@ -186,91 +181,82 @@ mysql> show global status like '%slow_queries%';
 # mysqldumpslow    
 
 ```                                     
-	Option h requires an argument
-	ERROR: bad option
-	
-	Usage: mysqldumpslow [ OPTS... ] [ LOGS... ]
-	
-	Parse and summarize the MySQL slow query log. Options are
-	
-	  --verbose    verbose
-	  --debug      debug
-	  --help       write this text to standard output
-	
-	  -v           verbose
-	  -d           debug
-	  -s ORDER     what to sort by (al, at, ar, c, l, r, t), 'at' is default
-	                al: average lock time
-	                ar: average rows sent
-	                at: average query time
-	                 c: count
-	                 l: lock time
-	                 r: rows sent
-	                 t: query time  
-	  -r           reverse the sort order (largest last instead of first)
-	  -t NUM       just show the top n queries
-	  -a           don't abstract all numbers to N and strings to 'S'
-	  -n NUM       abstract numbers with at least n digits within names
-	  -g PATTERN   grep: only consider stmts that include this string
-	  -h HOSTNAME  hostname of db server for *-slow.log filename (can be wildcard),
-	               default is '*', i.e. match all
-	  -i NAME      name of server instance (if using mysql.server startup script)
-	  -l           don't subtract lock time from total time
+Option h requires an argument
+ERROR: bad option
+
+Usage: mysqldumpslow [ OPTS... ] [ LOGS... ]
+
+Parse and summarize the MySQL slow query log. Options are
+
+  --verbose    verbose
+  --debug      debug
+  --help       write this text to standard output
+
+  -v           verbose
+  -d           debug
+  -s ORDER     what to sort by (al, at, ar, c, l, r, t), 'at' is default
+				al: average lock time
+				ar: average rows sent
+				at: average query time
+				 c: count
+				 l: lock time
+				 r: rows sent
+				 t: query time  
+  -r           reverse the sort order (largest last instead of first)
+  -t NUM       just show the top n queries
+  -a           don't abstract all numbers to N and strings to 'S'
+  -n NUM       abstract numbers with at least n digits within names
+  -g PATTERN   grep: only consider stmts that include this string
+  -h HOSTNAME  hostname of db server for *-slow.log filename (can be wildcard),
+			   default is '*', i.e. match all
+  -i NAME      name of server instance (if using mysql.server startup script)
+  -l           don't subtract lock time from total time
 ```
 
 说明 
 
 ```
 -s, 是表示按照何种方式排序；
-
-    c: 访问计数
-    
-    l: 锁定时间
-    
-    r: 返回记录
-    
-    t: 查询时间
-    
-    al:平均锁定时间
-    
-    ar:平均返回记录数
-    
+    c: 访问计数    
+    l: 锁定时间    
+    r: 返回记录    
+    t: 查询时间    
+    al:平均锁定时间    
+    ar:平均返回记录数    
     at:平均查询时间
-
 -t, 是top n的意思，即为返回前面多少条的数据；
-
 -g, 后边可以写一个正则匹配模式，大小写不敏感的；
 ```
 ## 得到返回记录集最多的10个SQL
 
 ```
-	mysqldumpslow -s r -t 10 9849434cd7bb-slow.log
+mysqldumpslow -s r -t 10 9849434cd7bb-slow.log
 ```
 ## 得到访问次数最多的1个SQL
 
 ```
-	root@9849434cd7bb:/var/lib/mysql# mysqldumpslow -s c -t 1 9849434cd7bb-slow.log  
-	
-	Reading mysql slow query log from 9849434cd7bb-slow.log
-	Count: 1272  Time=0.00s (0s)  Lock=0.00s (0s)  Rows=5.0 (6360), admin[admin]@[192.168.0.1]
-	  select
-	  company_id, company_code, name, address, state, app_key, app_secret, company_key, level, scope
-	  from company
-	  WHERE  state = N 
-	  limit
-	  N,
-	  N
+root@9849434cd7bb:/var/lib/mysql# mysqldumpslow -s c -t 1 9849434cd7bb-slow.log  
+
+Reading mysql slow query log from 9849434cd7bb-slow.log
+Count: 1272  Time=0.00s (0s)  Lock=0.00s (0s)  Rows=5.0 (6360), admin[admin]@[192.168.0.1]
+    select
+    company_id, company_code, name, address, state, app_key, app_secret, company_key, level, scope
+    from company
+    WHERE  state = N 
+    limit
+    N,
+    N
 ```
 ## 得到按照时间排序的前10条里面含有左连接的查询语句。
 
 ```
-	mysqldumpslow -s t -t 10 -g “left join” /database/mysql/mysql06_slow.log
+mysqldumpslow -s t -t 10 -g “left join” /database/mysql/mysql06_slow.log
 ```
 
 ## 另外建议在使用这些命令时结合 | 和more 使用 ，否则有可能出现刷屏的情况。
 
 ```
-	mysqldumpslow -s c -t 10 9849434cd7bb-slow.log | more 
+mysqldumpslow -s c -t 10 9849434cd7bb-slow.log | more 
 ```
 
 # 参考资料
