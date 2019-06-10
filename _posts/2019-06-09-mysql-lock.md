@@ -26,7 +26,7 @@ InnoDB是基于事务，用来锁定的对象是数据库中的对象，如表�
 - 自增锁
 
 # 记录锁
-记录锁(Record-Lock)是锁住记录的，这里要说明的是这里锁住的是索引记录，而不是我们真正的数据记录：
+记录锁(Record-Lock)是锁住记录的，这里要说明的是这里**锁住的是索引记录**，而不是我们真正的数据记录：
 - 如果锁的是非主键索引，会在自己的索引上面加锁之后然后再去主键上面加锁锁住。
 - 如果没有表上没有索引(包括没有主键)，则会使用隐藏的主键索引进行加锁。
 - 如果要锁的列没有索引，则会进行全表记录加锁。
@@ -72,6 +72,8 @@ SELECT ... FOR UPDATE;
 
 另外，在对某个表执行一些诸如`ALTER TABLE`、`DROP TABLE`这类的DDL语句时，其他事务对这个表并发执行诸如`SELECT`、`INSERT`、`DELETE`、`UPDATE`的语句会发生阻塞，同理，某个事务中对某个表执行`SELECT`、`INSERT`、`DELETE`、`UPDATE`语句时，在其他会话中对这个表执行DDL语句也会发生阻塞。这个过程其实是通过在server层使用一种称之为元数据锁（Metadata Locks，简称MDL）来实现的，一般情况下也不会使用InnoDB存储引擎自己提供的表级别的S锁和X锁。
 
+> 完全摘自“我们都是小青蛙”的文章
+
 # 意向锁
 
 InnoDB支持多粒度锁定，这种锁定允许事务在行级上的锁和表级上的锁同时存在。为了支持在不同粒度上的加锁操作，InnoDB提供了意向锁
@@ -111,24 +113,229 @@ SELECT * FROM users WHERE id = 5 FOR UPDATE;
 
 例子：假如emp表中只有101条记录，其empid的值分别是1,2,...,100,101
 ```
-Select * from emp where empid > 100 for update;
+select * from emp where empid > 100 for update;
 ```
-上面是一个范围查询，InnoDB不仅会对符合条件的empid值为101的记录加锁，也会对empid大于101（这些记录并不存在）的“间隙”加锁。
+上面是一个范围查询，InnoDB不仅会对符合条件的empid值为101的记录加锁，也会对empid大于101（这些记录并不存在）的“间隙”加锁。此时在另一个事务插入ID为102的数据会卡住，等待X锁的释放。
 
 InnoDB使用间隙锁的目的有两个：
 
-- 为了防止幻读，Repeatable read隔离级别下再通过GAP锁即可避免了幻读
+- 为了防止幻读，Repeatable read隔离级别下再通过GAP锁即可避免了幻读，因为在事务在第一次执行读取操作时，那些幻影记录尚不存在，我们无法给这些幻影记录加上锁
 - 满足恢复和复制的需要MySQL的恢复机制要求：在一个事务未提交前，其他并发事务不能插入满足其锁定条件的任何记录，也就是不允许出现幻读
 
+案例1
+
+事务A
+```
+SELECT * FROM emp WHERE empno BETWEEN 10 AND 30 FOR UPDATE;
+```
+事务B
+```
+-- 会被卡住，等待事务A的提交
+insert emp(ename, deptno,job) values('zhangsan', 1, 'CEO');
+```
+
+案例2
+
+表中的ID最大为17，缺少10和13
+
+```
+mysql> select * from emp;
++-------+------------+--------+---------+
+| empno | ename      | deptno | job     |
++-------+------------+--------+---------+
+|     1 | zhangsan   |      1 | CEO     |
+|     2 | lisi       |      2 | CFO     |
+|     3 | wangwu     |      3 | CTO     |
+|     4 | jeanron100 |      3 | Enginer |
+|     5 | zhangsan   |      1 | CEO     |
+|     6 | zhangsan   |      1 | CEO     |
+|     7 | zhangsan   |      1 | CEO     |
+|     8 | zhangsan   |      1 | CEO     |
+|     9 | zhangsan   |      1 | CEO     |
+|    11 | zhangsan   |      1 | CEO     |
+|    12 | zhangsan   |      1 | CEO     |
+|    14 | zhangsan   |      1 | CEO     |
+|    15 | zhangsan   |      1 | CEO     |
+|    16 | zhangsan   |      1 | CEO     |
+|    17 | zhangsan   |      1 | CEO     |
++-------+------------+--------+---------+
+15 rows in set (0.06 sec)
+```
+事务A 
+```
+mysql> SELECT * FROM emp WHERE empno = 19 FOR UPDATE;
+Empty set
+```
+事务B会卡住
+```
+insert emp(ename, deptno,job) values('zhangsan', 1, 'CEO');
+```
+事务A的检索条件empno=19,向左取得最靠近的值17作为左区间，向右由于没有记录因此取得无穷大作为右区间，因此，事务A的间隙锁的范围（17，无穷大）
+
+案例3
+
+事务A
+```
+SELECT * FROM emp WHERE empno = 13 FOR UPDATE;
+```
+事务B
+```
+-- 执行成功
+insert emp(ename, deptno,job) values('zhangsan', 1, 'CEO');
+-- 卡住
+insert emp(empno,ename, deptno,job) values(13,'zhangsan', 1, 'CEO');
+```
+间隙锁范围(12,14)
+
+案例4
+
+事务A
+```
+SELECT * FROM emp WHERE empno = 13 FOR UPDATE;
+```
+事务B
+```
+-- 执行成功
+update emp set empno = 21 where empno = 1;
+-- 卡住
+update emp set empno = 13 where empno = 21;
+```
+
+总结一下：**间隙锁的提出仅仅是为了防止插入幻影记录而提出的，RR隔离级别就是通过间隙锁来减少幻读的发生**
+
+
 # 临键锁
+Next-Key 可以理解为一种特殊的间隙锁，也可以理解为一种特殊的算法。通过临建锁可以解决幻读的问题。 每个数据行上的**非唯一索引列**上都会存在一把临键锁，当某个事务持有该数据行的临键锁时，会锁住一段**左开右闭区间**的数据。需要强调的一点是，InnoDB 中行级锁是基于索引实现的，临键锁只与非唯一索引列有关，在唯一索引列（包括主键列）上不存在临键锁。
+
+假设有如下表：
+```
+create table next_key_test(
+id smallint(5) unsigned not null auto_increment,
+name varchar(30) not null,
+age smallint(5) unsigned not null,
+primary key(id),
+key idx_age(age)
+)engine=InnoDB charset=utf8;
+
+insert next_key_test(id, name, age) values(1, 'lee', 10),(3, 'lee', 24),(5, 'lee', 32),(7, 'lee', 45);
+```
+该表中 age 列潜在的临键锁有：
+```
+(-∞, 10],
+(10, 24],
+(24, 32],
+(32, 45],
+(45, +∞],
+```
+
+事务A
+```
+SELECT * FROM next_key_test WHERE age = 24 FOR UPDATE;
+```
+事务B
+```
+-- 卡住
+INSERT INTO next_key_test VALUES(100, 'Ezreal', 26);
+```
+事务 A 在对 age 为 24 的列进行 UPDATE 操作的同时，也获取了 (24, 32] 这个区间内的临键锁。
+
+在根据非唯一索引 对记录行进行` UPDATE` , `FOR UPDATE`, `LOCK IN SHARE MODE` 操作时，InnoDB 会获取该记录行的 临键锁 ，并同时获取该记录行下一个区间的间隙锁。
+所以`SELECT * FROM next_key_test WHERE age = 24 FOR UPDATE;`锁住的区间为(10,32]。间隙锁(10,24)，临键锁(24, 32] **即：临键锁也包括间隙锁**
 
 # 插入意向锁
+一个事务在插入一条记录时需要判断一下插入位置是不是被别的事务加了间隙锁，如果有的话，插入操作需要等待，直到拥有间隙锁的那个事务提交。
+**插入意向锁(Insert Intention Locks)**它是插入之前由插入操作设置的间隙锁的一种类型。这个锁表示插入的意图，如果插入到同一索引间隙中的多个事务没有插入到间隙中的同一位置，那么它们就不需要等待对方。如果是同一位置，但不要因为行不冲突而相互阻塞。
+
+**插入意向锁实际上是一个间隙锁，不是意向锁，在insert时产生**
+
+- 普通的间隙锁不允许 在 （上一条记录，本记录） 范围内插入数据
+- 插入意向锁允许 在 （上一条记录，本记录） 范围内插入数据
+
+插入意向锁的作用是为了提高并发插入的性能， 多个事务 同时写入 不同数据至同一索引范围（区间）内，并不需要等待其他事务完成，不会发生锁等待。
+
+**插入的过程**
+
+假设现在有记录 10， 30， 50， 70 ；且为主键 ，需要插入记录 25 。
+
+1. 找到 小于等于25的记录 ，这里是 10
+2. 找到 记录10的下一条记录 ，这里是 30
+3. 判断 下一条记录30 上是否有锁
+3.1 判断 30 上面如果 没有锁 ，则可以插入
+3.2 判断 30 上面如果有Record Lock，则可以插入
+3.3 判断 30 上面如果有Gap Lock/Next-Key Lock，则无法插入，因为锁的范围是 (10, 30) /（10, 30] ；在30上增加insert intention lock（ 此时处于waiting状态），当 Gap Lock / Next-Key Lock 释放时，等待的事务（ transaction）将被唤醒 ，此时 记录30 上才能获得 insert intention lock ，然后再插入记录25
+
+注意：一个事务 insert 25 且没有提交，另一个事务 delete 25 时，记录25上会有 Record Lock
+
+总结一下: **如果即将插入的间隙已经被其他事务加了间隙锁，那么本次INSERT操作会阻塞，并且当前事务会在该间隙上加一个插入意向锁**
 
 # 自增锁
 
-# 隐式锁
+在InnoDB存储引擎的内存结构中，对每个含有自增长值的表都有一个自增长计数器。当对含有自增长的计数器的表进行插入操作时，这个计数器会被初始化，执行如下的语句来得到计数器的值：
 
-# MBL锁
+```
+select max(auto_inc_col) from t for update;
+```
+
+插入操作会依据这个自增长的计数器值加1赋予自增长列。这个实现方式称为AUTO-INC Locking。**这种锁其实是采用一种特殊的表锁机制，为了提高插入的性能，锁不是在一个事务完成后才释放，而是在完成对自增长值插入的SQL语句后立即释放**。
+
+虽然AUTO-INC Locking从一定程度上提高了并发插入的效率，但还是存在一些性能上的问题。首先，对于有自增长值的列的并发插入性能较差，事务必须等待前一个插入的完成，虽然不用等待事务的完成。其次，对于INSERT….SELECT的大数据的插入会影响插入的性能，因为另一个事务中的插入会被阻塞。
+
+InnoDB存储引擎中提供了一种轻量级互斥量的自增长实现机制，这种机制大大提高了自增长值插入的性能。并且从该版本开始，InnoDB存储引擎提供了一个参数`innodb_autoinc_lock_mode`来控制自增长的模式，该参数的默认值为1。在继续讨论新的自增长实现方式之前，需要对自增长的插入进行分类。如下说明：
+
+**insert-like**：指所有的插入语句，如INSERT、REPLACE、INSERT…SELECT，REPLACE…SELECT、LOAD DATA等。
+
+**simple inserts**：指能在插入前就确定插入行数的语句，这些语句包括INSERT、REPLACE等。需要注意的是：simple inserts不包含INSERT…ON DUPLICATE KEY UPDATE这类SQL语句。
+
+**bulk inserts**：指在插入前不能确定得到插入行数的语句，如INSERT…SELECT，REPLACE…SELECT，LOAD DATA。
+
+**mixed-mode inserts**：指插入中有一部分的值是自增长的，有一部分是确定的。入INSERT INTO t1(c1,c2) VALUES(1,’a’),(2,’a’),(3,’a’)；也可以是指INSERT…ON DUPLICATE KEY UPDATE这类SQL语句。
+
+接下来分析参数innodb_autoinc_lock_mode以及各个设置下对自增长的影响，其总共有三个有效值可供设定，即0、1、2，具体说明如下：
+
+**0**：这是MySQL 5.1.22版本之前自增长的实现方式，即通过表锁的AUTO-INC Locking方式，因为有了新的自增长实现方式，0这个选项不应该是新版用户的首选了。
+
+**1**：这是该参数的默认值，对于”simple inserts”，该值会用互斥量（mutex）去对内存中的计数器进行累加的操作。对于”bulk inserts”，还是使用传统表锁的AUTO-INC Locking方式。在这种配置下，如果不考虑回滚操作，对于自增值列的增长还是连续的。并且在这种方式下，statement-based方式的replication还是能很好地工作。需要注意的是，如果已经使用AUTO-INC Locking方式去产生自增长的值，而这时需要再进行”simple inserts”的操作时，还是需要等待AUTO-INC Locking的释放。
+
+**2**：在这个模式下，对于所有”INSERT-LIKE”自增长值的产生都是通过互斥量，而不是AUTO-INC Locking的方式。显然，这是性能最高的方式。然而，这会带来一定的问题，因为并发插入的存在，在每次插入时，自增长的值可能不是连续的。此外，最重要的是，基于Statement-Base Replication会出现问题。因此，使用这个模式，任何时候都应该使用row-base replication。这样才能保证最大的并发性能及replication主从数据的一致。
+
+> 完全摘自《MySQL技术内幕  InnoDB存储引擎》
+
+假如我们插入的数据中有AUTO_INCREMENT列，InnoDB在RR（Repeatable Read）隔离级别下，能解决幻读问题。
+```
+    //事务A先执行，还未提交：
+    insert into t(name) values(xxx);
+    //事务B后执行：
+    insert into t(name) values(ooo);
+```
+
+1. 事务A先执行insert，会得到一条(4, xxx)的记录，由于是自增列，InnoDB会自动增长，注意此时事务并未提交；
+2. 事务B后执行insert，假设不会被阻塞，那会得到一条(5, ooo)的记录；
+3. 事务A继续insert：会得到一条(6, xxoo)的记录。
+4. 事务A再select：select * from t where id>3，在mvvc中当然可以得到(4, xxx)和(6, xxoo)
+
+这对于事务A来说，就很奇怪了，对于AUTO_INCREMENT的列，连续插入了两条记录，ID缺不是连续的
+
+自增锁是一种特殊的表级别锁（table-level lock），专门针对事务插入AUTO_INCREMENT类型的列。最简单的情况，如果一个事务正在往表中插入记录，所有其他事务的插入必须等待，以便第一个事务插入的行，是连续的主键值。与此同时，InnoDB提供了innodb_autoinc_lock_mode配置，可以调节与改变该锁的模式与行为。
+
+# insert|select|update|delete的锁
+
+## select
+
+普通的select是快照读，而select ... for update或select ... in share mode则会根据情况加不同的锁
+- 如果在唯一索引上用唯一的查询条件时（ where id=1），加记录锁
+- 否则，其他的查询条件和索引条件，加间隙锁（BETWEEN AND ）或Next-Key 锁（可重复隔离级别）
+
+## update与delete
+
+- 如果在唯一索引上使用唯一的查询条件来update/delete，加记录锁
+- 否则，符合查询条件的索引记录之前，都会加Next-Key 锁
+
+注：如果update的是聚集索引，则对应的普通索引记录也会被隐式加锁，这是由InnoDB索引的实现机制决定的：普通索引存储PK的值，检索普通索引本质上要二次扫描聚集索引。
+
+## insert
+
+insert和update与delete不同，它会用排它锁封锁被插入的索引记录，同时，会在插入区间加插入意向锁，但这个并不会真正封锁区间，也不会阻止相同区间的不同KEY插入。
+
 
 # 死锁
 
@@ -149,5 +356,7 @@ InnoDB使用间隙锁的目的有两个：
 # 参考资料
 
 https://mp.weixin.qq.com/s/FSyE7Tz5A-Rc1bkC-tDqvA
+
+https://mp.weixin.qq.com/s/wGOxro3uShp2q5w97azx5A
 
 《MySQL 是怎样运行的：从根儿上理解 MySQL》
