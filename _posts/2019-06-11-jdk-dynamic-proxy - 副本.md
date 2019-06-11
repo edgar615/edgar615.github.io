@@ -213,37 +213,5 @@ public class ObjectInterceptedJdkProxy implements InvocationHandler {
   }
 ```
 
-至此一个简单的拦截器就实现了
+至此一个简单的拦截器就实现了，我就不贴测试代码了
 
-举个例子
-
-<pre class="line-numbers "><code class="language-java">
-@Signature(type = MessageService.class, method = "say", args = {String.class})
-public class ChangeArgInterceptor implements SubInterceptor {
-
-  private final AtomicInteger count = new AtomicInteger();
-
-  @Override
-  public Object intercept(Invocation invocation) throws Throwable {
-    count.incrementAndGet();
-    System.out.println("interceptor");
-    String message = (String) invocation.args()[0];
-    invocation.args()[0] = message.toUpperCase();
-    return invocation.proceed();
-  }
-
-  public int count() {
-    return count.get();
-  }
-}
-</code></pre>
-
-测试
-<pre class="line-numbers "><code class="language-java">
-    MessageService messageService = new MessageServiceImpl();
-    Interceptor interceptor = new ChangeArgInterceptor();
-    MessageService proxy = (MessageService) InterceptedObjectBuilder.create()
-        .addInterceptor(interceptor)
-        .bind(messageService);
-    String result = proxy.say("hello");
-</code></pre>
