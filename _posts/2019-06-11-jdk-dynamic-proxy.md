@@ -1,6 +1,6 @@
 ---
 layout: post
-title: JDK动态代理（第一部分）
+title: JDK动态代理
 date: 2019-06-11
 categories:
     - java
@@ -108,12 +108,12 @@ public static Object newProxyInstance(ClassLoader loader,
 	throws IllegalArgumentException
 {
 	// ...
-	
+
 	/*
 	 * Look up or generate the designated proxy class.
 	 */
 	Class<?> cl = getProxyClass0(loader, intfs);
-
+	
 	// ...
 }
 </code></pre>
@@ -200,7 +200,7 @@ byte[] proxyClassFile = ProxyGenerator.generateProxyClass(
 try {
 // 把代理类加载到JVM中，至此动态代理过程基本结束了
 	return defineClass0(loader, proxyName,
-						proxyClassFile, 0, proxyClassFile.length);
+	​					proxyClassFile, 0, proxyClassFile.length);
 } catch (ClassFormatError e) {
 	/*
 	 * A ClassFormatError here means that (barring bugs in the
@@ -220,17 +220,17 @@ byte[] classFile = ProxyGenerator.generateProxyClass("$Proxy0", MyServiceImpl.cl
 FileOutputStream out = null;
 
 try {
-	out = new FileOutputStream(path);
-	out.write(classFile);
-	out.flush();
+​	out = new FileOutputStream(path);
+​	out.write(classFile);
+​	out.flush();
 } catch (Exception e) {
-	e.printStackTrace();
+​	e.printStackTrace();
 } finally {
-	try {
-		out.close();
-	} catch (IOException e) {
-		e.printStackTrace();
-	}
+​	try {
+​		out.close();
+​	} catch (IOException e) {
+​		e.printStackTrace();
+​	}
 }
 </code></pre>
 完整的反编译
@@ -253,60 +253,60 @@ public final class $Proxy0 extends Proxy implements IMyService {
   private static Method m0;
 
   public $Proxy0(InvocationHandler var1) throws  {
-    super(var1);
+​    super(var1);
   }
 
   public final boolean equals(Object var1) throws  {
-    try {
-      return (Boolean)super.h.invoke(this, m1, new Object[]{var1});
-    } catch (RuntimeException | Error var3) {
-      throw var3;
-    } catch (Throwable var4) {
-      throw new UndeclaredThrowableException(var4);
-    }
+​    try {
+​      return (Boolean)super.h.invoke(this, m1, new Object[]{var1});
+​    } catch (RuntimeException | Error var3) {
+​      throw var3;
+​    } catch (Throwable var4) {
+​      throw new UndeclaredThrowableException(var4);
+​    }
   }
 
   public final String toString() throws  {
-    try {
-      return (String)super.h.invoke(this, m2, (Object[])null);
-    } catch (RuntimeException | Error var2) {
-      throw var2;
-    } catch (Throwable var3) {
-      throw new UndeclaredThrowableException(var3);
-    }
+​    try {
+​      return (String)super.h.invoke(this, m2, (Object[])null);
+​    } catch (RuntimeException | Error var2) {
+​      throw var2;
+​    } catch (Throwable var3) {
+​      throw new UndeclaredThrowableException(var3);
+​    }
   }
 
   public final void say(String var1) throws  {
-    try {
-      super.h.invoke(this, m3, new Object[]{var1});
-    } catch (RuntimeException | Error var3) {
-      throw var3;
-    } catch (Throwable var4) {
-      throw new UndeclaredThrowableException(var4);
-    }
+​    try {
+​      super.h.invoke(this, m3, new Object[]{var1});
+​    } catch (RuntimeException | Error var3) {
+​      throw var3;
+​    } catch (Throwable var4) {
+​      throw new UndeclaredThrowableException(var4);
+​    }
   }
 
   public final int hashCode() throws  {
-    try {
-      return (Integer)super.h.invoke(this, m0, (Object[])null);
-    } catch (RuntimeException | Error var2) {
-      throw var2;
-    } catch (Throwable var3) {
-      throw new UndeclaredThrowableException(var3);
-    }
+​    try {
+​      return (Integer)super.h.invoke(this, m0, (Object[])null);
+​    } catch (RuntimeException | Error var2) {
+​      throw var2;
+​    } catch (Throwable var3) {
+​      throw new UndeclaredThrowableException(var3);
+​    }
   }
 
   static {
-    try {
-      m1 = Class.forName("java.lang.Object").getMethod("equals", Class.forName("java.lang.Object"));
-      m2 = Class.forName("java.lang.Object").getMethod("toString");
-      m3 = Class.forName("com.github.edgar615.microservice.IMyService").getMethod("say", Class.forName("java.lang.String"));
-      m0 = Class.forName("java.lang.Object").getMethod("hashCode");
-    } catch (NoSuchMethodException var2) {
-      throw new NoSuchMethodError(var2.getMessage());
-    } catch (ClassNotFoundException var3) {
-      throw new NoClassDefFoundError(var3.getMessage());
-    }
+​    try {
+​      m1 = Class.forName("java.lang.Object").getMethod("equals", Class.forName("java.lang.Object"));
+​      m2 = Class.forName("java.lang.Object").getMethod("toString");
+​      m3 = Class.forName("com.github.edgar615.microservice.IMyService").getMethod("say", Class.forName("java.lang.String"));
+​      m0 = Class.forName("java.lang.Object").getMethod("hashCode");
+​    } catch (NoSuchMethodException var2) {
+​      throw new NoSuchMethodError(var2.getMessage());
+​    } catch (ClassNotFoundException var3) {
+​      throw new NoClassDefFoundError(var3.getMessage());
+​    }
   }
 }
 </code></pre>
