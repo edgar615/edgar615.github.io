@@ -13,10 +13,10 @@ permalink: redis-command.html
 ```
 Usage: 
 		./redis-server [/path/to/redis.conf][options]
-	   ./redis-server - (read config from stdin)
-	   ./redis-server -v or --version
-	   ./redis-server -h or --help
-	   ./redis-server --test-memory <megabytes>
+	    ./redis-server - (read config from stdin)
+	    ./redis-server -v or --version
+	    ./redis-server -h or --help
+	    ./redis-server --test-memory <megabytes>
 
 Examples:
        ./redis-server (run the server with default conf)
@@ -31,12 +31,15 @@ Sentinel mode:
 
 `redis-server --test-memory` 可以检测当前操作系统能否稳定地分配指定容量的内存给redis
 
+```
 	redis-server --test-memory 1024 检测能否提供1G内存
+```
+
 # redis-cli
 
 - -r 重复执行命令
 - -i 每隔几秒执行一次命令，单位是秒，如果需要按毫秒，使用小数如0.01表示10毫秒
-- -x 从标准输入读取数据作为redis-cli的最后一个参数。 如：echo "world" | redis-cli -x set hello
+- -x 从标准输入读取数据作为redis-cli的最后一个参数。 如：`echo "world" | redis-cli -x set hello`
 - -c 连接集群节点是使用
 - -a 密码
 - --scan和-- pattern 扫描指定模式的键 相当于scan
