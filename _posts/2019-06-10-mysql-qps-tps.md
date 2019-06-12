@@ -25,7 +25,7 @@ mysql> show status like '%queries%';
 3 rows in set (0.00 sec)
 ```
 
-方式2，QPS=Questions / Uptime 
+方式2，QPS=Queries / Uptime 
 
 ```
 mysql> show status like '%queries%';
