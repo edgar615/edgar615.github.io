@@ -45,7 +45,10 @@ base的方式来启用MRR.如果选择mrr=on,mrr_cost_based=off,则表示总是�
 
 extra会显示`Using MRR`
 
-只能用于`range`,`ref`,`eq_ref`类型的查询
+使用条件
+
+- 只能用于`range`,`ref`,`eq_ref`类型的查询
+- 只针对二级索引的范围扫描和使用二级索引进行 join 的情况。
 
 我还没找到合适的数据测试
 
