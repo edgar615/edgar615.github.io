@@ -1,23 +1,23 @@
 ---
 layout: post
-title: redis³£ÓÃÃüÁî
+title: rediså¸¸ç”¨å‘½ä»¤
 date: 2019-06-12
 categories:
     - redis
 comments: true
-permalink: redis-common-op.html
+permalink: redis-common-command.html
 ---
 
-# Í³¼Æ¸öÊı
+# ç»Ÿè®¡ä¸ªæ•°
 
-redisÖĞÃû³Æº¬ÓĞOMP_OFFLINEµÄkeyµÄ¸öÊı£»
+redisä¸­åç§°å«æœ‰OMP_OFFLINEçš„keyçš„ä¸ªæ•°ï¼›
 
 ```
 src/redis-cli keys "*OMP_OFFLINE*" | wc -l
 ```
 
-# ÅúÁ¿É¾³ı
-ÅúÁ¿É¾³ı 0ºÅÊı¾İ¿âÖĞÃû³Æº¬ÓĞOMP_OFFLINEµÄkey£º
+# æ‰¹é‡åˆ é™¤
+æ‰¹é‡åˆ é™¤ 0å·æ•°æ®åº“ä¸­åç§°å«æœ‰OMP_OFFLINEçš„keyï¼š
 
 ```
 src/redis-cli -n 0 keys "*OMP_OFFLINE*" | xargs src/redis-cli -n 0 del
