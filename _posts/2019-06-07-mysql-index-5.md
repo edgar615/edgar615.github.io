@@ -25,6 +25,18 @@ permalink: mysql-index-5.html
 - 用户线程调用 MRR 接口取 cluster index，然后根据cluster index 取行数据；
 - 当根据缓冲区中的 cluster index 取完数据，则继续调用过程 2) 3)，直至扫描结束；
 
+不使用MRR时如下图所示
+
+![](/assets/images/posts/mysql-index/mrr-1.png)
+
+
+
+使用MRR时如下图所示
+
+![](/assets/images/posts/mysql-index/mrr-2.png)
+
+
+
 通过上述过程，优化器将二级索引随机的 IO 进行排序，转化为主键的有序排列，从而实现了随机 IO 到顺序 IO 的转化，提升性能
 
 我们可以通过参数 optimizer_switch 
@@ -42,6 +54,29 @@ extra会显示`Using MRR`
 **Index Condition Pushdown (ICP)，索引条件下推**是MySQL提供的用**某一个索引**对**一个**特定的表从表中获取元组。注意：这样的索引优化不是用于多表连接而是用于单表扫描，确切地说，是单表利用索引进行扫描以获取数据的一种方式。
 
 > The goal of ICP is to reduce the number of full-record reads and thereby reduce IO operations. For InnoDB clustered indexes, the complete record is already read into the InnoDB buffer. Using ICP in this case does not reduce IO.
+
+
+
+**优化器没有使用ICP时，数据访问和提取的过程如下：**
+
+1.  当storage engine读取下一行时，首先读取索引元组（index tuple），然后使用索引元组在基表中（base table）定位和读取整行数据
+2.  sever层评估where条件，如果该行数据满足where条件则使用，否则丢弃。
+3.   执行1，直到最后一行数据。
+
+![](/assets/images/posts/mysql-index/icp-3.png)
+
+
+
+**优化器使用ICP时，server层将会把能够通过使用索引进行评估的where条件下推到storage engine层**。数据访问和提取过程如下：
+
+1. storage engine从索引中读取下一条索引元组
+2. storage engine使用索引元组评估下推的索引条件。如果没有满足wehere条件，storage engine将会处理下一条索引元组（回到上一步）。只有当索引元组满足下推的索引条件的时候，才会继续去基表中读取数据。
+3.  如果满足下推的索引条件，storage engine通过索引元组定位基表的行和读取整行数据并返回给server层。
+4. server层评估没有被下推到storage engine层的where条件，如果该行数据满足where条件则使用，否则丢弃。
+
+![](/assets/images/posts/mysql-index/icp-4.png)
+
+
 
 innodb引擎的表，索引下推只能用于辅助索引，对聚集索引无效。
 
@@ -143,3 +178,5 @@ https://www.cnblogs.com/ivictor/p/5197434.html
 https://www.jianshu.com/p/bdc9e57ccf8b
 
 https://blog.51cto.com/lee90/2060449
+
+http://mdba.cn/2014/01/21/index-condition-pushdownicp%e7%b4%a2%e5%bc%95%e6%9d%a1%e4%bb%b6%e4%b8%8b%e6%8e%a8/
