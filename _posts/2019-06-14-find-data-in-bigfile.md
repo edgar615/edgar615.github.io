@@ -116,13 +116,13 @@ public class MyServiceProxy implements IMyService {
 
 参考资料
 
-http://doc.okbase.net/zyq522376829/archive/169290.html
-
 https://www.cnblogs.com/wuxiangli/p/5639011.html
 
-https://mxdba.iteye.com/blog/765688
+https://blog.csdn.net/fycy2010/article/details/46945641
 
 https://blog.csdn.net/tiankong_/article/details/77234726
+
+https://blog.csdn.net/gongpulin/article/details/81137548
 
 https://www.cnblogs.com/CheeseZH/p/5283390.html
 
