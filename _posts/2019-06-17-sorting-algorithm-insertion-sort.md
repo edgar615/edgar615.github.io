@@ -25,7 +25,7 @@ permalink: insertion-sort.html
 上代码
 
 ```
-  private static int[] sort(int[] array) {
+  private static void sort(int[] array) {
 
     int len = array.length;
     for (int i = 1; i < len; i ++) {
@@ -40,7 +40,6 @@ permalink: insertion-sort.html
         array[j] = insertion;
       }
     }
-    return array;
   }
 ```
 
@@ -60,7 +59,7 @@ permalink: insertion-sort.html
     return low;
   }
 
-  private static int[] sort(int[] array) {
+  private static void sort(int[] array) {
 
     int len = array.length;
     for (int i = 1; i < len; i++) {
@@ -73,6 +72,5 @@ permalink: insertion-sort.html
       }
       array[low] = insertion;
     }
-    return array;
   }
 ```
