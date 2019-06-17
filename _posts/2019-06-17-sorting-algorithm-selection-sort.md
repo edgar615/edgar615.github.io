@@ -40,25 +40,24 @@ permalink: selection-sort.html
 
 ![](/assets/images/posts/sorting-algorithm/selection-sort-5.png)
 
-注意上图有一个
+
 上代码
 
 ```
-private static int[] sort(int[] array) {
-int len = array.length;
-for (int i = 0; i < len; i ++) {
-  int minIndex = i;
-  for (int j = i+1; j < len; j ++) {
-	if (array[i] > array[j]) {
-	  minIndex = j;
-	}
+  private static void sort(int[] array) {
+    int len = array.length;
+    for (int i = 0; i < len; i ++) {
+      int minIndex = i;
+      for (int j = i+1; j < len; j ++) {
+        if (array[i] > array[j]) {
+          minIndex = j;
+        }
+      }
+      if (minIndex != i) {
+        int temp = array[minIndex];
+        array[minIndex] = array[i];
+        array[i] = temp;
+      }
+    }
   }
-  if (minIndex != i) {
-	int temp = array[minIndex];
-	array[minIndex] = array[i];
-	array[i] = temp;
-  }
-}
-return array;
-}
 ```

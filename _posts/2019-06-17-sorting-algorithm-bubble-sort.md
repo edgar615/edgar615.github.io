@@ -47,7 +47,7 @@ Sort）也是一种简单直观的排序算法。它重复地走访过要排序�
 上代码
 
 ```
-private static int[] sort(int[] array) {
+private static void sort(int[] array) {
 int len = array.length;
 for (int i = 1; i < len; i ++) {
   for (int j = 0; j < len-1; j ++) {
@@ -58,29 +58,27 @@ for (int i = 1; i < len; i ++) {
 	}
   }
 }
-return array;
 }
 ```
 
 仔细观察上面的代码，会发现即使数组在某次循环已经排序完成，依然会继续执行循环。为了优化这种情况，我们可以增加一个标记来表明此次循环是否进行了交换，如果没有交换说明排序已经完成。优化后的代码如下
 
 <pre class="line-numbers "><code class="language-java">
-private static int[] sort(int[] array) {
-int len = array.length;
-for (int i = 1; i < len; i ++) {
-  boolean complete = true;
-  for (int j = 0; j < len-1; j ++) {
-	if (array[j] > array[j+1]) {
-	  int temp = array[j];
-	  array[j] = array[j+1];
-	  array[j+1] = temp;
-	  complete = false;
-	}
+  private static void sort(int[] array) {
+    int len = array.length;
+    for (int i = 1; i < len; i ++) {
+      boolean complete = true;
+      for (int j = 0; j < len-1; j ++) {
+        if (array[j] > array[j+1]) {
+          int temp = array[j];
+          array[j] = array[j+1];
+          array[j+1] = temp;
+          complete = false;
+        }
+      }
+      if (complete) {
+        break;
+      }
+    }
   }
-  if (complete) {
-	break;
-  }
-}
-return array;
-}
 </code></pre>
