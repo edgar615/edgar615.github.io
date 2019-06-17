@@ -84,17 +84,3 @@ for (int i = 1; i < len; i ++) {
 return array;
 }
 </code></pre>
-
-参考资料
-
-https://www.cnblogs.com/wuxiangli/p/5639011.html
-
-https://blog.csdn.net/fycy2010/article/details/46945641
-
-https://blog.csdn.net/tiankong_/article/details/77234726
-
-https://blog.csdn.net/gongpulin/article/details/81137548
-
-https://www.cnblogs.com/CheeseZH/p/5283390.html
-
-https://blog.51cto.com/13722730/2112462
