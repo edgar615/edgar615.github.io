@@ -10,7 +10,7 @@ permalink: mysql-index-4.html
 
 # 聚集索引与辅助索引
 
-![](/assets/images/posts/mysql-index/index-1.jpg)
+![](/assets/images/posts/mysql-index/index-1.png)
 
 ## 聚集索引
 
@@ -29,7 +29,7 @@ permalink: mysql-index-4.html
 # 联合索引
 对多个字段同时建立的索引(有顺序，ABC，ACB是完全不同的两种联合索引)
 
-![](/assets/images/posts/mysql-index/index-2.jpg)
+![](/assets/images/posts/mysql-index/index-2.png)
 
 # 覆盖索引
 如果一个索引包含(或覆盖)所有需要查询的字段的值，称为**覆盖索引**。即只需扫描索引而无须回表，减少IO操作
