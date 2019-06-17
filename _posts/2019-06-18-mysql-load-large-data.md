@@ -31,63 +31,61 @@ LOAD DATA [LOW_PRIORITY | CONCURRENT] [LOCAL] INFILE 'file_name'
 先通过程序生成一个数据文件，每一行为一条记录，然后再使用上面提到的 `LOAD DATA INFILE` 来导入数据就可以了
 
 ```
-long start = System.currentTimeMillis() / 1000;
 try {
-    File file = new File(FILE);
+  File file = new File("c:/work/test.txt");
 
-    if (file.exists()) {
-        file.delete();
-    }
-    file.createNewFile();
+  if (file.exists()) {
+	file.delete();
+  }
+  file.createNewFile();
 
-    FileOutputStream outStream = new FileOutputStream(file, true);
+  FileOutputStream outStream = new FileOutputStream(file, false);
 
-    StringBuilder builder = new StringBuilder(10240);
-    DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
-    Random rand = new Random();
+  StringBuilder builder = new StringBuilder(10240);
+  Random rand = new Random();
 
-    String tmpDate = dateFormat.format(new Date());
-    Long tmpTimestamp = System.currentTimeMillis() / 1000;
 
-    int i = 0;
-    while (i++ < LOOP) { 
-        if (i > 0 && i % 30000 == 0) {
-            System.out.println("write offset:" + i);
-            outStream.write(builder.toString().getBytes(CHARCODE));
-            builder = new StringBuilder(10240);
-        }
+  int i = 0;
+  while (i++ < 10000) {
+	//订单号
+	builder.append(i);
+	builder.append("\t");
+	//卖家ID
+	builder.append(Math.abs(rand.nextInt(999)));
+	builder.append("\t");
+	//卖家名称
+	builder.append(Math.abs(rand.nextInt(999)));
+	builder.append("\t");
+	//买家ID
+	builder.append(Math.abs(rand.nextInt(999)));
+	builder.append("\t");
+	//买家名称
+	builder.append(Math.abs(rand.nextInt(999)));
+	builder.append("\t");
 
-        if (tmpTimestamp.compareTo(System.currentTimeMillis() / 1000) != 0) {
-            tmpDate = dateFormat.format(new Date());
-            tmpTimestamp = System.currentTimeMillis() / 1000;
-        }
-
-        builder.append(tmpDate);
-        builder.append("\t");
-        builder.append(rand.nextInt(999));
-        builder.append("\t");
-        builder.append(Encrypt.md5(System.currentTimeMillis() + "" + rand.nextInt(99999999)));
-        builder.append("\t");
-        builder.append(rand.nextInt(999) % 2 == 0 ? "AA." : "BB");
-        builder.append("\t");
-        builder.append(rand.nextFloat() * 2000);
-        builder.append("\t");
-        builder.append(rand.nextInt(9));
-        builder.append("\n");
-    }
-
-    System.out.println("write data:" + i);
-    outStream.write(builder.toString().getBytes(CHARCODE));
-
-    outStream.close();
+	//订单金额
+	builder.append(Math.abs(rand.nextInt(99999999)));
+	builder.append("\t");
+	//状态
+	builder.append(Math.abs(rand.nextInt(5)));
+	builder.append("\t");
+	//时间
+	builder.append(Instant.now().getEpochSecond() + rand.nextInt(9999));
+	builder.append("\n");
+  }
+  outStream.write(builder.toString().getBytes());
+  outStream.close();
 } catch (Exception e) {
-    e.printStackTrace();
+  e.printStackTrace();
 }
-
-System.out.println(System.currentTimeMillis() / 1000 - start);
 ```
 
+我通过Navicat远程导入100万数据，用时10分钟左右，命令学着太累，o(╥﹏╥)o
+
+
+
 # LOAD DATA INFILE 详细介绍
+
 网上摘抄的，没有排版
 
 > LOAD DATA INFILE语句从一个文本文件中以很高的速度读入一个表中。如果指定LOCAL关键词，从客户主机读文件。如果LOCAL没指定，文件必须位于服务器上。(LOCAL在MySQL3.22.6或以后版本中可用。）  
