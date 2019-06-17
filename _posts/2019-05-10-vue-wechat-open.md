@@ -3,7 +3,7 @@ layout: post
 title: Vue微信公众号授权
 date: 2019-05-10
 categories:
-    - Vue Wechat
+    - Vue
 comments: true
 permalink: vue-wechat-open.html
 ---

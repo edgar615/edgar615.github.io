@@ -3,7 +3,7 @@ layout: post
 title: MySQL索引-B+树（第3部分）
 date: 2019-06-01
 categories:
-    - MySQL,数据结构
+    - MySQL
 comments: true
 permalink: mysql-index-3.html
 ---

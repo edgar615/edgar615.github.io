@@ -3,8 +3,7 @@ layout: post
 title: Spring Config
 date: 2019-03-14
 categories:
-    - Spring Boot
-    - Spring Cloud
+    - Spring
 comments: true
 permalink: Spring-Cloud-Config.html
 ---

@@ -3,8 +3,7 @@ layout: post
 title: Spring Cloud Bus
 date: 2019-03-25
 categories:
-    - Spring Boot
-    - Spring Cloud
+    - Spring
 comments: true
 permalink: Spring-Cloud-Bus.html
 ---

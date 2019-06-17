@@ -3,8 +3,7 @@ layout: post
 title: 通过程序重启spring boot
 date: 2019-03-10
 categories:
-    - Spring Boot
-    - Spring Cloud
+    - Spring
 comments: true
 permalink: spring-restart.html
 ---

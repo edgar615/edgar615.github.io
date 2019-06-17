@@ -3,7 +3,7 @@ layout: post
 title: spring boot配置文件生成随机数
 date: 2019-03-19
 categories:
-    - Spring Boot
+    - Spring
 comments: true
 permalink: Random-Configuration-Property-Values.html
 ---

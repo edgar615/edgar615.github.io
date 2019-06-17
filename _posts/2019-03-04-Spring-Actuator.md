@@ -3,7 +3,7 @@ layout: post
 title: Spring Actuator
 date: 2019-03-04
 categories:
-    - Spring Boot
+    - Spring
 comments: true
 permalink: Spring-Actuator.html
 ---

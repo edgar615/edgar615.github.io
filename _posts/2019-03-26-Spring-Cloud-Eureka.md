@@ -3,8 +3,7 @@ layout: post
 title: Spring Cloud Eureka
 date: 2019-03-26
 categories:
-    - Spring Boot
-    - Spring Cloud
+    - Spring
 comments: true
 permalink: Spring-Cloud-Eureka.html
 ---

@@ -3,8 +3,7 @@ layout: post
 title: Spring集成kafka
 date: 2019-06-06
 categories:
-    - Spring Boot
-    - Spring Cloud
+    - Spring
 comments: true
 permalink: Spring-kafka.html
 ---
