@@ -153,6 +153,40 @@ mysql> select count(*) from purchase_order where seller_id > 1 and buyer_id < 99
 
 可以看到`count(*)`耗时都比较长，因为**`count(*)`是表扫描**
 
+建索引
+
+```
+mysql> create index idx_seller on purchase_order(seller_id, buyer_id);
+Query OK, 0 rows affected (50.68 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> select count(*) from purchase_order where seller_id > 1 and buyer_id < 999;
++----------+
+| count(*) |
++----------+
+|  9969972 |
++----------+
+1 row in set (2.91 sec)
+
+mysql> select count(*) from purchase_order where seller_id > 1;
++----------+
+| count(*) |
++----------+
+|  9969972 |
++----------+
+1 row in set (2.33 sec)
+
+mysql> select count(*) from purchase_order where seller_id = 1;
++----------+
+| count(*) |
++----------+
+|    10195 |
++----------+
+1 row in set (0.06 sec)
+```
+
+
+
 从 MVCC 机制与行可见性问题中可得到原因，每个事务所看到的行可能是不一样的，其 count( * ) 结果也可能是不同的；反过来看，则是 MySQL-Server 端无法在同一时刻对所有用户线程提供一个统一的读视图，也就无法提供一个统一的 count 值。所以InnoDB无法想myisam一样维护一个row_count变量
 
 对于多个访问 MySQL 的用户线程 `COUNT( * )` 而言，决定它们各自的结果的因素有几个:
@@ -171,7 +205,7 @@ mysql> select count(*) from purchase_order where seller_id > 1 and buyer_id < 99
 
 **A：**MySQL 有这样的优化策略，将扫表操作所 load 的 page 放在 LRU-list 的 oung/old 的交界处 ( LRU 尾部约 3/8 处 )。这样用户线程所需的热点页仍然在 LRU-list-young 区域，而扫表操作不断 load 的页则会不断冲刷 old 区域的页，这部分的页本身就是被认为非热点的页，因此也相对符合逻辑。
 
-**Q：InnoDB-COUNT( \* ) 是否会像 SELECT * FROM t 那样读取存储大字段的溢出页(如果存在)？**
+**Q：InnoDB-COUNT(* ) 是否会像 SELECT * FROM t 那样读取存储大字段的溢出页(如果存在)？**
 
 **A：否。**因为 InnoDB-COUNT( * ) 只需要数行数，而每一行的主键肯定不是 NULL，因此只需要读主键索引页内的行数据，而无需读取额外的溢出页。
 
