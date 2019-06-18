@@ -3,9 +3,9 @@ layout: post
 title: 面试题-从大文件中找出一个最大的100个树
 date: 2019-06-11
 categories:
-    - 面试,算法
+    - 算法
 comments: true
-permalink: find-data-in-bigfile.html
+permalink: find-data-in-large-file.html
 ---
 
 说来惭愧，在十年前上学的时候网上认识的一个大哥（断联系很多年了）给我出了一个类似的题目，这么多年我虽然模糊的知道这么做，却从来没有上手做过。这次整理笔记的时候决定认真的做一下。
@@ -86,32 +86,6 @@ hash(x)%m
       System.out.println(new String(dst, 0, length));
     } 
 </code></pre>
-
-现在我们要在`say`方法执行前增加一个输出日志，该如何做呢？
-
-最简单的方式是静态代理的实现，新定义一个实现类包装`MyServiceImpl`
-
-<pre class="line-numbers "><code class="language-java">
-public class MyServiceProxy implements IMyService {
-
-	private final IMyService myService;
-	
-	public MyServiceProxy(IMyService myService) {
-		this.myService = myService;
-	}
-	
-	public void say(String message) {
-		System.out.println("before");
-		System.out.println(message);
-	}
-
-}
-</code></pre>
-
-上述静态代理的实现会有下问题:
-
-
-
 
 
 参考资料
