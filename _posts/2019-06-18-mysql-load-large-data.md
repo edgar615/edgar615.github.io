@@ -31,8 +31,7 @@ LOAD DATA [LOW_PRIORITY | CONCURRENT] [LOCAL] INFILE 'file_name'
 先通过程序生成一个数据文件，每一行为一条记录，然后再使用上面提到的 `LOAD DATA INFILE` 来导入数据就可以了
 
 ```
-try {
-  File file = new File("c:/work/test.txt");
+  File file = new File("e:/test.txt");
 
   if (file.exists()) {
 	file.delete();
@@ -41,12 +40,15 @@ try {
 
   FileOutputStream outStream = new FileOutputStream(file, false);
 
-  StringBuilder builder = new StringBuilder(10240);
+  FileWriter fw = new FileWriter(file.getAbsoluteFile());
+  BufferedWriter bw = new BufferedWriter(fw);
+
   Random rand = new Random();
 
 
-  int i = 0;
-  while (i++ < 10000) {
+  int i = 1000000;
+  while (i++ < 10000000) {
+	StringBuilder builder = new StringBuilder();
 	//订单号
 	builder.append(i);
 	builder.append("\t");
@@ -72,12 +74,9 @@ try {
 	//时间
 	builder.append(Instant.now().getEpochSecond() + rand.nextInt(9999));
 	builder.append("\n");
+	outStream.write(builder.toString().getBytes());
   }
-  outStream.write(builder.toString().getBytes());
   outStream.close();
-} catch (Exception e) {
-  e.printStackTrace();
-}
 ```
 
 我通过Navicat远程导入100万数据，用时10分钟左右，命令学着太累，o(╥﹏╥)o
