@@ -5,7 +5,7 @@ date: 2019-05-31
 categories:
     - MySQL
 comments: true
-permalink: mysql-index-1.html
+permalink: mysql-index-file-storage.html
 ---
 
 # 文件存储结构

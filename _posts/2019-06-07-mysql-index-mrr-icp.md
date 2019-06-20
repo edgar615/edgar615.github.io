@@ -5,7 +5,7 @@ date: 2019-06-07
 categories:
     - MySQL
 comments: true
-permalink: mysql-index-5.html
+permalink: mysql-index-mrr-icp.html
 ---
 
 # MRR

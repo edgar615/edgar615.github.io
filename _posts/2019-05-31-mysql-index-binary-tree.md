@@ -5,7 +5,7 @@ date: 2019-05-31
 categories:
     - MySQL
 comments: true
-permalink: mysql-index-2.html
+permalink: mysql-index-binary-tree.html
 ---
 
 # 二叉树

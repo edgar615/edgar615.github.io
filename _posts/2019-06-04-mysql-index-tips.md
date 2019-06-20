@@ -5,7 +5,7 @@ date: 2019-06-04
 categories:
     - MySQL
 comments: true
-permalink: mysql-index-4.html
+permalink: mysql-index-tips.html
 ---
 
 # 聚集索引与辅助索引

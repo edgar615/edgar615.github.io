@@ -5,7 +5,7 @@ date: 2019-06-01
 categories:
     - MySQL
 comments: true
-permalink: mysql-index-3.html
+permalink: mysql-index-b+tree.html
 ---
 
 # B-树
