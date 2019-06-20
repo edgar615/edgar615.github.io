@@ -66,11 +66,11 @@ index1 索引里面，包含了每个记录的整个字符串，而index2索引�
 
 index1
 
-![](/assets/images/posts/sorting-algorithm/string-index-1.png)
+![](/assets/images/posts/mysql-index/string-index-1.png)
 
 index2
 
-![](/assets/images/posts/sorting-algorithm/string-index-2.png)
+![](/assets/images/posts/mysql-index/string-index-2.png)
 
 我们可以看到
 
