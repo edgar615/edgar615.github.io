@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引（第4部分）
+title: MySQL索引（part4）
 date: 2019-06-04
 categories:
     - MySQL

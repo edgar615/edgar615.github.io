@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引之MRR和ICP（第5部分）
+title: MySQL索引-MRR和ICP（part5）
 date: 2019-06-07
 categories:
     - MySQL

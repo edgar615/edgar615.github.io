@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引-文件存储结构（第一部分）
+title: MySQL索引-文件存储结构（part1）
 date: 2019-05-31
 categories:
     - MySQL
