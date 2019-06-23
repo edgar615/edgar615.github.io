@@ -3,7 +3,7 @@ layout: post
 title: 红黑树
 date: 2019-06-13
 categories:
-    - 数据结构
+    - 算法
 comments: true
 permalink: red-black-tree.html
 ---
