@@ -6,7 +6,7 @@ date: 2019-06-24
 categories:
     - 设计
 comments: true
-permalink:circuit-breaker.html
+permalink: circuit-breaker.html
 ---
 
 今天稍微复杂点的互联网应用，服务端基本都是分布式的，大量的服务支撑起整个系统，服务之间也难免有大量的依赖关系，依赖都是通过网络连接起来。
