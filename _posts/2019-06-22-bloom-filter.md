@@ -127,7 +127,6 @@ redis也提供了BloomFilter的实现，需要额外安装
 将rebloom加入Redis
 ```
 loadmodule /path/to/redisbloom.so
-# 这里和官方文档不一样,文档上写的rebloom.so
 ```
 也可以通过命令直接启动
 ```
@@ -158,7 +157,7 @@ $ redis-server --loadmodule /path/to/redisbloom.so
  3) (integer) 1
 ```
 
-我们也可以创建自己的BloomFilter
+我们也可以使用自定义属性创建自己的BloomFilter
 
 ```
  127.0.0.1:6379> BF.RESERVE largebloom 0.0001 1000000
@@ -166,6 +165,108 @@ $ redis-server --loadmodule /path/to/redisbloom.so
  127.0.0.1:6379> BF.ADD largebloom mark
  1) (integer) 1
 ```
+具体的API可以查看[文档](https://oss.redislabs.com/redisbloom/Bloom_Commands)
+## CuckooFilter
+
+针对前面提到的Counting BloomFilter，redis也提供了实现
+
+```
+127.0.0.1:6379> CF.ADD newFilter foo
+(integer) 1
+127.0.0.1:6379> CF.EXISTS newFilter foo
+(integer) 1
+127.0.0.1:6379> CF.EXISTS newFilter notpresent
+(integer) 0
+127.0.0.1:6379> CF.DEL newFilter foo
+(integer) 1
+127.0.0.1:32770> CF.MEXISTS newFilter notpresent foo
+1) (integer) 0
+2) (integer) 0
+
+```
+
+具体的API可以查看[文档](https://oss.redislabs.com/redisbloom/Cuckoo_Commands)
+
+## TOP-K
+redisbloom还提供了TopK Filter
+
+```
+127.0.0.1:6379> TOPK.RESERVE test 50 2000 7 0.925
+OK
+127.0.0.1:6379> TOPK.ADD test foo bar 42
+1) (nil)
+2) baz
+3) (nil)
+127.0.0.1:6379> TOPK.QUERY test 42 nonexist
+1) (integer) 1
+2) (integer) 0
+127.0.0.1:6379> TOPK.COUNT test foo 42 nonexist
+1) (integer) 3
+2) (integer) 1
+3) (integer) 0
+127.0.0.1:6379> TOPK.LIST test
+ 1) (nil)
+ 2) (nil)
+ 3) (nil)
+ 4) (nil)
+ 5) (nil)
+ 6) (nil)
+ 7) (nil)
+ 8) (nil)
+ 9) (nil)
+10) (nil)
+11) (nil)
+12) (nil)
+13) (nil)
+14) (nil)
+15) (nil)
+16) 42
+17) (nil)
+18) (nil)
+19) (nil)
+20) (nil)
+21) (nil)
+22) (nil)
+23) (nil)
+24) (nil)
+25) (nil)
+26) (nil)
+27) (nil)
+28) (nil)
+29) (nil)
+30) (nil)
+31) (nil)
+32) foo
+33) bar
+34) (nil)
+35) (nil)
+36) (nil)
+37) (nil)
+38) (nil)
+39) (nil)
+40) (nil)
+41) (nil)
+42) (nil)
+43) (nil)
+44) (nil)
+45) (nil)
+46) (nil)
+47) (nil)
+48) (nil)
+49) (nil)
+50) (nil)
+127.0.0.1:6379> TOPK.INFO test
+1) k
+2) (integer) 50
+3) width
+4) (integer) 2000
+5) depth
+6) (integer) 7
+7) decay
+8) "0.92500000000000004"
+```
+
+具体的API可以查看[文档](https://oss.redislabs.com/redisbloom/TopK_Commands)
 
 # 参考资料
 
@@ -173,4 +274,4 @@ https://juejin.im/post/5c43f695e51d455221611728
 
 http://cyhone.com/2017/02/07/Introduce-to-BloomFilter/
 
-https://redislabs.com/blog/rebloom-bloom-filter-datatype-redis/
+https://oss.redislabs.com/redisbloom/
