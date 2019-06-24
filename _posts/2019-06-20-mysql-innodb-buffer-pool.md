@@ -110,7 +110,7 @@ Pages read ahead 0.00/s, evicted without access 0.00/s, Random read ahead 0.00/s
 
 - Innodb_buffer_pool_read_ahead：通过预读(后台线程)读入innodb buffer pool中数据页数
 - Innodb_buffer_pool_read_ahead_evicted：通过预读来的数据页没有被查询访问就被清理的pages，无效预读页数
-　　
+
 ```
 mysql> show global status like '%read_ahead%';
 +---------------------------------------+--------+
@@ -123,7 +123,9 @@ mysql> show global status like '%read_ahead%';
 3 rows in set (0.07 sec)
 ```
 
-# 全表扫描
+# MySQL缓冲池污染
+
+当某一个SQL语句，要批量扫描大量数据时，可能导致把缓冲池的所有页都替换出去，导致大量热数据被换出，MySQL性能急剧下降，这种情况叫缓冲池污染。
 
 如果某个表中记录非常多的话，那该表会占用特别多的页，当对这个表执行全表扫描的时候会将大量的页加载到Buffer Pool中，这也就意味着需要把Buffer Pool中的所有页都替换一次，而这时其他查询语句在执行时又得执行一次从磁盘加载到Buffer Pool的操作。而这种全表扫描的语句执行的频率也不高，每次执行都要把Buffer Pool中的缓存页替换一次，这严重的影响到其他查询对 Buffer Pool的使用，从而大大降低了缓存命中率。
 
@@ -248,3 +250,5 @@ Buffer pool size 共有 8191个页，共8191*16K的缓冲池空间，Free buffer
 https://www.cnblogs.com/geaozhang/p/7397699.html
 
 https://mp.weixin.qq.com/s/ZPXcsogmO9BkKMKNLQxNLA
+
+https://mp.weixin.qq.com/s/nA6UHBh87U774vu4VvGhyw
