@@ -123,6 +123,26 @@ public class thread.start.SynchronizedDemo {
 
 > wait/notify等方法也依赖于monitor对象，这就是为什么只有在同步的块或者方法中才能调用wait/notify等方法，否则会抛出java.lang.IllegalMonitorStateException的异常的原因
 
+# 锁存放的位置
+
+锁标记存放在Java对象头的Mark Word中。
+
+Java对象头长度
+
+![](/assets/images/posts/synchronized/synchronized-3.png)
+
+32位JVM Mark Word 结构
+
+![](/assets/images/posts/synchronized/synchronized-4.png)
+
+32位JVM Mark Word 状态变化
+
+![](/assets/images/posts/synchronized/synchronized-5.png)
+
+64位JVM Mark Word 结构
+
+![](/assets/images/posts/synchronized/synchronized-6.png)
+
 # 锁的状态
 锁主要存在四种状态，依次是：无锁状态、偏向锁状态、轻量级锁状态、重量级锁状态，锁可以从偏向锁升级到轻量级锁，再升级的重量级锁。但是锁的升级是单向的，也就是说只能从低到高升级，不会出现锁的降级。
 
@@ -184,6 +204,12 @@ JDK 1.6引入了更加聪明的自旋锁，即自适应自旋锁。所谓自适�
 网上找到的从偏向锁膨胀至重量锁的完全流程图
 
 ![](/assets/images/posts/synchronized/synchronized-2.png)
+
+## 锁粗化（Lock Coarsening）
+锁粗化是指减少不必要的紧连在一起的unlock，lock操作，将多个连续的锁扩展成一个范围更大的锁。
+
+## 锁消除（Lock Elimination）
+锁削除是指虚拟机即时编译器在运行时，对一些代码上要求同步，但是被检测到不可能存在共享数据竞争的锁进行削除。
 
 # 参考资料
 
