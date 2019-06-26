@@ -3,7 +3,7 @@ layout: post
 title: java并发系列-wait notify
 date: 2019-06-24
 categories:
-    - 并发
+    - java
 comments: true
 permalink: java-concurrency-wait-notify.html
 ---

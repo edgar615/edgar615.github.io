@@ -15,9 +15,9 @@ permalink: mysql-mvcc.html
 **读锁：**也叫共享锁、S锁，若事务T对数据对象A加上S锁，则事务T可以读A但不能修改A，其他事务只能再对A加S锁，而不能加X锁，直到T释放A上的S 锁。这保证了其他事务可以读A，但在T释放A上的S锁之前不能对A做任何修改。
 
 **写锁：**又称排他锁、X锁。若事务T对数据对象A加上X锁，事务T可以读A也可以修改A，其他事务不能再对A加任何锁，直到T释放A上的锁。这保证了其他事务在T释放A上的锁之前不能再读取和修改A。
- 
+
 **表锁：**操作对象是数据表。Mysql大多数锁策略都支持，是系统开销最低但并发性最低的一个锁策略。事务t对整个表加读锁，则其他事务可读不可写，若加写锁，则其他事务增删改都不行。
- 
+
 **行级锁：**操作对象是数据表中的一行。是MVCC技术用的比较多的。行级锁对系统开销较大，但处理高并发较好。
 
 # MVCC
@@ -53,12 +53,14 @@ permalink: mysql-mvcc.html
 <pre class="line-numbers "><code class="language-sql">
 Insert user(id, name) values(1, ‘edgar’)
 </code></pre>
+
 ![](/assets/images/posts/mvcc/version1.png)
 
 2.更新
 <pre class="line-numbers "><code class="language-sql">
 Update user set name = ‘bob’ where id = 1
 </code></pre>
+
 ![](/assets/images/posts/mvcc/version2.png)
 
 3.再次更新
