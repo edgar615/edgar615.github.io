@@ -86,7 +86,7 @@ JVM在判定两个class是否相同时，不仅要判断两个类名是否相同
 
 # 类加载过程
 
-![](/assets/images/posts/classloader/classloader-2.png)
+![](/assets/images/posts/classloader/classloader-3.png)
 
 如上图所示
 
