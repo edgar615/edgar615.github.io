@@ -36,7 +36,7 @@ layout: default
                     <a href="/{{ category | prepend: site.baseurl }}" class="tag {% if site.data.category[category].color %} is-{{ site.data.category[category].color }} {% endif %}">{{ category }}</a>
                     {% endfor %}
                 </p>
-                {{ post.excerpt }}
+                <!-- {{ post.excerpt }} -->
                 <p><small>{{ post.date | date: "%Y-%m-%d" }}</small></p>
             </div>
         </div>
