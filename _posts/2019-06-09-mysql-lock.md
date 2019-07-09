@@ -122,21 +122,42 @@ InnoDB使用间隙锁的目的有两个：
 - 为了防止幻读，Repeatable read隔离级别下再通过GAP锁即可避免了幻读，因为在事务在第一次执行读取操作时，那些幻影记录尚不存在，我们无法给这些幻影记录加上锁
 - 满足恢复和复制的需要MySQL的恢复机制要求：在一个事务未提交前，其他并发事务不能插入满足其锁定条件的任何记录，也就是不允许出现幻读
 
-案例1
+> 间隙锁要么锁住索引记录中间的值，要么锁住第一个索引记录前面的值或者最后一个索引记录后面的值。
+
+## 案例1
+
+准备数据
+
+```
+create table emp(
+empno smallint(5) unsigned not null auto_increment,
+ename varchar(30) not null,
+deptno smallint(5) unsigned not null,
+job varchar(30) not null,
+primary key(empno),
+key idx_emp_info(deptno,ename)
+)engine=InnoDB charset=utf8;
+
+insert into emp values(1,'zhangsan',1,'CEO'),(2,'lisi',2,'CFO'),(3,'wangwu',3,'CTO'),(4,'jeanron100',3,'Enginer');
+```
 
 事务A
 ```
+start transaction;
+begin;
 SELECT * FROM emp WHERE empno BETWEEN 10 AND 30 FOR UPDATE;
 ```
 事务B
 ```
+start transaction;
+begin;
 -- 会被卡住，等待事务A的提交
 insert emp(ename, deptno,job) values('zhangsan', 1, 'CEO');
 ```
 
-案例2
+## 案例2
 
-表中的ID最大为17，缺少10和13
+表中的ID最大为17，缺少10，11，13，14
 
 ```
 mysql> select * from emp;
@@ -152,17 +173,17 @@ mysql> select * from emp;
 |     7 | zhangsan   |      1 | CEO     |
 |     8 | zhangsan   |      1 | CEO     |
 |     9 | zhangsan   |      1 | CEO     |
-|    11 | zhangsan   |      1 | CEO     |
 |    12 | zhangsan   |      1 | CEO     |
-|    14 | zhangsan   |      1 | CEO     |
 |    15 | zhangsan   |      1 | CEO     |
 |    16 | zhangsan   |      1 | CEO     |
 |    17 | zhangsan   |      1 | CEO     |
 +-------+------------+--------+---------+
-15 rows in set (0.06 sec)
+13 rows in set (0.06 sec)
 ```
 事务A 
 ```
+mysql> start transaction;
+mysql> begin;
 mysql> SELECT * FROM emp WHERE empno = 19 FOR UPDATE;
 Empty set
 ```
@@ -170,9 +191,28 @@ Empty set
 ```
 insert emp(ename, deptno,job) values('zhangsan', 1, 'CEO');
 ```
-事务A的检索条件empno=19,向左取得最靠近的值17作为左区间，向右由于没有记录因此取得无穷大作为右区间，因此，事务A的间隙锁的范围（17，无穷大）
+事务A的检索条件empno=19,向左取得最靠近的值17作为左区间，向右由于没有记录因此取得无穷大作为右区间，因此，**事务A的间隙锁的范围（17，无穷大）**
 
-案例3
+## 案例3
+
+事务A
+```
+SELECT * FROM emp WHERE empno = 12 FOR UPDATE;
+```
+事务B
+```
+-- 执行成功
+insert emp(ename, deptno,job) values('zhangsan', 1, 'CEO');
+update emp set ename = 'test' where empno = 9;
+update emp set ename = 'test' where empno = 10;
+update emp set ename = 'test' where empno = 13;
+update emp set ename = 'test' where empno = 15;
+insert emp(empno,ename, deptno,job) values(13,'zhangsan', 1, 'CEO');
+insert emp(empno,ename, deptno,job) values(10,'zhangsan', 1, 'CEO');
+```
+**记录锁 12**
+
+## 案例4
 
 事务A
 ```
@@ -181,13 +221,14 @@ SELECT * FROM emp WHERE empno = 13 FOR UPDATE;
 事务B
 ```
 -- 执行成功
-insert emp(ename, deptno,job) values('zhangsan', 1, 'CEO');
+insert emp(empno,ename, deptno,job) values(10,'zhangsan', 1, 'CEO');
+insert emp(empno,ename, deptno,job) values(18,'zhangsan', 1, 'CEO');
 -- 卡住
-insert emp(empno,ename, deptno,job) values(13,'zhangsan', 1, 'CEO');
+insert emp(empno,ename, deptno,job) values(14,'zhangsan', 1, 'CEO');
 ```
-间隙锁范围(12,14)
+**间隙锁(12,15)**
 
-案例4
+## 案例5
 
 事务A
 ```
@@ -201,11 +242,13 @@ update emp set empno = 21 where empno = 1;
 update emp set empno = 13 where empno = 21;
 ```
 
-总结一下：**间隙锁的提出仅仅是为了防止插入幻影记录而提出的，RR隔离级别就是通过间隙锁来减少幻读的发生**
+总结一下：**间隙锁的提出仅仅是为了防止插入幻影记录而提出的（防止其他事务在间隔中插入数据），RR隔离级别就是通过间隙锁来减少幻读的发生**
 
 
 # 临键锁
 Next-Key 可以理解为一种特殊的间隙锁，也可以理解为一种特殊的算法。通过临建锁可以解决幻读的问题。 每个数据行上的**非唯一索引列**上都会存在一把临键锁，当某个事务持有该数据行的临键锁时，会锁住一段**左开右闭区间**的数据。需要强调的一点是，InnoDB 中行级锁是基于索引实现的，临键锁只与非唯一索引列有关，在唯一索引列（包括主键列）上不存在临键锁。
+
+> Next-Key Lock可以说是记录锁(Record Lock)和间隙锁（Gap Lock）的组合，既封锁了”缝隙”，又封锁了索引本身。
 
 假设有如下表：
 ```
@@ -236,11 +279,19 @@ SELECT * FROM next_key_test WHERE age = 24 FOR UPDATE;
 ```
 -- 卡住
 INSERT INTO next_key_test VALUES(100, 'Ezreal', 26);
+INSERT INTO next_key_test VALUES(101, 'Ezreal', 10);
+-- 成功
+INSERT INTO next_key_test VALUES(102, 'Ezreal', 32);
+INSERT INTO next_key_test VALUES(103, 'Ezreal', 33);
+INSERT INTO next_key_test VALUES(104, 'Ezreal', 9);
 ```
 事务 A 在对 age 为 24 的列进行 UPDATE 操作的同时，也获取了 (24, 32] 这个区间内的临键锁。
 
-在根据非唯一索引 对记录行进行` UPDATE` , `FOR UPDATE`, `LOCK IN SHARE MODE` 操作时，InnoDB 会获取该记录行的 临键锁 ，并同时获取该记录行下一个区间的间隙锁。
-所以`SELECT * FROM next_key_test WHERE age = 24 FOR UPDATE;`锁住的区间为(10,32]。间隙锁(10,24)，临键锁(24, 32] **即：临键锁也包括间隙锁**
+**注意：临键锁只与非唯一索引列有关，在唯一索引列（包括主键列）上不存在临键锁。**
+
+在根据非唯一索引对记录行进行` UPDATE` , `FOR UPDATE`, `LOCK IN SHARE MODE` 操作时，InnoDB 会获取该记录行的 临键锁 ，并同时获取该记录行下一个区间的间隙锁。**即：临键锁也包括间隙锁**
+
+但是根据上面的说法，不是应该锁住(10,32]区间，实际测试却锁住的是[10,32)，why？
 
 # 插入意向锁
 一个事务在插入一条记录时需要判断一下插入位置是不是被别的事务加了间隙锁，如果有的话，插入操作需要等待，直到拥有间隙锁的那个事务提交。
@@ -260,9 +311,9 @@ INSERT INTO next_key_test VALUES(100, 'Ezreal', 26);
 1. 找到 小于等于25的记录 ，这里是 10
 2. 找到 记录10的下一条记录 ，这里是 30
 3. 判断 下一条记录30 上是否有锁
-3.1 判断 30 上面如果 没有锁 ，则可以插入
-3.2 判断 30 上面如果有Record Lock，则可以插入
-3.3 判断 30 上面如果有Gap Lock/Next-Key Lock，则无法插入，因为锁的范围是 (10, 30) /（10, 30] ；在30上增加insert intention lock（ 此时处于waiting状态），当 Gap Lock / Next-Key Lock 释放时，等待的事务（ transaction）将被唤醒 ，此时 记录30 上才能获得 insert intention lock ，然后再插入记录25
+- 判断 30 上面如果 没有锁 ，则可以插入
+- 判断 30 上面如果有Record Lock，则可以插入
+-  判断 30 上面如果有Gap Lock/Next-Key Lock，则无法插入，因为锁的范围是 (10, 30) /（10, 30] ；在30上增加insert intention lock（ 此时处于waiting状态），当 Gap Lock / Next-Key Lock 释放时，等待的事务（ transaction）将被唤醒 ，此时 记录30 上才能获得 insert intention lock ，然后再插入记录25
 
 注意：一个事务 insert 25 且没有提交，另一个事务 delete 25 时，记录25上会有 Record Lock
 
@@ -330,7 +381,7 @@ InnoDB存储引擎中提供了一种轻量级互斥量的自增长实现机制�
 - 如果在唯一索引上使用唯一的查询条件来update/delete，加记录锁
 - 否则，符合查询条件的索引记录之前，都会加Next-Key 锁
 
-注：如果update的是聚集索引，则对应的普通索引记录也会被隐式加锁，这是由InnoDB索引的实现机制决定的：普通索引存储PK的值，检索普通索引本质上要二次扫描聚集索引。
+注：**如果update的是聚集索引，则对应的普通索引记录也会被隐式加锁，这是由InnoDB索引的实现机制决定的：普通索引存储PK的值，检索普通索引本质上要二次扫描聚集索引。**
 
 ## insert
 
