@@ -19,5 +19,4 @@ InnoDB 通过 redo 日志来保证数据的一致性。如果保存所有的重�
 
 # 参考资料
 
-
-
+https://www.jianshu.com/p/d4cc0ea9d097
