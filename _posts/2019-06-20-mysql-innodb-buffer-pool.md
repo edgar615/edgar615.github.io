@@ -52,6 +52,10 @@ Buffer Pool中默认的缓存页大小和在磁盘上默认的页大小是一样
 
 每个缓存页对应的控制信息占用的内存大小是相同的，这部分被放在 Buffer Pool 的前边，缓存页被存放到 Buffer Pool 后边。
 
+> 缓冲池缓存的数据包括Page Cache、Change Buffer、Data Dictionary Cache等，通常 MySQL 服务器的 80% 的物理内存会分配给 Buffer Pool
+>
+> InnoDB内存中的结构主要包括 Buffer Pool，Change Buffer、Adaptive Hash Index以及 Log Buffer 四部分。如果从内存上来看，Change Buffer 和 Adaptive Hash Index 占用的内存都属于 Buffer Pool，Log Buffer占用的内存与 Buffer Pool独立
+
 # LRU List、Free List和Flush List
 
 **Free链表**用于记录缓冲池中哪些缓存页是空闲的。
