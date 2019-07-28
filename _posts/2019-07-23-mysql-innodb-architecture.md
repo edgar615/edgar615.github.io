@@ -16,6 +16,8 @@ InnoDB 通过 redo 日志来保证数据的一致性。如果保存所有的重�
 内存中的结构主要包括 Buffer Pool，Change Buffer、Adaptive Hash Index以及 Log Buffer 四部分。如果从内存上来看，Change Buffer 和 Adaptive Hash Index 占用的内存都属于 Buffer Pool，Log Buffer占用的内存与 Buffer Pool独立。
 
 - [Buffer Pool](https://edgar615.github.io/innodb-buffer-pool.html)
+- [Change Buffer](https://edgar615.github.io/innodb-change-buffer.html)
+- [Log Buffer](https://edgar615.github.io/innodb-log-buffer.html)
 
 # 参考资料
 
