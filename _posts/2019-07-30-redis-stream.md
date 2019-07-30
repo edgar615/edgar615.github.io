@@ -317,7 +317,53 @@ XREADGROUP GROUP first-group fg2 BLOCK 0 STREAMS first-stream >
 "1564474430917-0"
 127.0.0.1:6379> XLEN first-stream
 (integer) 3
+```
+有可以通过`XTRIM`现在stream的长度
+```
+XTRIM key MAXLEN [~] count 
+```
 
+> ~表示允许stream的长度比指定的长度长一点点
+
+# Java实现
+`lettuce`实现了stream，简单使用了下
+## 添加消息
+
+```
+    RedisClient redisClient = RedisClient.create("redis://tabao@192.168.1.204:6379/0");
+    StatefulRedisConnection<String, String> connection = redisClient.connect();
+    RedisStreamCommands<String, String> streamCommands = connection.sync();
+
+    Map<String, String> body =  new HashMap<>();
+    body.put("name", "shelly");
+    body.put("age", "26");
+    String messageId = streamCommands.xadd("first-stream", body);
+    System.out.println(messageId);
+
+    connection.close();
+    redisClient.shutdown();
+```
+
+## 创建消费组
+
+```
+streamCommands.xgroupCreate(StreamOffset.latest("first-stream"), "lettuce-group");
+```
+
+## 消费
+
+```
+    List<StreamMessage<String, String>> messages = streamCommands.xreadgroup(
+        Consumer.from("lettuce-group", "lg1"),
+        XReadArgs.Builder.block(10000),
+        StreamOffset.lastConsumed("first-stream"));
+
+    if(messages.size() == 1) { // a message was read
+      System.out.println(messages.get(0).getId());
+      System.out.println(messages.get(0).getBody());
+    } else { // no message was read
+
+    }
 ```
 
 # 参考资料
