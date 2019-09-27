@@ -5,7 +5,7 @@ date: 2019-09-24
 categories:
     - MySQL
 comments: true
-permalink: mysql-index-part-6.html
+permalink: mysql-index-btree-height.html
 ---
 
 一个面试题：InnoDB 一棵 B+ 树可以存放多少行数据
