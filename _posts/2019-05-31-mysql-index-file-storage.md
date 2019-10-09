@@ -9,7 +9,7 @@ permalink: mysql-index-file-storage.html
 ---
 
 # 文件存储结构
-![](/assets/images/posts/mysql-index/mysql-index-1.png)
+![](/assets/images/posts/mysql-index/mysql-index-1.jpg)
 
 ## 表空间
 表空间是Innodb存储引擎逻辑的最高层，所有的数据都存放在表空间中，默认情况下，Innodb存储引擎有一个共享表空间ibdata1,即所有数据都存放在这个表空间中内。如果启用了`innodb_file_per_table`参数，则每张表内的数据可以单独放到一个表空间内。
