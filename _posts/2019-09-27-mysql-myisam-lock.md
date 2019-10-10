@@ -1,11 +1,11 @@
 ---
 layout: post
 title: MyISAM锁
-date: 2019-06-09
+date: 2019-09-27
 categories:
     - MySQL
 comments: true
-permalink: myisam-lock.html
+permalink: mysql-myisam-lock.html
 ---
 
 Mysql中不同的存储引擎支持不同的锁机制。比如MyISAM和MEMORY存储引擎采用的表级锁，BDB采用的是页面锁，也支持表级锁，InnoDB存储引擎既支持行级锁，也支持表级锁，默认情况下采用行级锁。
