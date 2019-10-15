@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引-B+树（part3）
+title: MySQL索引-B+树(part3)
 date: 2019-06-01
 categories:
     - MySQL

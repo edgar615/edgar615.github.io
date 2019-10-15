@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引-字符串前缀索引（part6）
+title: MySQL索引-字符串前缀索引(part6)
 date: 2019-06-20
 categories:
     - MySQL
