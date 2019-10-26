@@ -1,6 +1,6 @@
 ---
 layout: post
-title: myisam索引结构
+title: MySQL索引-myisam索引结构(part8)
 date: 2019-09-27
 categories:
     - MySQL

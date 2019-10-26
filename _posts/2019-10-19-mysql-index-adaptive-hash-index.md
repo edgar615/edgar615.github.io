@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL索引-自适应哈希索引(part8)
-date: 2019-09-24
+title: MySQL索引-自适应哈希索引(part9)
+date: 2019-10-19
 categories:
     - MySQL
 comments: true

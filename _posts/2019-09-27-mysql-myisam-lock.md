@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MyISAM锁
+title: MySQL锁-MyISAM锁（part2）
 date: 2019-09-27
 categories:
     - MySQL

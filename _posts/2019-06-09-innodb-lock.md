@@ -1,6 +1,6 @@
 ---
 layout: post
-title: innodb 锁
+title: MySQL锁-innodb锁（part1）
 date: 2019-06-09
 categories:
     - MySQL

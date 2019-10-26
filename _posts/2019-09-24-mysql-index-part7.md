@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 面试题：InnoDB 一棵 B+ 树可以存放多少行数据(part6)
+title: 面试题：InnoDB 一棵 B+ 树可以存放多少行数据(part7)
 date: 2019-09-24
 categories:
     - MySQL
