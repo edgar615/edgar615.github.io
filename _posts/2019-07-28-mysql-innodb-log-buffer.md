@@ -1,6 +1,6 @@
 ---
 layout: post
-title: InnoDB Log Buffer
+title: InnoDB架构-Log Buffer（part4）
 date: 2019-07-28
 categories:
     - MySQL
@@ -14,6 +14,7 @@ Log Buffer(日志缓冲区)是一块内存区域用来保存要写入磁盘上�
 
 它会存储InnoDB存储引擎层日志：redo日志和undo日志
 
-`innodb_flush_log_at_trx_commi`控制如何将缓冲区的内容写入到日志文件。`innodb_flush_log_at_timeout`控制缓存写到redo log文件的频率。
+`innodb_flush_log_at_trx_commit`控制如何将缓冲区的内容写入到日志文件。
+`innodb_flush_log_at_timeout`控制缓存写到redo log文件的频率。
 
 后面有时间在整理

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: InnoDB Change Buffer
+title: InnoDB架构-Change Buffer（part3）
 date: 2019-07-23
 categories:
     - MySQL

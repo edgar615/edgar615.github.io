@@ -1,6 +1,6 @@
 ---
 layout: post
-title: InnoDB缓冲池
+title: InnoDB架构-缓冲池（part2）
 date: 2019-06-20
 categories:
     - MySQL

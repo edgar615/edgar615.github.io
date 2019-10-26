@@ -1,6 +1,6 @@
 ---
 layout: post
-title: InnoDB架构
+title: InnoDB架构-简介（part1）
 date: 2019-07-23
 categories:
     - MySQL
