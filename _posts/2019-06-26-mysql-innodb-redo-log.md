@@ -1,6 +1,6 @@
 ---
 layout: post
-title: InnoDB redo日志
+title: MySQL日志-redo日志（part2）
 date: 2019-06-26
 categories:
     - MySQL
@@ -48,26 +48,18 @@ mysql> SHOW VARIABLES LIKE '%innodb_log_file%';
 2 rows in set (0.10 sec)
 ```
 
-
-
 Redo log文件以`ib_logfile[number]`命名，日志目录可以通过参数`innodb_log_group_home_dir`控制。Redo log 以顺序的方式写入文件文件，写满时则回溯到第一个文件，进行覆盖写。（但在做redo checkpoint时，也会更新第一个日志文件的头部checkpoint标记，所以严格来讲也不算顺序写）。
-
 
 ![](/assets/images/posts/redo-log/redo-log-2.png)
 
 write pos表示日志**当前记录的位置**，当ib_logfile_4写满后，会从ib_logfile_1从头开始记录；check point表示将日志记录的修改写进磁盘，完成数据落盘，数据落盘后checkpoint会将日志上的相关记录擦除掉，
 
 - write pos->checkpoint之间的部分是redo log空着的部分，用于记录新的记录
-
 - checkpoint->write pos之间是redo log待落盘的数据修改记录。
-
 - 当writepos追上checkpoint时，说明redolog已满，不能再执行新的更新操作得先停下记录，先推动checkpoint向前移动，空出位置记录新的日志。
-
 - 只要write pos未赶上checkpoint，就可以执行新的更新操作
 
-
-
-  有了redo log，当数据库发生宕机重启后，可通过redo log将未落盘的数据恢复，即保证已经提交的事务记录不会丢失。
+有了redo log，当数据库发生宕机重启后，可通过redo log将未落盘的数据恢复，即保证已经提交的事务记录不会丢失。
 
 # log 何时产生 & 释放？
 
@@ -81,7 +73,7 @@ Redo log文件是循环写入的，在覆盖写之前，总是要保证对应的
 
 InnoDB 修改数据操作写入redo log也不是直接写磁盘，而是先写到redo log缓冲区。
 
-`innodb_flush_log_at_trx_commi`控制如何将redo log缓冲区的内容写入到日志文件。`innodb_flush_log_at_timeout`控制redo log缓存写到redo log文件的频率。
+`innodb_flush_log_at_trx_commit`控制如何将redo log缓冲区的内容写入到日志文件。`innodb_flush_log_at_timeout`控制redo log缓存写到redo log文件的频率。
 
 ```
 mysql> SHOW VARIABLES LIKE '%innodb_flush_log_at_%';
@@ -94,6 +86,7 @@ mysql> SHOW VARIABLES LIKE '%innodb_flush_log_at_%';
 2 rows in set (21.80 sec)
 ```
 
+> 更多内容查看 https://edgar615.github.io/innodb-log-buffer.html
 
 
 # 宕机恢复

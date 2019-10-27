@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL慢查询
+title: MySQL日志-慢查询日志（part3）
 date: 2019-06-10
 categories:
     - MySQL

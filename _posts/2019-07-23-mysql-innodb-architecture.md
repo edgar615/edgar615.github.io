@@ -18,6 +18,7 @@ InnoDB 通过 redo 日志来保证数据的一致性。如果保存所有的重�
 - [Buffer Pool](https://edgar615.github.io/innodb-buffer-pool.html)
 - [Change Buffer](https://edgar615.github.io/innodb-change-buffer.html)
 - [Log Buffer](https://edgar615.github.io/innodb-log-buffer.html)
+- [自适应哈希索引](https://edgar615.github.io/mysql-index-adaptive-hash-index.html)
 
 # 参考资料
 
