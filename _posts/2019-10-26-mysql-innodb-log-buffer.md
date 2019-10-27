@@ -62,9 +62,9 @@ mysql> SHOW STATUS LIKE 'innodb_log%';
 
 ![](/assets/images/posts/log-buffer/log-buffer-1.png)
 
-- 0：在事务提交时，innodb 不会立即触发将缓存日志写到磁盘文件的操作，而是每秒触发一次缓存日志回写磁盘操作，并调用系统函数 fsync 刷新 IO 缓存。这种方式效率最高，也最不安全。
+- 0：在事务提交时，innodb 不会立即触发将缓存日志写到磁盘文件的操作，而是每秒触发一次缓存日志回写磁盘操作，并调用系统函数 fsync 刷新 IO 缓存。这种方式效率最高，也最不安全。在这种策略下，如果数据库崩溃，有一秒的数据丢失。
 - 1：在每个事务提交时，innodb 立即将缓存中的 redo 日志回写到日志文件，并调用 fsync 刷新 IO 缓存。
-- 2：在每个事务提交时，innodb 立即将缓存中的 redo 日志回写到日志文件，但并不马上调用 fsync 来刷新 IO 缓存，而是每秒只做一次磁盘IO 缓存刷新操作。只要操作系统不发生崩溃，数据就不会丢失，这种方式是对性能和数据安全的折中，其性能和数据安全性介于其他两种方式之间。
+- 2：在每个事务提交时，innodb 立即将缓存中的 redo 日志回写到日志文件，但并不马上调用 fsync 来刷新 IO 缓存，而是每秒只做一次磁盘IO 缓存刷新操作。只要操作系统不发生崩溃，数据就不会丢失，如果操作系统崩溃，最多有一秒的数据丢失，这种方式是对性能和数据安全的折中，其性能和数据安全性介于其他两种方式之间。
 
 innodb_flush_log_at_trx_commit 参数的默认值是 1，即每个事务提交时都会从 log buffer 写更新记录到日志文件，而且会实际刷新磁盘缓存，显然，这完全能满足事务的持久化要求，是最安全的，但这样会有较大的性能损失。
 
@@ -72,6 +72,10 @@ innodb_flush_log_at_trx_commit 参数的默认值是 1，即每个事务提交�
 
 > 宏观上写进logfile就是写进磁盘了。但是微观上写进logfile是先写进了os cahce，然后再刷新到raid cache(前提是做了raid)最后到磁盘。 
 > OS 中 write 和 fsync 是不同的操作，我们以为调用了 write 就万事大吉，数据一定到磁盘了，其实不一定，通常情况下 write 只是到了磁盘 IO 缓冲区，何时 fsync 由 OS 控制，这里通过程序强制调用来保证日志一定刷到磁盘
+
+**高并发的业务，一般设置`innodb_flush_log_at_trx_commit=2`**，原因如下：
+- 配置为2和0，性能差异并不大，因为将数据从log buffer拷贝到os cache虽然跨越了用户态和内核态，但仍然只是内存的数据拷贝，速度很快
+- 配置为2和0，安全差异很大，操作系统崩溃的概率相比MySQL崩溃的概率要小得多，设置为2，只要操作系统不崩溃，就不会丢失数据
 
 ## innodb_flush_log_at_timeout
 控制缓存写到redo log文件的频率，5.6+才有。`innodb_flush_log_at_trx_commit`这个参数一般都是 1，这样的话，`innodb_flush_log_at_timeout` 的设置对其就不起作用。`innodb_flush_log_at_timeout` 的设置只针对` innodb_flush_log_at_trx_commit`为0/2 起作用
