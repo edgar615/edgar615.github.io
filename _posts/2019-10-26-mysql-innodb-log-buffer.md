@@ -17,9 +17,30 @@ InnoDB 在写事务日志的时候，为了提高性能，先将信息写入 Log
 - `innodb_flush_log_at_trx_commit`控制如何将缓冲区的内容写入到日志文件。
 - `innodb_flush_log_at_timeout`控制缓存写到redo log文件的频率。
 
+```
+mysql> show variables like "innodb_flush_log_%";
++--------------------------------+-------+
+| Variable_name                  | Value |
++--------------------------------+-------+
+| innodb_flush_log_at_timeout    | 1     |
+| innodb_flush_log_at_trx_commit | 1     |
++--------------------------------+-------+
+2 rows in set (0.06 sec)
+```
+
 # 参数
 ## innodb_log_buffer_size
 该参数就是用来设置 InnoDB 的 Log Buffer 大小，系统默认值为 16MB，主要作用就是缓冲 redo log 数据，增加缓存可以使大事务在提交前不用写入磁盘，从而提高写 IO 性能。因此对于会在一个事务中更新、插入、或删除大量记录的应用，我们可以通过增大`innodb_log_buffer_size`来减少日志写磁盘操作，从而提高事务处理的性能
+
+```
+mysql> show variables like "innodb_log_buffer_size";
++------------------------+---------+
+| Variable_name          | Value   |
++------------------------+---------+
+| innodb_log_buffer_size | 8388608 |
++------------------------+---------+
+1 row in set (0.05 sec)
+```
 
 可以通过系统状态参数，查看性能统计数据来分析 Log 的使用情况：
 
@@ -51,6 +72,11 @@ innodb_flush_log_at_trx_commit 参数的默认值是 1，即每个事务提交�
 
 > 宏观上写进logfile就是写进磁盘了。但是微观上写进logfile是先写进了os cahce，然后再刷新到raid cache(前提是做了raid)最后到磁盘。 
 > OS 中 write 和 fsync 是不同的操作，我们以为调用了 write 就万事大吉，数据一定到磁盘了，其实不一定，通常情况下 write 只是到了磁盘 IO 缓冲区，何时 fsync 由 OS 控制，这里通过程序强制调用来保证日志一定刷到磁盘
+
+## innodb_flush_log_at_timeout
+控制缓存写到redo log文件的频率，5.6+才有。`innodb_flush_log_at_trx_commit`这个参数一般都是 1，这样的话，`innodb_flush_log_at_timeout` 的设置对其就不起作用。`innodb_flush_log_at_timeout` 的设置只针对` innodb_flush_log_at_trx_commit`为0/2 起作用
+
+# 参考资料
 
 http://blog.itpub.net/29654823/viewspace-2143511/
 
