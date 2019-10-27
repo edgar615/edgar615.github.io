@@ -32,14 +32,18 @@ create database db1 default character set utf8;
 ### 表结构
 1. 【强制】表和列的名称必须控制在 32 个字符以内，表名只能使用字母、数字和下划线，一律小写。 如表名过长可以采用缩写等方式。
 2. 【强制】创建表时必须显式指定字符集为 utf8 或 utf8mb4。3. 【强制】创建表时必须显式指定表存储引擎类型，如无特殊需求，一律为 InnoDB。当需要使用除 InnoDB/MyISAM/Memory 以外的存储引擎时，必须通过 DBA 审核才能在生产环境中使用。因为 Innodb 表支持事务、行锁、宕机恢复、 MVCC 等关系型数据库重要特性，为业界使用最多的MySQL 存储引擎。而这是其他大多数存储引擎不具备的，因此首推InnoDB。
-4. 【强制】建表必须有 comment，表级别和字段级别都要有 comment。
-5. 【建议】建表时关于主键： (1)强制要求主键为 id，类型为 int 或bigint（为了以后延展性，这里要求新建表统一为 bigint） ，且为auto_increment(2)标识表里每一行主体的字段不要设为主键，建议设为其他字段如 user_id， order_id 等，并建立 unique key 索引。因为如果设为主键且主键值为随机插入，则会导致 innodb 内部 page 分裂和大量随机 I/O，性能下降。
+4. 【强制】建表必须有 comment，表级别和字段级别都要有 comment。状态、类型需指明主要值的含义，如`0-离线，1-在线`。
+5. 【建议】建表时关于主键： 
+	- 强制要求主键为 id，类型为 int 或bigint（为了以后延展性，这里要求新建表统一为 bigint） ，且为auto_increment
+	- 标识表里每一行主体的字段不要设为主键，建议设为其他字段如 user_id， order_id 等，并建立 unique key 索引。因为如果设为主键且主键值为随机插入，则会导致 innodb 内部 page 分裂和大量随机 I/O，性能下降。
+	- 需要全局唯一主键时，使用外部发号器ticket server
 6. 【建议】核心表（如用户表，金钱相关的表）必须有行数据的创建时间字段 create_time 和最后更新时间字段 update_time，便于查问题。
 7. 【建议】表中所有字段必须都是 NOT NULL default 默认值 属性，业务可以根据需要定义 DEFAULT 值。因为使用 NULL 值会存在每一行都会占用额外存储空间、数据迁移容易出错、聚合函数计算结果偏差以及索引失效等问题。
-8. 【建议】建议对表里的 blob、 text 等大字段，垂直拆分到其他表里，仅在需要读这些对象的时候才去 select。
+8. 【建议】建议对表里的 blob、 text 等大字段，垂直拆分到其他表里，仅在需要读这些对象的时候才去 select。TEXT类型与VARCHAR都类似，存储可变长度，最大限制也是2^16，但是它20bytes以后的内容是在数据页以外的空间存储（row_format=dynamic），对它的使用需要多一次寻址，没有默认值。
 9. 【建议】反范式设计：把经常需要 join 查询的字段，在其他表里冗余一份。如 user_name 属性在 user_account， user_login_log 等表里冗余一份，减少 join 查询。
-10.【强制】中间表用于保留中间结果集，名称必须以 tmp_开头。备份表用于备份或抓取源表快照，名称必须以 bak_开头。中间表和备份表定期清理。
-11.【强制】对于线上执行 DDL 变更，必须经过 DBA 审核， 并由 DBA 在业务低峰期执行。
+10. 【强制】中间表用于保留中间结果集，名称必须以 tmp_开头。备份表用于备份或抓取源表快照，名称必须以 bak_开头。中间表和备份表定期清理。
+11. 【强制】对于线上执行 DDL 变更，必须经过 DBA 审核， 并由 DBA 在业务低峰期执行。
+12. 【建议】单表字段数上限30左右，再多的话考虑垂直分表，一是冷热数据分离，二是大字段分离，三是常在一起做条件和返回列的不分离。 表字段控制少而精，可以提高IO效率，内存缓存更多有效数据，从而提高响应速度和并发能力，后续 alter table 也更快。
 
 ### 列数据类型优化
 1. 【建议】表中的自增列（auto_increment 属性），推荐使用 bigint 类型。因为无符号 int 存储范围为-2147483648~2147483647（大约 21 亿左右），溢出后会导致报错。
@@ -56,7 +60,7 @@ create database db1 default character set utf8;
 2. 【建议】唯一键以`uk_` 或`uq_` 开头，普通索引以`idx_` 开头，一律使用小写格式，以字段的名称或缩写作为后缀。
 3. 【强制】 InnoDB 和 MyISAM 存储引擎表，索引类型必须为 BTREE； MEMORY表可以根据需要选择 HASH 或者 BTREE 类型索引。
 4. 【强制】单个索引中每个索引记录的长度不能超过 64KB。
-5. 【建议】单个表上的索引个数不能超过 5 个。
+5. 【建议】单个表上的索引个数不能超过 5 个。索引是双刃剑，会增加维护负担，增大IO压力，索引占用空间是成倍增加的
 6. 【建议】在建立索引时，多考虑建立联合索引，并把区分度最高的字段放在最前面。如列 userid 的区分度可由` select count(distinct userid)`计算出来。
 7. 【建议】在多表 join 的 SQL 里，保证被驱动表的连接列上有索引，这样
 join 执行效率最高。
@@ -117,11 +121,41 @@ KEY `idx_create_time`(`create_time`,`user_review_status`)) ENGINE=InnoDB DEFAULT
 7. 【强制】事务涉及的表必须全部是 innodb 表。否则一旦失败不会全部回滚，且易造成主从库同步中断。
 8. 【强制】写入和事务发往主库，只读 SQL 发往从库，即程序端实现读写分离。
 9. 【强制】 DML 语句必须有 where 条件，且使用索引查找。
-10.【强制】生产环境禁止使用 hint，如 sql_no_cache， force index，ignore key， straight join 等。因为 hint 是用来强制 SQL 按照某个执行计划来执行，但随着数据量变化我们无法保证自己当初的预判是正确的， 我们要尽量让 MySQL 优化器自己选择执行计划
-11.【强制】 where 条件里等号左右字段类型必须一致，否则无法利用索引。
-12.【建议】 SELECT|UPDATE|DELETE|REPLACE 要有 WHERE 子句，且 WHERE 子句的条件必需使用索引查找。
-13.【强制】生产数据库中强烈不推荐大表上发生全表扫描，但对于 100 行以下的静态表可以全表扫描。查询数据量不要超过表行数的 25%，否则不会利用索引。
-14.【强制】 WHERE 子句中禁止只使用全模糊的 LIKE 条件进行查找， 如果要使用 like，请使用` like ‘xxxx%’` 的方式， 必须有其他等值或范围查询条件，否则无法利用索引。
-15.【建议】索引列不要使用函数或表达式，否则无法利用索引。如` where length(name)='Admin'`或 `where user_id+2=10023`。
-16.【建议】减少使用 or 语句，可将 or 语句优化为 union，然后在各个where 条件上建立索引。如 `where a=1 or b=2` 优化为` where a=1… union …where b=2`, key(a),key(b)
+10. 【强制】生产环境禁止使用 hint，如 `sql_no_cache`，`force index`，`ignore key`，`straight join` 等。因为 hint 是用来强制 SQL 按照某个执行计划来执行，但随着数据量变化我们无法保证自己当初的预判是正确的， 我们要尽量让 MySQL 优化器自己选择执行计划
+11. 【强制】 where 条件里等号左右字段类型必须一致，否则无法利用索引。
+12. 建议】 SELECT|UPDATE|DELETE|REPLACE 要有 WHERE 子句，且 WHERE 子句的条件必需使用索引查找。
+13. 【强制】生产数据库中强烈不推荐大表上发生全表扫描，但对于 100 行以下的静态表可以全表扫描。查询数据量不要超过表行数的 25%，否则不会利用索引。
+14. 【强制】 WHERE 子句中禁止只使用全模糊的 LIKE 条件进行查找， 如果要使用 like，请使用` like ‘xxxx%’` 的方式， 必须有其他等值或范围查询条件，否则无法利用索引。
+15. 【建议】索引列不要使用函数或表达式，否则无法利用索引。如`where length(name)='Admin'`或 `where user_id+2=10023`。
+16. 【建议】减少使用 or 语句，可将 or 语句优化为 union，然后在各个where 条件上建立索引。如 `where a=1 or b=2`优化为`where a=1… union …where b=2`, key(a),key(b)
 17.【建议】分页查询，当 limit 起点较高时，可先用过滤条件进行过滤。如` select a,b,c from t1 limit 10000,20;`优化为: `select a,b,c from t1 where id>10000 limit 20;`。
+
+### 多表连接
+1. 【强制】禁止跨 db 的 join 语句。因为这样可以减少模块间耦合，为数据库拆分奠定坚实基础。
+2. 【强制】禁止在业务的更新类 SQL 语句中使用 join，比如 `update t1 join t2…`。
+3. 【建议】不建议使用子查询，建议将子查询 SQL 拆开结合程序多次查询，或使用 join 来代替子查询。
+4. 【建议】线上环境，多表 join 不要超过 3 个表。
+5. 【建议】多表连接查询推荐使用别名，且 SELECT 列表中要用别名引用字段，数据库.表格式，如` select a from db1.table1 alias1 where …`。
+6. 【建议】在多表 join 中，尽量选取结果集较小的表作为驱动表，来join 其他表。
+
+###  事务
+1. 【建议】事务中 INSERT|UPDATE|DELETE|REPLACE 语句操作的行数控制在1000 以内，以及 WHERE 子句中 IN 列表的传参个数控制在 500 以内。
+2. 【建议】批量操作数据时，需要控制事务处理间隔时间，进行必要的sleep，一般建议值 1-2 秒。
+3. 【建议】对于有 auto_increment 属性字段的表的插入操作，并发需要控制在 200 以内。
+4. 【强制】程序设计必须考虑“数据库事务隔离级别” 带来的影响，包括脏读、不可重复读和幻读。线上建议事务隔离级别为 `repeatable read`。
+5. 【建议】事务里包含 SQL 不超过 5 个（支付业务除外）。因为过长的事务会导致锁数据较久， MySQL 内部缓存、连接消耗过多等雪崩问题。
+6. 【建议】事务里更新语句尽量基于主键或 unique key，如 `update … where id=XX`; 否则会产生间隙锁，内部扩大锁定范围，导致系统性能下降，产生死锁。
+7. 【建议】尽量把一些典型外部调用移出事务，如调用 webservice，访问文件存储等，从而避免事务过长。
+8. 【建议】对于 MySQL 主从延迟严格敏感的 select 语句，请开启事务强制访问主库。
+
+### 排序和分组
+1. 【建议】减少使用 order by，和业务沟通能不排序就不排序，或将排序放到程序端去做。 order by、 group by、 distinct 这些语句较为耗费CPU，数据库的 CPU 资源是极其宝贵的。
+2. 【建议】 order by、 group by、 distinct 这些 SQL 尽量利用索引直接检索出排序好的数据。如 `where a=1 order by` 可以利用 `key(a,b)`。
+3. 【建议】包含了 order by、 group by、 distinct 这些查询的语句，where 条件过滤出来的结果集请保持在 1000 行以内，否则 SQL 会很慢。
+
+### 线上禁止使用的 SQL 语句
+1. 【高危】禁用 `update|delete t1 … where a=XX limit XX`; 这种带limit 的更新语句。 如果是非 row 格式的 binlog 格式， 会导致主从不一致，导致数据错乱。建议加上 order by PK。
+2. 【高危】禁止使用关联子查询，如 `update t1 set … where name in(select name from user where…);`效率极其低下。
+3. 【强制】禁用 procedure、 function、 trigger、 views、 event、外键约束。因为他们消耗数据库资源，降低数据库实例可扩展性。推荐都在程序端实现。
+4. 【建议】禁用 `insert into …on duplicate key update…`、 `replace into` 等语句， 在高并发环境下， 极容易导致死锁。
+5. 【强制】禁止联表更新语句，如`update t1,t2 where t1.id=t2.id…`。
