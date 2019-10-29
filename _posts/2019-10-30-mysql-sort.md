@@ -45,3 +45,5 @@ https://www.36nu.com/post/197.html
 https://cloud.tencent.com/developer/article/1072184
 
 https://sq.163yun.com/blog/article/187292293774721024
+
+https://www.zhb127.com/archives/mysql-order-by-filesort-internal.html
