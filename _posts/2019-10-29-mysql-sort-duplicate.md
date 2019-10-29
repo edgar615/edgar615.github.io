@@ -42,7 +42,7 @@ mysql> select commodity_id, add_on from commodity where add_on > 1555419288 orde
 
 > If an index is not used for ORDER BY but a LIMIT clause is also present, the optimizer may be able to avoid using a merge file and sort the rows in memory using an in-memory filesort operation. For details, see The In-Memory filesort Algorithm.[MySQL]
 
-在ORDER BY + LIMIT的查询语句中，如果ORDER BY不能使用索引的话，优化器可能会使用in-memory sort操作，只保留N条数据即可。这样的话只需要 使用sort buffer 少量的内存就可以完成排序。** priority queue 使用了堆排序的排序方法，而堆排序是一个不稳定的排序方法，也就是相同的值可能排序出来的结果和读出来的数据顺序不一致。**
+在ORDER BY + LIMIT的查询语句中，如果ORDER BY不能使用索引的话，优化器可能会使用in-memory sort操作，只保留N条数据即可。这样的话只需要 使用sort buffer 少量的内存就可以完成排序。**In memory filesort使用了优先级队列，优先级队列使用了堆排序的排序方法，而堆排序是一个不稳定的排序方法，也就是相同的值可能排序出来的结果和读出来的数据顺序不一致**。
 
 # 解决方法
 - 如果在字段添加上索引，就直接按照索引的有序性进行读取并分页，从而可以规避遇到的这个问题
