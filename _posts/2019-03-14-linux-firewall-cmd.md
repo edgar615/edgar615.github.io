@@ -3,7 +3,7 @@ layout: post
 title: Linux防火墙使用
 date: 2019-03-14
 categories:
-    - Linux
+    - linux
 comments: true
 permalink: linux-firwall.html
 ---

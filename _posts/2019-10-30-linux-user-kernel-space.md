@@ -8,15 +8,15 @@ comments: true
 permalink: linux-user-kernel-space.html
 ---
 
-以前在学习kafka的时候了解一个零拷贝的知识，里面说了用户空间、内核空间。一直没去看到底是怎么。这次抽时间学习了一下
+以前在学习kafka的时候了解一个零拷贝的知识，里面说了用户空间、内核空间。一直没去看到底是怎么。这次抽时间学习了一下（基本抄的）
 
-Linux将运行空间划分为两个，用户空间（User space）和内核空间。
+为了避免用户进程直接操作内核，保证内核安全，Linux将运行空间划分为两个，用户空间（User space）和内核空间（Kernel space）。
 
 - User space：用户空间，用户程序的运行空间
 - Kernel space：内核空间， Linux 内核的运行空间
 
 不同的空间，拥有自己的内存地址范围，在32位操作系统中，一般将最高的1G字节划分为内核空间，供内核使用，而将较低的3G字节划分为用户空间，供各个进程使用。
-![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-1.png)
+![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-1.jpg)
 
 其中：
 
@@ -24,6 +24,7 @@ Linux将运行空间划分为两个，用户空间（User space）和内核空�
 - 进程在运行的时候，在内核空间和用户空间各有一个堆栈。
 - 用户空间中，每个进程的用户空间是互相独立的，互不相干。
 - 内核空间中，绝大部分是共享的，并不是完全共享，因为内核空间中，不同进程的内核栈之间是不共享的。
+- 内核空间总是驻留在内存中，它是为操作系统的内核保留的。应用程序是不允许直接在该区域进行读写或直接调用内核代码定义的函数的。
 - 用户空间不能直接调用系统资源，内核空间和用户空间一般通过系统调用进行通信。 
 
 # 内核态，用户态
@@ -32,10 +33,29 @@ Linux将运行空间划分为两个，用户空间（User space）和内核空�
 
 当进行在执行用户自己的代码时，则称其处于用户运行态（用户态）。此时处理器在特权级最低的（3级）用户代码中运行。当正在执行用户程序而突然被中断程序中断时，此时用户程序也可象征性的称为处于进行的内核态，因为中断处理程序使用当前进程的内核栈。
 
+内核态可以执行任意命令，调用系统的一切资源，而用户态只能执行简单的运算，不能直接调用系统资源。用户态必须通过系统接口（System Call），才能向内核发出指令。
+
+比如，当用户进程启动一个 bash 时，它会通过 getpid() 对内核的 pid 服务发起系统调用，获取当前用户进程的 ID。
+![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-2.png)
+
+当用户进程通过 cat 命令查看主机配置时，它会对内核的文件子系统发起系统调用：
+
+- 内核空间可以访问所有的 CPU 指令和所有的内存空间、I/O 空间和硬件设备
+- 用户空间只能访问受限的资源，如果需要特殊权限，可以通过系统调用获取相应的资源。
+- 用户空间允许页面中断，而内核空间则不允许
+- 内核空间和用户空间是针对线性地址空间的
+- x86 CPU 中用户空间是 0-3G 的地址范围，内核空间是 3G-4G 的地址范围
+- x86_64 CPU 用户空间地址范围为0x0000000000000000–0x00007fffffffffff，内核地址空间为 0xffff880000000000-最大地址
+- 所有内核进程（线程）共用一个地址空间，而用户进程都有各自的地址空间
+
+有了用户空间和内核空间的划分后，Linux 内部层级结构可以分为三部分，从最底层到最上层依次是硬件、内核空间和用户空间，如下图所示：
+
+![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-3.png)
+
 用户态的进程是不能访问内核所占用的内存空间，也不能直接调用内核函数的 ，因此要进行系统调用的时候，就要将进程切换到内核态中去。
 
 例如服务端读取一个文件内容，然后发送给用户，大致的过程日下：
-![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-2.png)
+![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-4.png)
 
 数据从I/O设备中读取之后，会先存放在内核buf中，系统调用完成之后，会将数据从内核buf拷贝到用户空间的buf，这一段就是零拷贝需要处理的逻辑
 
@@ -46,3 +66,5 @@ http://www.ruanyifeng.com/blog/2016/12/user_space_vs_kernel_space.html
 https://blog4jimmy.com/2018/01/348.html
 
 https://cllc.fun/2019/03/02/linux-user-kernel-space/
+
+https://mp.weixin.qq.com/s/mZujKx1bKl1T6gEI1s400Q
