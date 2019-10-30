@@ -16,6 +16,7 @@ permalink: linux-user-kernel-space.html
 - Kernel space：内核空间， Linux 内核的运行空间
 
 不同的空间，拥有自己的内存地址范围，在32位操作系统中，一般将最高的1G字节划分为内核空间，供内核使用，而将较低的3G字节划分为用户空间，供各个进程使用。
+
 ![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-1.jpg)
 
 其中：
@@ -36,6 +37,7 @@ permalink: linux-user-kernel-space.html
 内核态可以执行任意命令，调用系统的一切资源，而用户态只能执行简单的运算，不能直接调用系统资源。用户态必须通过系统接口（System Call），才能向内核发出指令。
 
 比如，当用户进程启动一个 bash 时，它会通过 getpid() 对内核的 pid 服务发起系统调用，获取当前用户进程的 ID。
+
 ![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-2.png)
 
 当用户进程通过 cat 命令查看主机配置时，它会对内核的文件子系统发起系统调用：
