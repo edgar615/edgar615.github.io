@@ -52,9 +52,8 @@ permalink: linux-user-kernel-space.html
 
 ![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-3.png)
 
-用户态的进程是不能访问内核所占用的内存空间，也不能直接调用内核函数的 ，因此要进行系统调用的时候，就要将进程切换到内核态中去。
-
 例如服务端读取一个文件内容，然后发送给用户，大致的过程日下：
+
 ![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-4.png)
 
 数据从I/O设备中读取之后，会先存放在内核buf中，系统调用完成之后，会将数据从内核buf拷贝到用户空间的buf，这一段就是零拷贝需要处理的逻辑
