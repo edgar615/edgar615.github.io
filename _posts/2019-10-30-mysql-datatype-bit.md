@@ -1,6 +1,6 @@
 ---
 layout: post
-title: title: MySQL数据类型-bit（part3）
+title: MySQL数据类型-bit（part3）
 date: 2019-10-30
 categories:
     - MySQL
