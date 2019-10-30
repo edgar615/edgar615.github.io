@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL数据类型
+title: MySQL数据类型（part1）
 date: 2019-06-10
 categories:
     - MySQL

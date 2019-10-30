@@ -1,11 +1,11 @@
 ---
 layout: post
-title: MySQL JSON类型
+title: MySQL数据类型-JSON（part2）
 date: 2019-06-10
 categories:
     - MySQL
 comments: true
-permalink: mysql-json.html
+permalink: mysql-datatype-json.html
 ---
 
 JSON数组和对象可以包含标量值是字符串或数字，JSON null文本，或者JSON布尔真或假的文字。在JSON对象键必须是字符串。时间（日期，时间或日期）标值也是允许的
