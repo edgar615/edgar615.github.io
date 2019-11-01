@@ -1,7 +1,7 @@
 ---
 layout: post
 title: java并发系列-线程
-date: 2019-06-24
+date: 2019-06-25
 categories:
     - java
 comments: true
@@ -23,30 +23,69 @@ permalink: java-concurrency-thread.html
 - Status: 线程的状态。在Java中，线程只能有这6种中的一种状态： new, runnable, blocked, waiting, time waiting, 或 terminated.
 
 # 线程的生命周期
+## 通用的线程生命周期
 
 ![](/assets/images/posts/thread/thread-state.png)
 
-## new 新建状态
+- New：初始态，指的是线程已经被创建，但是还不允许分配 CPU 执行。这个状态属于编程语言特有的，不过这里所谓的被创建，仅仅是在编程语言层面被创建，而在操作系统层面，真正的线程还没有创建。
+- Ready：可运行态， 指的是线程可以分配 CPU 执行。在这种状态下，真正的操作系统线程已经被成功创建了，所以可以分配 CPU 执行。
+- Running：运行态，当有空闲的 CPU 时，操作系统会将其分配给一个处于可运行状态的线程，被分配到 CPU 的线程的状态就转换成了运行状态。
+- Waiting：休眠态，运行状态的线程如果调用一个阻塞的 API（例如以阻塞方式读文件）或者等待某个事件（例如条件变量），那么线程的状态就会转换到休眠状态，同时释放 CPU 使用权，休眠状态的线程永远没有机会获得 CPU 使用权。当等待的事件出现了，线程就会从休眠状态转换到可运行状态。
+- Terminated：终止态，线程执行完或者出现异常就会进入终止状态，终止状态的线程不会切换到其他任何状态，进入终止状态也就意味着线程的生命周期结束了。
+
+这五种状态在不同编程语言里会有简化合并。例如，C 语言的 POSIX Threads 规范，就把初始状态和可运行状态合并了；Java 语言里则把可运行状态和运行状态合并了，这两个状态在操作系统调度层面有用，而 JVM 层面不关心这两个状态，因为 JVM 把线程调度交给操作系统处理了。
+
+## Java的线程生命周期
+JVM暴露的线程状态和OS底层的线程状态是两个不同层面的事情，在Thread 类下的 State 内部枚举类中所定义的状态：
+
+- NEW：初始化状态
+- RUNNABLE：可运行 / 运行状态
+- BLOCKED：阻塞状态
+- WAITING：无时限等待
+- TIMED_WAITING：有时限等待
+- TERMINATED：终止状态
+
+![](/assets/images/posts/thread/java-thread-state.png)
+
+在操作系统层面，Java 线程中的 BLOCKED、WAITING、TIMED_WAITING 是一种状态，即前面我们提到的休眠状态。也就是说只要 Java 线程处于这三种状态之一，那么这个线程就永远没有 CPU 的使用权。同时，**java线程中没有RUNNING状态**。
+
+### new 新建状态
 使用 new 关键字和 Thread 类或其子类建立一个线程对象后，该线程对象就处于新建状态。它保持这个状态直到程序 start() 这个线程。
 > 这里的创建仅仅是在JAVA的这种编程语言层面被创建，而在操作系统层面，真正的线程还没有被创建。
 
 ```
 Thread t = new Thread()
 ```
-## runnable 就绪状态:
-当线程对象调用了start()方法之后，该线程就进入就绪状态。就绪状态的线程处于就绪队列中，要等待JVM里线程调度器的调度
+
+### runnable 可运行 / 运行状态
+当线程对象调用了start()方法之后，该线程就进入runnable状态。就绪状态的线程处于就绪队列中，要等待JVM里线程调度器的调度
+
 > 这时候，线程已经在操作系统层面被创建
 
 ```
 t.start()
 ```
-## running 运行状态
-当CPU空闲时，就绪状态的线程被分得CPU时间片，就可以执行 run()，此时线程便处于运行状态。处于运行状态的线程最为复杂，它可以变为阻塞状态、就绪状态和死亡状态。
 
-## blocked同步阻塞
+对 Java 线程状态而言，不存在所谓的running 状态，它的 runnable 状态包含了 running 状态。
+
+> Thread state for a runnable thread.  A thread in the runnable state is executing in the Java virtual machine but it may be waiting for other resources from the operating system such as processor.
+
+javadoc中这样描述：一个线程在JVM中执行就是处于Runnable状态，但是这个线程可能在等待(Processor处理器)资源。
+
+现在的操作系统架构通常都是用时间分片的方式进行抢占式轮转调度。这个时间分片通常是很小的，一个线程一次最多只能在 cpu 上运行比如10-20ms 的时间（此时处于 running 状态），也即大概只有0.01秒这一量级，时间片用后就要被切换下来放入调度队列的末尾等待再次调度（即回到 ready 状态）。
+
+> 如果期间进行了 I/O 的操作还会导致提前释放时间分片，并进入等待队列。又或者是时间分片没有用完就被抢占，这时也是回到 ready 状态。
+
+这一切换的过程称为线程的上下文切换，当然 cpu 不是简单地把线程踢开就完了，还需要把被相应的执行状态保存到内存中以便后续的恢复执行。如果不计切换开销（每次在1ms 以内），相当于1秒内有50-100次切换。事实上时间片经常没用完，线程就因为各种原因被中断，实际发生的切换次数还会更多。
+
+通常，Java的线程状态是服务于监控的，如果线程切换得是如此之快，那么区分 ready 与 running 就没什么太大意义了：当你看到监控上显示是 running 时，对应的线程可能早就被切换下去了，甚至又再次地切换了上来，也许你只能看到 ready 与 running 两个状态在快速地闪烁。
+
+现今主流的 JVM 实现都把 Java 线程一一映射到操作系统底层的线程上，把调度委托给了操作系统，我们在虚拟机层面看到的状态实质是对底层状态的映射及包装。JVM 本身没有做什么实质的调度，把底层的 ready 及 running 状态映射上来也没多大意义，因此，统一成为runnable 状态是不错的选择。
+
+### blocked同步阻塞
 表示线程阻塞，等待获取锁，如碰到synchronized、lock等关键字等占用临界区的情况，一旦获取到锁就进行RUNNABLE状态继续运行
 
-## waiting无限等待阻塞
+### waiting无限等待阻塞
 表示线程处于无限制等待状态，等待一个特殊的事件来重新唤醒
 
 - 通过wait()方法进行等待的线程等待一个notify()或者notifyAll()方法
@@ -54,13 +93,99 @@ t.start()
 
 一旦通过相关事件唤醒线程，线程就进入了RUNNABLE状态继续运行。
 
-## timed_waiting有时限等待阻塞
+### timed_waiting有时限等待阻塞
 表示线程进入了一个有时限的等待，如sleep(3000)，等待3秒后线程重新进行RUNNABLE状态继续运行。
 
-## terminated终止状态
+### terminated终止状态
 线程执行完（run()方法执行结束）或者者其他终止条件发生(异常、取消)就会进入终止状态
 
 注意：一旦线程通过start方法启动后就再也不能回到初始NEW状态，线程终止后也不能再回到RUNNABLE状态。
+
+# 再说RUNNABLE 
+我们知道传统的I/O都是阻塞式（blocked）的，相对于CPU来说，磁盘的速度太慢了，如果CPU要等到IO操作完成，很可能时间片都用完了，I/O 操作还没完成，那CPU的利用率就非常低。为了避免这样的问题，OS识别到线程A在执行IO相关指令，对应的线程A就会立马被切换到waiting状态，然后从ready队列中获取一个新的线程B来进行操作。此时A线程就处于所谓的“阻塞”，被放到等待队列中，也即：waiting状态。
+
+而当 I/O 完成时，则用一种叫中断（interrupt）的机制来通知 cpu：也即所谓的“中断驱动（interrupt-driven）”，现代操作系统基本都采用这一机制。cpu 会收到一个来自硬盘的中断信号，并进入中断处理例程，手头正在执行的线程B因此被打断，回到 ready 队列。而先前因 I/O 而waiting 的线程A随着 I/O 的完成也再次回到调度队列，这时 cpu 可能会选择它来执行。
+
+> 时间分片轮转本质上也是由一个定时器定时中断来驱动的，可以使线程从 running 回到 ready 状态。
+
+![](/assets/images/posts/thread/thread-state-2.png)
+
+进行阻塞式 I/O 操作时，Java 的线程状态是什么？
+
+下面是一个测试代码，
+```
+@Test
+public void testInBlockedIOState() throws InterruptedException {
+Scanner in = new Scanner(System.in);
+// 创建一个名为“输入输出”的线程t
+Thread t = new Thread(new Runnable() {
+  @Override
+  public void run() {
+	try {
+	  // 命令行中的阻塞读
+	  String input = in.nextLine();
+	  System.out.println(input);
+	} catch (Exception e) {
+	  e.printStackTrace();
+	} finally {
+	  in.close();
+	}
+  }
+}, "输入输出"); // 线程的名字
+
+// 启动
+t.start();
+
+// 确保run已经得到执行
+TimeUnit.SECONDS.sleep(1);
+
+// 状态为RUNNABLE
+Assert.assertEquals(t.getState(), Thread.State.RUNNABLE);
+}
+```
+如果我们打上断点，可以在debug中看到线程状态
+
+![](/assets/images/posts/thread/java-thread-state-2.png)
+
+**线程调用阻塞式 API 时，Java 的线程状态依然是RUNNABLE**
+
+JVM 并不关心底层的实现细节，什么时间分片也好，什么 IO 时就要切换也好，它并不关心。**一个线程在JVM中执行就是处于Runnable状态，但是这个线程可能在等待(Processor处理器)资源**。Java 线程状态的改变通常只与自身显式引入的机制有关，如果 JVM 中的线程状态发生改变了，通常是自身机制引发的
+
+所以runnable状态实际上对应了OS层面的Ready，Running以及部分的 Waiting 状态
+
+![](/assets/images/posts/thread/java-thread-state-3.png)
+
+# 状态切换
+
+![](/assets/images/posts/thread/java-thread-state-4.png)
+
+## RUNNABLE 与 BLOCKED 的状态转换
+只有一种场景会触发这种转换，就是线程等待 synchronized 的隐式锁。synchronized 修饰的方法、代码块同一时刻只允许一个线程执行，其他线程只能等待，这种情况下，等待的线程就会从 RUNNABLE 转换到 BLOCKED 状态。而当等待的线程获得 synchronized 隐式锁时，就又会从 BLOCKED 转换到 RUNNABLE 状态。如果你熟悉操作系统线程的生命周期的话，可能会有个疑问：线程调用阻塞式 API 时，是否会转换到 BLOCKED 状态呢？
+
+在操作系统层面，线程会转换到休眠状态的，但是在 JVM 层面，Java 线程的状态不会发生变化，也就是说 Java 线程的状态会依然保持 RUNNABLE 状态。JVM 层面并不关心操作系统调度相关的状态，因为在 JVM 看来，等待 CPU 使用权（操作系统层面此时处于可执行状态）与等待 I/O（操作系统层面此时处于休眠状态）没有区别，都是在等待某个资源，所以都归入了 RUNNABLE 状态。而我们平时所谓的 Java 在调用阻塞式 API 时，线程会阻塞，指的是操作系统线程的状态，并不是 Java 线程的状态。
+
+## RUNNABLE 与 WAITING 的状态转换
+
+- 获得 synchronized 隐式锁的线程调用了无参数的 Object.wait() 方法
+- 调用无参数的 Thread.join() 方法。其中的 join() 是一种线程同步方法，例如有一个线程对象 thread A，当调用 A.join() 的时候，执行这条语句的线程会等待 thread A 执行完，而等待中的这个线程，其状态会从 RUNNABLE 转换到 WAITING。当线程 thread A 执行完，原来等待它的线程又会从 WAITING 状态转换到 RUNNABLE
+- 调用 LockSupport.park() 方法。调用 LockSupport.park() 方法，当前线程会阻塞，线程的状态会从 RUNNABLE 转换到 WAITING。调用 LockSupport.unpark(Thread thread) 可唤醒目标线程，目标线程的状态又会从 WAITING 状态转换到 RUNNABLE。
+
+## RUNNABLE 与 TIMED_WAITING 的状态转换
+- 调用带超时参数的 Thread.sleep(long millis) 方法；
+- 获得 synchronized 隐式锁的线程，调用带超时参数的 Object.wait(long timeout) 方法；
+- 调用带超时参数的 Thread.join(long millis) 方法；
+- 调用带超时参数的 LockSupport.parkNanos(Object blocker, long deadline) 方法；
+- 调用带超时参数的 LockSupport.parkUntil(long deadline) 方法。
+
+## RUNNABLE 到 TERMINATED 状态
+线程执行完 run() 方法后，会自动转换到 TERMINATED 状态，当然如果执行 run() 方法的时候异常抛出，也会导致线程终止。我们有可以通过`interrupt() `方法强制中断 run() 方法的执行。`interrupt()` 方法仅仅是通知线程，线程有机会执行一些后续操作，同时也可以无视这个通知。
+
+被 interrupt 的线程，是怎么收到通知的？一种是异常，另一种是主动检测。
+
+- 只有当线程 A 处于 WAITING、TIMED_WAITING 状态时，如果其他线程调用线程 A 的` interrupt()`方法，会使线程 A 返回到 RUNNABLE 状态(中间可能存在BLOCKED状态)，同时线程 A 的代码会触发 InterruptedException 异常。上面我们提到转换到 WAITING、TIMED_WAITING 状态的触发条件，都是调用了类似 `wait()`、`join()`、`sleep()` 这样的方法，我们看这些方法的签名，发现都会 `throws InterruptedException` 这个异常。这个异常的触发条件就是：其他线程调用了该线程的 interrupt() 方法。
+- 当线程 A 处于 RUNNABLE 状态时，并且阻塞在` java.nio.channels.InterruptibleChannel` 上时，如果其他线程调用线程 A 的 `interrupt()`方法，线程 A 会触发`java.nio.channels.ClosedByInterruptException`这个异常；而阻塞在` java.nio.channels.Selector`上时，如果其他线程调用线程 A 的 `interrupt()`方法，线程 A 的` java.nio.channels.Selector`会立即返回。
+
+上面这两种情况属于被中断的线程通过异常的方式获得了通知。还有一种是主动检测，如果线程处于 RUNNABLE 状态，并且没有阻塞在某个 I/O 操作上，例如中断计算圆周率的线程 A，这时就得依赖线程 A 主动检测中断状态了。如果其他线程调用线程 A 的 interrupt() 方法，那么线程 A 可以通过 isInterrupted() 方法，检测是不是自己被中断了。
 
 # 常用方法
 ## sleep()
@@ -314,3 +439,5 @@ public static void main(String[] args) {
 # 参考资料
 
 https://segmentfault.com/a/1190000018723860
+
+https://mp.weixin.qq.com/s/U5FH139XmfH1XTRf-_WJ_w
