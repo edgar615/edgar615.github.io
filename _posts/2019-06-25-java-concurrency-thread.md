@@ -11,8 +11,11 @@ permalink: java-concurrency-thread.html
 这个系列以前的学习笔记，计划陆续整理搬运到这里
 
 > 大部分资料来源与:
+>
 > 《java并发变成实战》
+>
 > http://tutorials.jenkov.com/java-concurrency/index.html
+>
 > http://tutorials.jenkov.com/java-util-concurrent/index.html
 
 # 线程的属性
@@ -160,7 +163,7 @@ JVM 并不关心底层的实现细节，什么时间分片也好，什么 IO 时
 ![](/assets/images/posts/thread/java-thread-state-4.png)
 
 ## RUNNABLE 与 BLOCKED 的状态转换
-只有一种场景会触发这种转换，就是线程等待 synchronized 的隐式锁。synchronized 修饰的方法、代码块同一时刻只允许一个线程执行，其他线程只能等待，这种情况下，等待的线程就会从 RUNNABLE 转换到 BLOCKED 状态。而当等待的线程获得 synchronized 隐式锁时，就又会从 BLOCKED 转换到 RUNNABLE 状态。如果你熟悉操作系统线程的生命周期的话，可能会有个疑问：线程调用阻塞式 API 时，是否会转换到 BLOCKED 状态呢？
+只有一种场景会触发这种转换，就是线程等待 synchronized 的隐式锁。synchronized 修饰的方法、代码块同一时刻只允许一个线程执行，其他线程只能等待，这种情况下，等待的线程就会从 RUNNABLE 转换到 BLOCKED 状态。而当等待的线程获得 synchronized 隐式锁时，就又会从 BLOCKED 转换到 RUNNABLE 状态。
 
 在操作系统层面，线程会转换到休眠状态的，但是在 JVM 层面，Java 线程的状态不会发生变化，也就是说 Java 线程的状态会依然保持 RUNNABLE 状态。JVM 层面并不关心操作系统调度相关的状态，因为在 JVM 看来，等待 CPU 使用权（操作系统层面此时处于可执行状态）与等待 I/O（操作系统层面此时处于休眠状态）没有区别，都是在等待某个资源，所以都归入了 RUNNABLE 状态。而我们平时所谓的 Java 在调用阻塞式 API 时，线程会阻塞，指的是操作系统线程的状态，并不是 Java 线程的状态。
 
