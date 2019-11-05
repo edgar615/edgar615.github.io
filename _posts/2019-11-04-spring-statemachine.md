@@ -171,6 +171,69 @@ c.g.e.s.state.OrderStateMachineListener  : 用户确认收货
 o.s.s.support.LifecycleObjectSupport     : stopped org.springframework.statemachine.support.DefaultStateMachineExecutor@601cbd8c
 ```
 
+# 状态监听器
+StateMachineListener提供了很多方法来监听状态机，这里就不一一贴测试代码了
+
+```
+public interface StateMachineListener<S,E> {
+
+	void stateChanged(State<S,E> from, State<S,E> to);
+
+	void stateEntered(State<S,E> state);
+
+	void stateExited(State<S,E> state);
+
+	void eventNotAccepted(Message<E> event);
+
+	void transition(Transition<S, E> transition);
+
+	void transitionStarted(Transition<S, E> transition);
+
+	void transitionEnded(Transition<S, E> transition);
+
+	void stateMachineStarted(StateMachine<S, E> stateMachine);
+
+	void stateMachineStopped(StateMachine<S, E> stateMachine);
+
+	void stateMachineError(StateMachine<S, E> stateMachine, Exception exception);
+
+	void extendedStateChanged(Object key, Object value);
+
+	void stateContext(StateContext<S, E> stateContext);
+
+}
+```
+
+## 注解
+对于状态监听器，Spring StateMachine还提供了优雅的注解配置实现方式，所有StateMachineListener接口中定义的事件都能通过注解的方式来进行配置实现
+
+```
+@WithStateMachine
+public class EventConfig {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventConfig.class);
+
+  @OnTransition(target = "NEW")
+  public void create() {
+    LOGGER.info("用户下单，等待支付");
+  }
+
+  @OnTransition(source = "NEW", target = "PAID")
+  public void pay() {
+    LOGGER.info("用户完成支付，等待发货");
+  }
+
+  @OnTransition(source = "PAID", target = "SHIPPED")
+  public void ship() {
+    LOGGER.info("卖家已发货");
+  }
+
+  @OnTransition(source = "SHIPPED", target = "COMPLETED")
+  public void receipt() {
+    LOGGER.info("用户确认收货");
+  }
+}
+```
 # 参考资料
 
 http://blog.didispace.com/spring-statemachine

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL优化
-date: 2019-10-10
+date: 2019-11-15
 categories:
     - MySQL
 comments: true
@@ -144,18 +144,119 @@ max_user_connections = 20
 ```
 
 ## 内存
-- sort_buffer_size #定义了每个线程排序缓存区的大小，MySQL在有查询、需要做排序操作时才会为每个缓冲区分配内存（直接分配该参数的全部内存）；
-- join_buffer_size #定义了每个线程所使用的连接缓冲区的大小，如果一个查询关联了多张表，MySQL会为每张表分配一个连接缓冲，导致一个查询产生了多个连接缓冲；
-- read_buffer_size #定义了当对一张MyISAM进行全表扫描时所分配读缓冲池大小，MySQL有查询需要时会为其分配内存，其必须是4k的倍数；
-- read_rnd_buffer_size #索引缓冲区大小，MySQL有查询需要时会为其分配内存，只会分配需要的大小。
+### key_buffer_size
+key_buffer_size 指定索引缓冲区的大小，它决定索引处理的速度，尤其是索引读的速度。
+使用查询缓冲，MySQL将查询结果存放在缓冲区中，今后对于同样的SELECT语句（区分大小写），将直接从缓冲区中读取结果。
 
-注意：以上四个参数是为一个线程分配的，如果有100个连接，那么需要×100。
+```
+mysql> show variables like 'key_buffer_size';
++-----------------+----------+
+| Variable_name   | Value    |
++-----------------+----------+
+| key_buffer_size | 16777216 |
++-----------------+----------+
+1 row in set (0.03 sec)
+```
 
-- Innodb_buffer_pool_size #缓冲池大小 
+Key_reads是内存中没有找到索引直接从硬盘读取索引的数量。
+
+```
+mysql> show status like 'key_read%';
++-------------------+-------+
+| Variable_name     | Value |
++-------------------+-------+
+| Key_read_requests | 0     |
+| Key_reads         | 0     |
++-------------------+-------+
+2 rows in set (0.03 sec)
+```
+
+查询缓存碎片率= `Qcache_free_blocks/ Qcache_total_blocks* 100%`
+查询缓存利用率=` (query_cache_size–Qcache_free_memory) / query_cache_size* 100%`
+查询缓存命中率=` (Qcache_hits–Qcache_inserts) / Qcache_hits* 100%`
+
+### sort_buffer_size
+sort_buffer_size 定义了每个线程排序缓存区的大小，MySQL在有查询、需要做排序操作时才会为每个缓冲区分配内存（直接分配该参数的全部内存）；增加这个值可以加速ORDER BY或GROUP BY操作。默认数值是2097144(2M)，可改为16777208 (16M)。
+
+### join_buffer_size
+join_buffer_size 定义了每个线程所使用的连接缓冲区的大小，如果一个查询关联了多张表，MySQL会为每张表分配一个连接缓冲，导致一个查询产生了多个连接缓冲；
+
+### read_buffer_size 
+read_buffer_size定义了当对一张MyISAM进行全表扫描时所分配读缓冲池大小，MySQL有查询需要时会为其分配内存，其必须是4k的倍数；
+
+### read_rnd_buffer_size
+read_rnd_buffer_size 索引缓冲区大小，MySQL有查询需要时会为其分配内存，只会分配需要的大小。
+record_buffer_size，read_rnd_buffer_size，sort_buffer_size，join_buffer_size为每个线程独占，也就是说，如果有100个线程连接，则占用为`16M*100`。
+
+### table_open_cache
+表高速缓存的大小。每当MySQL访问一个表时，如果在表缓冲区中还有空间，该表就被打开并放入其中，这样可以更快地访问表内容。
+
+```
+mysql> show global status like 'open%tables%';
++---------------+-------+
+| Variable_name | Value |
++---------------+-------+
+| Open_tables   | 524   |
+| Opened_tables | 2679  |
++---------------+-------+
+2 rows in set (0.03 sec)
+
+mysql> show variables like 'table_open_cache';
++------------------+-------+
+| Variable_name    | Value |
++------------------+-------+
+| table_open_cache | 2000  |
++------------------+-------+
+1 row in set (0.05 sec)
+```
+
+### tmp_table_size
+临时表大小。通过设置tmp_table_size选项来增加一张临时表的大小，例如做高级GROUP BY操作生成的临时表。
+
+```
+mysql> show global status like 'created_tmp%';
++-------------------------+----------+
+| Variable_name           | Value    |
++-------------------------+----------+
+| Created_tmp_disk_tables | 13994204 |
+| Created_tmp_files       | 1036     |
+| Created_tmp_tables      | 42057444 |
++-------------------------+----------+
+3 rows in set (0.03 sec)
+```
+
+### thread_cache_size
+可以复用的保存在缓冲区中的线程的数量。当客户端断开之后，服务器处理此客户的线程将会缓存起来以响应下一个客户而不是销毁（前提是缓存数未达上限）。
+
+```
+mysql> show global status like 'Thread%';
++-------------------+-------+
+| Variable_name     | Value |
++-------------------+-------+
+| Threads_cached    | 18    |
+| Threads_connected | 33    |
+| Threads_created   | 51    |
+| Threads_running   | 3     |
++-------------------+-------+
+4 rows in set (0.04 sec)
+
+mysql> show variables like 'thread_cache_size';
++-------------------+-------+
+| Variable_name     | Value |
++-------------------+-------+
+| thread_cache_size | 100   |
++-------------------+-------+
+1 row in set (0.05 sec)
+```
+
+### Innodb_buffer_pool_size 
+InnoDB使用该参数指定大小的内存来缓冲数据和索引，其对InnoDB的重要性等于key_buffer_size对MyISAM的重要性。
 
 缓冲池的相关资料可以[参考这里](https://edgar615.github.io/innodb-buffer-pool.html)
 
-后续继续补充
+### Innodb_log_buffer_size
+
+Innodb_log缓存大小，一般为1-8M，默认为1M，对于较大的事务，可以增大缓存大小。可设置为4M或8M。
 
 
 # Scheme设计与数据类型优化
@@ -199,6 +300,19 @@ char(N)用来保存固定长度的字符，如果长度不足N的，用空格补
 
 如果varchar能够满足，不采用text类型，如果一定要用text类型储存大量数据，表容量会很早涨上去，影响其他字段的查询性能。建议抽取出来放在子表里，用业务主键关联。
 
+text和blob值在执行了大量的删除或更新操作的时候容易影响效率。
+
+删除该类型值会在数据表中留下很大的"空洞"，以后填入这些"空洞"的记录可能长度不同,为了提高性能,建议定期使用 OPTIMIZE TABLE 功能对这类表进行碎片整理。
+
+## 拆分大字段、访问频率低的字段
+
+将大字段、访问频率低的字段拆分到单独的表中存储,分离冷热数据。有利于有效利用缓存，防止读入无用的冷数据，较少磁盘IO，同时保证热数据常驻内存提高缓存命中率。
+
+## 数据文件磁盘分离
+
+MySQL表以数据文件形式存储于文件系统，针对不同的表的读写会打开不同的数据文件。建议对不同的热表进行存储的磁盘分离。通过将不同的热表建立在不同的lun上，分散I/O，这样就能进一步减少I/O消耗的瓶颈。
+
+
 # 索引优化
 
 分页查询很重要，如果查询数据量超过30%，MYSQL不会使用索引
@@ -231,6 +345,53 @@ char(N)用来保存固定长度的字符，如果长度不足N的，用空格补
 > ```
 
 # SQL优化
+
+## 大批量插入数据
+
+如果同时执行大量的插入，建议使用多个值的INSERT语句(方法二)。这比使用分开INSERT语句快（方法一），一般情况下批量插入效率有几倍的差别。
+
+方法一：
+
+```
+insert into tablename values(1,2); 
+insert into tablename values(1,3); 
+insert into tablename values(1,4);
+```
+
+方法二：
+
+```
+Insert into tablename values(1,2),(1,3),(1,4); 
+```
+选择后一种方法的原因：
+
+- 减少SQL语句解析的操作， MySQL没有类似Oracle的share pool，采用方法二，只需要解析一次就能进行数据的插入操作；
+- SQL语句较短，可以减少网络传输的IO。
+
+此外，还有以下建议提高插入性能： 
+
+- 通过使用 INSERT DELAYED 语句得到更高的速度。Delayed 的含义是让 insert 语句马上执行，其实数据都被放在内存的队列中，并没有真正写入磁盘；
+- 这比每条语句分别插入要快的多，但需要注意，DELAYED关键字只用于MyISAM，MEMORY这类只支持表锁的存储引擎； 
+- 将索引文件和数据文件分在不同的磁盘上存放（利用建表中的选项）。
+
+## 避免出现select *
+
+`select *` 操作在任何类型数据库中都不是一个好的SQL开发习惯。使用`select * `取出全部列，会让优化器无法完成索引覆盖扫描这类优化，会影响优化器对执行计划的选择，也会增加网络带宽消耗，更会带来额外的I/O,内存和CPU消耗。建议评估业务实际需要的列数，指定列名以取代`select *`。
+
+> 如果数据表变动，`select *` 可能会导致程序BUG
+
+## 避免使用insert..select..语句
+
+当使用`insert...select...`进行记录的插入时，如果select的表是innodb类型的，不论insert的表是什么类型的表，都会对select的表的纪录进行锁定。
+
+## 适当使用commit
+
+适当使用commit可以释放事务占用的资源而减少消耗，commit后能释放的资源如下：
+
+- 事务占用的undo数据块；
+- 事务在redo log中记录的数据块； 
+- 释放事务施加的，减少锁争用影响性能。特别是在需要使用delete删除大量数据的时候，必须分解删除量并定期commit。
+
 ## 分批处理
 
 不带分页参数的查询或者影响大量数据的update和delete操作，需要拆分处理
@@ -283,7 +444,11 @@ OR无法命中mobile_no + user_id的组合索引，可采用union，如下所示
  union
 (select id，product_name from orders where user_id = 100);
 ```
-此时id和product_name字段都有索引，查询才最高效。
+此时user_id和mobile_no字段都有索引，查询才最高效。
+
+## union优化
+
+MySQL通过创建并填充临时表的方式来执行union查询。除非确实要消除重复的行，否则建议使用union all。原因在于如果没有all这个关键词，MySQL会给临时表加上distinct选项，这会导致对整个临时表的数据做唯一性校验，这样做的消耗相当高。
 
 ## IN优化
 
@@ -310,11 +475,6 @@ date_format函数会导致这个查询无法使用索引，改写后：
 ```
 select id from order where create_time between '2019-07-01 00:00:00' and '2019-07-01 23:59:59';
 ```
-
-## 避免Select all
-
-如果不查询表中所有的列，避免使用SELECT *，它会进行全表扫描，不能有效利用索引。
-
 ## Like优化
 
 like用于模糊查询，举个例子（field已建立索引）：
@@ -363,6 +523,10 @@ select id from orders where id between 1000000 and 1000010 order by id desc
 ```
 耗时0.3秒
 
+## 优化order by
+
+在某些情况中，MySQL 可以使用一个索引来满足 ORDER BY 子句，而不需要额外的排序。where 条件和 order by 使用相同的索引，并且 order by 的顺序和索引顺序相同 ，并且 order by 的字段都是升序或者都是降序。
+
 ## count查询
 `count(*)`、`count(主键 id) `和` count(1)` 都表示返回满足条件的结果集的总行数；而 `count(字段）`，则表示返回满足条件的数据行里面，参数“字段”不为 NULL 的总个数。
 
@@ -381,8 +545,18 @@ count(1) 执行得要比 count(主键 id) 快。因为从引擎返回 id 会涉�
 
 按照效率排序的话，`count(字段)`&lt;`count(主键 id)`&lt;`count(1)`≈`count(*)`，所以一般尽量使用 count(*)。
 
+## 减少表的锁冲突
 
+对 Innodb 类型的表： 
 
+1. 首先要确认，在对表获取行锁的时候，要尽量的使用索引检索纪录，如果没有使用索引访问，那么即便你只是要更新其中的一行纪录，也是全表锁定的。要确保 sql 是使用索引来访问纪录的，必要的时候，请使用 explain 检查 sql 的执行计划，判断是否按照预期使用了索引。
+2. 由于 MySQL 的行锁是针对索引加的锁，不是针对纪录加的锁，所以虽然是访问不同行的纪录，但是如果是相同的索引键，是会被加锁的。
+3. 当表有多个索引的时候，不同的事务可以使用不同的索引锁定不同的行，当表有主键或者唯一索引的时候，不是必须使用主键或者唯一索引锁定纪录，其他普通索引同样可以用来检索纪录，并只锁定符合条件的行。 
+4. 如果要使用锁定读，（`SELECT ... FOR UPDATE` 或` ... LOCK IN SHARE MODE`），尝试用更低的隔离级别，比如 `READ COMMITTED`。
+
+## 使用truncate代替delete
+
+当删除全表中记录时，使用delete语句的操作会被记录到undo块中，删除记录也记录binlog，当确认需要删除全表时，会产生很大量的binlog并占用大量的undo数据块，此时既没有很好的效率也占用了大量的资源。使用truncate替代，不会记录可恢复的信息，数据不能被恢复。也因此使用truncate操作有其极少的资源占用与极快的时间。另外，使用truncate可以回收表的水位。
 
 # 参考资料
 
@@ -393,3 +567,5 @@ https://mp.weixin.qq.com/s/-rYQQoCqKG4LgOsRziJrtQ
 https://mp.weixin.qq.com/s/kKHOoB6WmYXp0crb-jxHSg
 
 https://mp.weixin.qq.com/s/WsQZhZhuzfs2YZgamrGUOw
+
+https://mp.weixin.qq.com/s/d8csU9_w9gZi6k9SPMajdA
