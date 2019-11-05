@@ -128,7 +128,6 @@ zookeeper的分布式锁主要是通过临时节点实现
 
 但是，如果客户端发生GC卡顿，也会导致session过期，引起锁冲突
 
-
 # 参考资料
 
 https://mp.weixin.qq.com/s/0WsfrweMVCamK7co6Ki8aw
@@ -136,3 +135,5 @@ https://mp.weixin.qq.com/s/0WsfrweMVCamK7co6Ki8aw
 https://mp.weixin.qq.com/s/1bPLk_VZhZ0QYNZS8LkviA
 
 https://mp.weixin.qq.com/s/1HvQJaUKHcAqSa224efNmw
+
+https://mp.weixin.qq.com/s/d_IgPDFWyPLHRcT2_yunMQ
