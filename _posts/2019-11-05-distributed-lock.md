@@ -72,6 +72,115 @@ end
 
 因为释放锁涉及到两个命令，不是原子性，所以需要使用lua来保证原子性
 
+示例代码：
+
+```
+public class RedisLock implements Closeable {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(RedisLock.class);
+
+  private RedisTemplate<String, String> redisTemplate;
+
+  /**
+   * redis key
+   */
+  private String lockKey;
+
+  /**
+   * redis value
+   */
+  private String lockValue;
+
+  /**
+   * 过期时间，单位毫秒
+   */
+  private int expireMills;
+
+  private static final String RELEASE_LUA_SCRIPT = "if redis.call('get',KEYS[1]) == ARGV[1] then\n"
+      + "    return redis.call('del',KEYS[1])\n"
+      + "else\n"
+      + "    return 0\n"
+      + "end";
+
+  public RedisLock(RedisTemplate<String, String> redisTemplate, String lockKey, String lockValue, int expireMills) {
+    this.redisTemplate = redisTemplate;
+    this.lockKey = lockKey;
+    this.lockValue = lockValue;
+    this.expireMills = expireMills;
+  }
+
+  public boolean acquire() {
+    return redisTemplate.execute((RedisCallback<Boolean>) connection -> {
+      //序列化key
+      byte[] serializeKey = LettuceConverters.toBytes(lockKey);
+      //序列化value
+      byte[] serializeVal = LettuceConverters.toBytes(lockValue);
+      boolean result = connection.stringCommands()
+          .set(serializeKey, serializeVal, Expiration.milliseconds(expireMills),
+              SetOption.SET_IF_ABSENT);
+      LOGGER.info("获取redis锁：" + result);
+      return result;
+    });
+  }
+
+  public boolean release() {
+    Boolean result = redisTemplate.execute((RedisCallback<Boolean>) connection -> connection.scriptingCommands()
+        .eval(
+            RELEASE_LUA_SCRIPT.getBytes(),
+            ReturnType.BOOLEAN,
+            1,
+            LettuceConverters.toBytes(lockKey),
+            LettuceConverters.toBytes(lockValue)
+        ));
+    LOGGER.info("释放redis锁：" + result);
+    return result;
+  }
+
+  /**
+   * 自动释放锁
+   */
+  @Override
+  public void close() throws IOException {
+    release();
+  }
+}
+```
+
+测试一下
+
+```
+@SpringBootApplication
+public class Application implements CommandLineRunner {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
+
+  @Autowired
+  private RedisTemplate<String, String> redisTemplate;
+
+  public static void main(String[] args) {
+    SpringApplication.run(Application.class, args);
+  }
+
+  @Override
+  public void run(String... args) throws Exception {
+    try (RedisLock lock = new RedisLock(redisTemplate, "test_key", "test_val", 3000)) {
+      //获取锁
+      if (lock.acquire()) {
+        //模拟执行业务
+        Thread.sleep(1000);
+        LOGGER.info("获取到锁，执行业务操作耗时1s");
+      }
+    } catch (Exception e) {
+      LOGGER.error(e.getMessage(), e);
+    }
+  }
+}
+```
+
+
+
+上面代码展示的RedisLock还可以增加重试次数、重试间隔来多次尝试获取锁
+
 缺陷：
 
 - 如果客户端长期阻塞导致锁过期，那么它接下来访问共享资源就不安全了
