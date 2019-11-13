@@ -38,38 +38,43 @@ permalink: distributed-lock.html
 
 ```
 CREATE TABLE `distributed_lock` (
-  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主码',
-  `lock_key` varchar(64) NOT NULL DEFAULT '' COMMENT '锁定的资源',
-  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '保存数据时间，自动生成',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uidx_lock_key` (`lock_key`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='锁定中的订单';
+`id` BIGINT ( 20) NOT NULL AUTO_INCREMENT COMMENT '主键',
+`lock_key` VARCHAR ( 64 ) NOT NULL COMMENT '锁定的资源',
+`lock_value` VARCHAR ( 255 ) NOT NULL COMMENT '锁的客户端标识',
+`lockd_at` BIGINT ( 20 ) NOT NULL COMMENT '锁创建时间，单位毫秒',
+`expire_at` BIGINT ( 20 ) NOT NULL COMMENT '锁过期时间，单位毫秒',
+`update_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '保存数据时间，自动生成',
+PRIMARY KEY ( `id` ),
+UNIQUE KEY `uidx_lock_key` ( `lock_key` ) USING BTREE,
+KEY `idx_expire_at` ( `expire_at` ) USING BTREE 
+) ENGINE = INNODB DEFAULT CHARSET = utf8 COMMENT = '分布式锁';
 ```
 
 获取锁
 
 ```
-insert into distributed_lock(lock_key) values (lock_key)
+insert into distributed_lock(lock_key, lock_value, locked_at, expire_at) VALUES (?, ?, ?, ?);
 ```
 
 释放锁
 
 ```
-delete from distributed_lock where lock_key='lock_key'
+delete from distributed_lock where lock_key = ? AND lock_value = ?;
 ```
 
 删除过期未释放的锁
 
 ```
-delete from distributed_lock where update_time <  '两分钟前'
+delete from distributed_lock where expire_at < ?;
 ```
 
-上述的锁实现并没有实现锁的重入，要实现锁重入，我们需要在表中增加一个客户端标识`lock_value`和一个重入次数`lock_num`
+上述的锁实现并没有实现锁的重入，要实现锁重入，我们需要在表中增加一个重入次数`lock_num`
 
 在获取锁失败后检查一下锁是不是自己的，然后增加一下锁的次数
 
 ```
-insert into distributed_lock(lock_key,lock_value,lock_num) values (lock_key,lock_value, 1)
+insert into distributed_lock(lock_key, lock_value, locked_at, expire_at, lock_num) VALUES (?, ?, ?, ?, ?);
+
 -- 获取失败后
 select id from distributed_lock where lock_key='lock_key' and lock_value = 'lock_value'
 -- 如果能够获取到记录，说明可以重入，更新锁的次数
