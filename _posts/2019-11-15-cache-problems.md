@@ -1,11 +1,11 @@
 ---
 layout: post
 title: 缓存-面临的问题(part3)
-date: 2019-11-15
+date: 2019-11-14
 categories:
     - 缓存
 comments: true
-permalink: cache-3.html
+permalink: cache-problems.html
 ---
 
 # 缓存并发
