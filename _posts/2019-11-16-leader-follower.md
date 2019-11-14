@@ -10,7 +10,7 @@ permalink: leader-follower.html
 
 在有个项目中曾经考虑使用Leader-follower线程模型来实现，后来换了个思路。这里简单记录一下
 
-![](/assets/images/posts/leader-followe/leader-followe-1.png)
+![](/assets/images/posts/leader-follower/leader-follower-1.png)
 
 - 在Leader-follower线程模型中每个线程有三种模式，leader,follower, processing。
 - 在Leader-follower线程模型一开始会创建一个线程池，并且会选取一个线程作为leader线程，leader线程负责监听网络请求，其它线程为follower处于waiting状态，当leader线程接受到一个请求后，会释放自己作为leader的权利，然后从follower线程中选择一个线程进行激活，然后激活的线程被选择为新的leader线程作为服务监听，然后老的leader则负责处理自己接受到的请求（现在老的leader线程状态变为了processing），处理完成后，状态从processing转换为。follower
