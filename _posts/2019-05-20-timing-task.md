@@ -86,11 +86,30 @@ del device:disconnected:<设备ID>
 ![](/assets/images/posts/timing-wheel/timingwheel_3.png)
 
 在第31秒指针走到第31个槽，目前还存在这个槽内的所有设备表明在之前的30秒没有收到过任何心跳
+
 ![](/assets/images/posts/timing-wheel/timingwheel_4.png)
 
 与前面的方案相比，时间轮的优势在于只需要一个定时器，而且每秒只会触发一次，效率很高。
 
 上述方案的实现都比较简单，这里就不上源码了
-参考资料
+
+# 深入一步
+
+时间轮除了可以用来检测心跳外，还可以用来实现定时任务，只需要在时间轮中的set集合中存放的值增加一个属性：循环次数round
+
+![](/assets/images/posts/timing-wheel/timingwheel_5.png)
+
+假设我们是时间轮是1分钟，当前游标在0，我们要在5分20秒后执行某个定时任务，通过计算可以得出任务需要保存在第20个槽内，循环次数为5。游标每走完一圈就需要将循环次数-1，如果此时槽内集合的任务如果循环次数小于0，就说明任务是到期的任务。
+
+如果任务的时间跨度很大，数量也多，传统的时间轮会造成单个槽的任务集合很长，并会维持很长一段时间。这时可将时间轮按时间粒度分级。
+
+![](/assets/images/posts/timing-wheel/timingwheel_6.png)
+
+每个任务除了要维护在当前轮子的round，还要计算在所有下级轮子的round。当本层的round为0时，任务按下级round值被下放到下级轮子，最终在最底层的轮子得到执行。
+
+这种方式的优点在于能够保证任务链表的长度一直在比较短的状态，但缺点是需要更多的空间
+
+
+# 参考资料
 
 https://mp.weixin.qq.com/s/sVzs8vDlTH9xySXwmeb63w
