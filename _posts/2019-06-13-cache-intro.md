@@ -116,6 +116,38 @@ CDN的全称是Content Delivery Network，即内容分发网络。提供 CDN 服
 
 缓存的容量有限，则容易引起缓存失效和被淘汰（目前多数的缓存框架或中间件都采用了LRU算法）。
 
+## 命中率对性能的影响
+
+> 摘自https://tech.youzan.com/cache-background/
+
+**场景一: **
+
+我们假定, HTTP QPS 有 10,000, 没有使用Cache(变相地假定Miss100%), RDBMS是读 3 ms/query , Cache是 1 ms/query。
+
+那么理想下10,000个Query总耗时:` 3 ms/query * 10,000query = 30,000 ms`
+
+如果我们用了以上2者结合的方式 
+
+假定是 90% 命中率, 那么理想下10,000个Query总耗时:` 3 ms/query * 1,000query + 1 ms/query * 9,000query = 12,000 ms`. 
+
+假定是 70% 命中率, 那么理想下10,000个Query总耗时:` 3 ms/query * 3,000 query + 1 ms/query * 7,000query = 16,000 ms`.
+
+** 场景二:**
+
+我们假定, HTTP QPS 有 10,000, 没有使用Cache(变相地假定Miss100%), RDBMS是 读:写 是 8 : 2 . 读 3 ms/query, 写 5 ms / query, Cache是 1 ms/query. 
+
+那么理想下10,000个Query总耗时:` 3 ms / query * 8,000 query + 5 ms / query * 2000 query = 34,000 ms` . 
+
+如果我们用了以上2者结合的方式, 
+
+假定新数据写入后才有读的操作, 那么命中率可能为100%, 那么理想下10,000个Query总耗时: `1 ms/query * 8,000query + 5 ms/query * 2000 query = 18,000 ms`. 
+
+差一些命中率可能为90%, 那么理想下10,000个Query总耗时: `1 ms/query * ( 8,000query90%) + 3 ms/query * ( 8,000query10%) + 5 ms/query * 2000 query = 19,600 ms`. 
+
+再差一些命中率可能为70%, 那么理想下10,000个Query总耗时: `1 ms/query * ( 8,000query70%) + 3 ms/query * ( 8,000query30%) + 5 ms/query * 2000 query = 22,800 ms`.
+
+可以看到 22,800ms / 19,600ms = 117%, 那么有17%的性能损失.
+
 # 缓存的清空策略
 
 **FIFO(first in first out)**
@@ -183,3 +215,5 @@ https://mp.weixin.qq.com/s/JCFx-GNjueLLOEjWMKbLRQ
 https://mp.weixin.qq.com/s/PXj1vPeWmle0k6KhgUhHgg
 
 https://mp.weixin.qq.com/s/FxOQ4HrjaFn0lDis0zei-g
+
+https://tech.youzan.com/cache-background/
