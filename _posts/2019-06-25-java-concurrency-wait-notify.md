@@ -134,6 +134,34 @@ public class MyWaitNotify {
 }
 ```
 
+## 为什么wait，notify要在同步块代码中使用
+
+我们先看下面的代码
+
+```
+public class MyWaitNotify {
+
+    private MonitorObject myMonitorObject  = new MonitorObject();
+
+    public void doWait() throws InterruptedException {
+		while (count <= 0) {
+			myMonitorObject.wait();
+		}
+		count --;//这里是非原子性
+        //do something
+    }
+
+    public void doNotify() {
+        count ++;
+		myMonitorObject.notifyAll();
+	
+    }
+
+}
+```
+
+假设当前`count=0`，`doWait`方法检查到`count <= 0`，进入循环执行`wait`方法之前发生了线程上下文切换，此时`doNotify方法`执行`notifyAll`方法，由于`myMonitorObject`尚未调用`wait`，此时发出的notify就丢失了。这就是所谓的lost wake up问题。所以需要将wait、notify放在同步块中使用
+
 ## 小结
 
 1. wait()、notify/notifyAll() 方法是Object的本地final方法，无法被重写。
