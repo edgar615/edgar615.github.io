@@ -300,7 +300,7 @@ remove 方法的思想类似，就不看了。
 
 根据上面的分析和网上的资料，画了一个图
 
-![](/assets/images/posts/threadlocal/threadlocal-1-1.png)
+![](/assets/images/posts/threadlocal/threadlocal-1.png)
 
 # key为什么用弱引用
 下面我们分两种情况讨论：
