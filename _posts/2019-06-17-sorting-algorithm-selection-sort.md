@@ -8,7 +8,7 @@ comments: true
 permalink: selection-sort.html
 ---
 
-选择排序是一种简单直观的排序算法，无论什么数据进去都是 O(n²) 的时间复杂度。所以用到它的时候，数据规模越小越好。唯一的好处可能就是不占用额外的内存空间了吧。
+选择排序是一种简单直观的排序算法，无论什么数据进去都是 O(n²) 的时间复杂度。所以用到它的时候，数据规模越小越好。唯一的好处可能就是不占用额外的内存空间。
 
 ### 算法步骤
 
@@ -49,7 +49,7 @@ permalink: selection-sort.html
     for (int i = 0; i < len; i ++) {
       int minIndex = i;
       for (int j = i+1; j < len; j ++) {
-        if (array[i] > array[j]) {
+        if (array[minIndex] > array[j]) {
           minIndex = j;
         }
       }

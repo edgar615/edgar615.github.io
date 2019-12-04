@@ -29,7 +29,7 @@ permalink: sorting-algorithm.html
 名词解释：
 - n：数据规模
 - k：“桶”的个数
-- In-place：占用常数内存，不占用额外内存
+- In-place：占用常数内存，不占用额外内存（使用数据原有的内存进行排序）
 - Out-place：占用额外内存
 
 稳定性：排序后 2 个相等键值的顺序和排序之前它们的顺序相同
@@ -44,3 +44,5 @@ permalink: sorting-algorithm.html
 https://www.runoob.com/w3cnote/ten-sorting-algorithm.html
 
 https://github.com/hustcc/JS-Sorting-Algorithm
+
+http://notepad.yehyeh.net/Content/Algorithm/Sort/Sort.php
