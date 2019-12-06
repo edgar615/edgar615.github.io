@@ -358,6 +358,59 @@ ThreadLocalMap中的key是ThreadLocal对象，然后ThreadLocal对象时被WeakR
     实现线程安全，非线程安全的对象使用ThreadLocal之后就会变得线程安全，因为每个线程都会有一个对应的实例
     承载一些线程相关的数据，避免在方法中来回传递参数
 
+# 散列算法-魔数0x61c88647
+
+前面提过：`HASH_INCREMENT = 0x61c88647`就是每次增加的步长`1640531527`，根据JAVADOC所说，选择这个数字是为了让冲突概率最小
+
+> The difference between successively generated hash codes - turns implicit sequential thread-local IDs into near-optimally spread multiplicative hash values for power-of-two-sized tables.
+
+魔数0x61c88647的选取和斐波那契散列有关，**0x61c88647**对应的十进制为1640531527。而斐波那契散列的乘数可以用`(long) ((1L << 31) * (Math.sqrt(5) - 1));` 如果把这个值给转为带符号的int，则会得到-1640531527。也就是说
+ `(long) ((1L << 31) * (Math.sqrt(5) - 1));`得到的结果就是1640531527，也就是魔数**0x61c88647**
+
+`Math.sqrt(5) - 1)`约等于0.618，也就是说0x61c88647理解为一个黄金分割数乘以2的32次方。它可以保证`nextHashCode`生成的哈希值，均匀的分布在2的幂次方上，且小于2的32次方
+
+测试一下
+
+```
+public class ThreadLocalHashCodeTest {
+
+    private static AtomicInteger nextHashCode =
+            new AtomicInteger();
+
+    private static final int HASH_INCREMENT = 0x61c88647;
+
+    private static int nextHashCode() {
+        return nextHashCode.getAndAdd(HASH_INCREMENT);
+    }
+
+    public static void main(String[] args){
+        for (int i = 0; i < 16; i++) {
+            System.out.print(nextHashCode() & 15);
+            System.out.print(" ");
+        }
+        System.out.println();
+        for (int i = 0; i < 32; i++) {
+            System.out.print(nextHashCode() & 31);
+            System.out.print(" ");
+        }
+        System.out.println();
+        for (int i = 0; i < 64; i++) {
+            System.out.print(nextHashCode() & 63);
+            System.out.print(" ");
+        }
+    }
+}
+```
+
+输出
+
+```
+0 7 14 5 12 3 10 1 8 15 6 13 4 11 2 9 
+16 23 30 5 12 19 26 1 8 15 22 29 4 11 18 25 0 7 14 21 28 3 10 17 24 31 6 13 20 27 2 9 
+16 23 30 37 44 51 58 1 8 15 22 29 36 43 50 57 0 7 14 21 28 35 42 49 56 63 6 13 20 27 34 41 48 55 62 5 12 19 26 33 40 47 54 61 4 11 18 25 32 39 46 53 60 3 10 17 24 31 38 45 52 59 2 9 
+```
+
+可以看到元素索引值完美的散列在数组当中，并没有出现冲突
 
 # 参考资料
 
