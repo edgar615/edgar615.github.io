@@ -1,11 +1,11 @@
 ---
 layout: post
 title: 接口幂等性
-date: 2019-11-04
+date: 2019-12-09
 categories:
     - 设计
 comments: true
-permalink: Idempotence.html
+permalink: idempotence.html
 ---
 
 先看两个场景
