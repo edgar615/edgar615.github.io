@@ -28,6 +28,10 @@ permalink: mysql-datatype-varchar.html
 >
 > 在utf8mb4编码中，INNODB会使用4字节计算，所以能使用完整索引的最大varchar长度为191（191*4=764）
 
+**注意MySQL8的单列索引限制为3072（实际与页大小有关）**
+
+索引的限制查看[这篇文章](https://edgar615.github.io/mysql-index-length.html)
+
 InnoDB最大的行的大小是半个database  page（大约8000字节），如果可变长的列（如varbinary、varchar、text、blob）超过了这个大小会被存到外面去，行里面只是存一个指针。这会比存inline慢很多。
 
 所以结论是，我们应该用尽可能小的类型而不是统一用`VARCHAR(255)`。

@@ -178,6 +178,8 @@ update t_order set status = '已支付' where order_id = trade_no where status =
 
 注意：在redis里如果用select+delete来校验token，存在并发问题，所以建议使用删除操作来判断token，删除成功代表token校验通过。
 
+这个从严格上来说我认为是防重，应该和幂等区分
+
 ## 分布式锁 
 对于插入数据来说，如果是分布是系统，构建全局唯一索引比较困难。这时候可以引入分布式锁，通过第三方的系统(redis或zookeeper)，在业务系统插入数据或者更新数据，获取分布式锁，然后做操作，之后释放锁。
 
