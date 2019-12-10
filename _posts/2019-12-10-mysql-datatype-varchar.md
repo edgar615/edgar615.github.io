@@ -1,11 +1,11 @@
 ---
 layout: post
 title: MySQL数据类型-数据库varchar长度最佳实践（part4）
-date: 2019-10-30
+date: 2019-12-10
 categories:
     - MySQL
 comments: true
-permalink: mysql-datatype-bit.html
+permalink: mysql-datatype-varchar.html
 ---
 
 在很多文章里都看到说将VARCHAR设置为255，最近对原因搜索了一番，记录一下，对底层不太深入可能有错误
