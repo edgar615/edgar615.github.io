@@ -140,6 +140,8 @@ mysql> show global status like '%read_ahead%';
 
 在innodb把midpoint之后的列表称为old列表，之前的列表称为new列表，可以简单的理解为new列表中的页都是最为活跃的热点数据。
 
+![](/assets/images/posts/mysql-buffer/innodb-buffer-pool-list.png)
+
 可以通过`innodb_old_blocks_pct`控制old和new的分布，默认值是37
 
 ```
