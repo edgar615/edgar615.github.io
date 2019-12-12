@@ -172,7 +172,9 @@ SET max_length_for_sort_data = 16;
 
 如果 MySQL 实在是担心排序内存太小，会影响排序效率，才会采用 rowid 排序算法，这样排序过程中一次可以排序更多行，但是需要再回到原表去取数据。如果 MySQL 认为内存足够大，会优先选择全字段排序，把需要的字段都放到 sort buffer 中，这样排序后就会直接从内存里面返回查询结果了，不用再回到原表去取数据。这也就体现了 MySQL 的一个设计思想：**如果内存够，就要多利用内存，尽量减少磁盘访问**。对于 InnoDB 表来说，rowid 排序会要求回表多造成磁盘读，因此不会被优先选择。
 
-**如果 sort buffer 无法存放所有数据，那么，当 sort buffer 被填满时，需要对 sort buffer 中的元组进行快速排序，并将排序结果写到一个单独临时文件中，同时保存该文件指针，最后对文件进行归并排序。**
+**如果 sort buffer 无法存放所有数据，那么，当 sort buffer 被填满时，需要对 sort buffer 中的元组进行快速排序，并将排序结果写到一个单独临时文件中，同时保存该文件指针，直到所有的数据都被读取完成，最后对文件进行归并排序。**
+
+对于rowid排序来说，临时文件需要利用磁盘外部排序，将row id写入到结果文件中；然后根据结果文件中的row ID按序读取用户需要返回的数据。由于rowID不是顺序的，导致回表时是随机IO，为了进一步优化性能（变成顺序IO），MySQL会读一批row ID，并将读到的数据按排序字段顺序插入缓存区中(内存大小read_rnd_buffer_size )。
 
 对于全字段排序来讲，其元组数据的长度会比 rowid排序更长，同时 sort buffer 能存放的元组数据更少，意味着产生的临时文件更多.因此，额外的磁盘 I/O 有可能会造成 全字段排序变得更慢，而不是更快。
 
@@ -191,7 +193,107 @@ alter table t add index city_user(city, name);
 
 ![](/assets/images/posts/mysql-sort/mysql-sort-5.jpg)
 
+# 外部文件排序
+我们先看一下普通外部排序
+
+## 两路外部排序
+
+假设内存只有100M，但是排序的数据有900M，那么对应的外部排序算法如下：
+
+1. 从要排序的900M数据中读取100MB数据到内存中，并按照传统的内部排序算法（快速排序）进行排序；
+2. 将排序好的数据写入磁盘；
+3. 重复1，2两步，直到每个100MB chunk大小排序好的数据都被写入磁盘；
+4. 每次读取排序好的chunk中前10MB（= 100MB / (9 chunks + 1)）数据，一共9个chunk需要90MB，剩下的10MB作为输出缓存；
+5. 对这些数据进行一个“9路归并”，并将结果写入输出缓存。如果输出缓存满了，则直接写入最终排序结果文件并清空输出缓存；如果9个10MB的输入缓存空了，从对应的文件再读10MB的数据，直到读完整个文件。最终输出的排序结果文件就是900MB排好序的数据了。
+
+## 多路外部排序
+
+两路外部排序算法有一个问题，假设要排序的数据是50GB而内存只有100MB，那么每次从500个排序好的分片中取200KB（100MB  / 501 约等于200KB）就是很多个随机IO。效率非常慢，对应可以这样来改进：
+
+1. 从要排序的50GB数据中读取100MB数据到内存中，并按照传统的内部排序算法（快速排序）进行排序；
+2. 将排序好的数据写入磁盘；
+3. 重复1，2两步，直到每个100MB chunk大小排序好的数据都被写入磁盘；
+4. 每次取25个分片进行归并排序，这样就形成了20个（500/25=20）更大的2.5GB有序的文件；
+5. 对这20个2.5GB的有序文件进行归并排序，形成最终排序结果文件。
+
+对应的数据量更大的情况可以进行更多次归并。
+
+## MySQL外部排序
+
+我们已rowid排序为例，看一下MySQL外部排序怎么做的
+
+1. 根据索引或者全表扫描，按照过滤条件获得需要查询的数据；
+2. 将要排序的列值和row ID组成键值对，存入sort buffer中；
+3. 如果sort buffer内存大于这些键值对的内存，就不需要创建临时文件了。否则，每次sort  buffer填满以后，需要直接用qsort(快速排序模式)在内存中排好序，作为一个block写到临时文件中。跟正常的外部排序写到多个文件中不一样，**MySQL只会写到一个临时文件中，并通过保存文件偏移量的方式来模拟多个文件归并排序；**
+4. 重复上述步骤，直到所有的行数据都正常读取了完成；
+5. 每MERGEBUFF (7) 个block抽取一批数据进行排序，归并排序到另外一个临时文件中，直到所有的数据都排序好到新的临时文件中；
+6. 重复以上归并排序过程，直到剩下不到MERGEBUFF2 (15)个block。通俗一点解释：
+	- 第一次循环中，一个block对应一个sort buffer（大小为 sort_buffer_size ）排序好的数据；每7个做一个归并。
+	- 第二次循环中，一个block对应MERGEBUFF (7) 个sort buffer的数据，每7个做一个归并。
+	- …
+	- 直到所有的block数量小于MERGEBUFF2 (15)。
+7. 最后一轮循环，仅将row ID写入到结果文件中；
+8. 根据结果文件中的row ID按序读取用户需要返回的数据。为了进一步优化性能，MySQL会读一批row ID，并将读到的数据按排序字段要求插入缓存区中(内存大小 read_rnd_buffer_size )。
+
+# trace结果解释
+
+回过头来看一下trace的结果。
+
+## 是否存在磁盘外部排序
+`number_of_tmp_files`  表示有多少个分片，如果 number_of_tmp_files 不等于0，表示一个 sort_buffer_size 大小的内存无法保存所有的键值对，也就是说，MySQL在排序中使用到了磁盘来排序。
+
+## 是否存在优先队列优化排序
+由于我们的这个SQL里面没有对数据进行分页限制，所以 filesort_priority_queue_optimization 并没有启用
+```
+"filesort_priority_queue_optimization": {
+              "usable": false,
+              "cause": "not applicable (no LIMIT)"
+            },
+```
+而正常情况下，使用了Limit会启用优先队列的优化。优先队列类似于FIFO先进先出队列。算法稍微有点改变，以rowid排序模式为例。
+
+**sort_buffer_size 足够大**
+
+如果Limit限制返回N条数据，并且N条数据比 sort_buffer_size 小，那么MySQL会把sort buffer作为priority queue，在第二步插入priority queue时会按序插入队列；在第三步，队列满了以后，并不会写入外部磁盘文件，而是直接淘汰最尾端的一条数据，直到所有的数据都正常读取完成。
+
+算法如下：
+
+1. 根据索引或者全表扫描，按照过滤条件获得需要查询的数据
+2. 将要排序的列值和row ID组成键值对，按序存入中priority queue中
+3. 如果priority queue满了，直接淘汰最尾端记录。
+4. 重复上述步骤，直到所有的行数据都正常读取了完成
+5. 最后一轮循环，仅将row ID写入到结果文件中
+6. 根据结果文件中的row ID按序读取用户需要返回的数据。为了进一步优化性能，MySQL会读一批row ID，并将读到的数据按排序字段要求插入缓存区中(内存大小 read_rnd_buffer_size )。
+
+**sort_buffer_size 不够大**
+
+否则，N条数据比 sort_buffer_size 大的情况下，MySQL无法直接利用sort buffer作为priority queue，正常的文件外部排序还是一样的，只是在最后返回结果时，只根据N个row ID将数据返回出来。具体的算法我们就不列举了。
+
+另外，我们也没有讨论Limit m,n的情况，如果是Limit m,n， 上面对应的“N个row ID”就是“M+N个row ID”了，MySQL的Limit m,n 其实是取m+n行数据，最后把M条数据丢掉。
+
+从上面我们也可以看到 sort_buffer_size 足够大对Limit数据比较小的情况，优化效果是很明显的。
+
+**优先级队列是用的堆排序，是不稳定的排序算法**
+
+# 其他参数
+MySQL其他相关排序参数
+
+**max_sort_length**
+
+这里需要区别 `max_sort_length` 和` max_length_for_sort_data` 。`max_length_for_sort_data` 是为了让MySQL选择 `< sort_key, rowid >` 还是` < sort_key, additional_fields >` 的模式。而 `max_sort_length` 是键值对的大小无法确定时（比如用户要查询的数据包含了` SUBSTRING_INDEX(col1, ‘.’,2) `）MySQL会对每个键值对分配 `max_sort_length` 个字节的内存，这样导致内存空间浪费，磁盘外部排序次数过多。
+
+**innodb_disable_sort_file_cache**
+
+`innodb_disable_sort_file_cache` 设置为ON的话，表示在排序中生成的临时文件不会用到文件系统的缓存，类似于 O_DIRECT 打开文件。
+
+**innodb_sort_buffer_size**
+
+这个参数其实跟我们这里讨论的SQL排序没有什么关系。`innodb_sort_buffer_size` 设置的是在创建InnoDB索引时，使用到的sort buffer的大小。
+
+以前写死为1M，现在开放出来，允许用户自定义设置这个参数了。
+
 # 本地测试
+
 准备数据
 ```
 DELIMITER ;;
@@ -235,7 +337,13 @@ CALL idata();
 
 `select @b-@a;`返回4001
 
-`packed_additional_fields`对于额外字段数据类型为：CHAR、VARCHAR、以及可为 NULL 的固定长度数据类型，其字段值长度是可以被压缩的。例如，在无压缩的情况下，字段数据类型为 VARCHAR(255)，当字段值只有 3 个字符时，却需要占用 sort buffer 255 个字符长度的内存空间大小；而在有压缩的情况下，字段值为 3 个字符，却只占用 3 个字符长度 + 2 个字节长度标记的内存空间大小；当字段值为 NULL 时，只需通过一个位掩码来标识。
+**packed_additional_fields**
+
+MySQL有3种排序模式
+
+- `< sort_key, rowid >` 对应的是MySQL 4.1之前的“原始排序模式”，即rowid排序
+- `< sort_key, additional_fields >` 对应的是MySQL 4.1以后引入的“修改后排序模式”即全字段排序
+- `< sort_key, packed_additional_fields >` 是MySQL 5.7.3以后引入的进一步优化的”打包数据排序模式”，是对全字段排序的优化。对于额外字段数据类型为：CHAR、VARCHAR、以及可为 NULL 的固定长度数据类型，其字段值长度是可以被压缩的。例如，在无压缩的情况下，字段数据类型为 VARCHAR(255)，当字段值只有 3 个字符时，却需要占用 sort buffer 255 个字符长度的内存空间大小；而在有压缩的情况下，字段值为 3 个字符，却只占用 3 个字符长度 + 2 个字节长度标记的内存空间大小；当字段值为 NULL 时，只需通过一个位掩码来标识。
 
 对于可压缩字段来讲，其真实数据长度会比最大长度更小，这就意味着 sort buffer 可以存放更多元组，临时文件数量更少，
 
@@ -299,7 +407,6 @@ SET max_length_for_sort_data=16;
 }
 ```
 
-
 # 参考资料
 
 https://my.oschina.net/lvhuizhenblog/blog/552730
@@ -320,6 +427,4 @@ https://time.geekbang.org/column/article/73479
 
 http://zhongmingmao.me/2019/02/09/mysql-order-by/
 
-```
-
-```
+http://www.zuimoban.com/jiaocheng/mysql/8946.html
