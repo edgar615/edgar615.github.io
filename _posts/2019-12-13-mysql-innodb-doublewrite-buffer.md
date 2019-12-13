@@ -1,7 +1,7 @@
 ---
 layout: post
 title: InnoDB架构-doublewrite buffer（part6）
-date: 2019-05-31
+date: 2019-12-13
 categories:
     - MySQL
 comments: true

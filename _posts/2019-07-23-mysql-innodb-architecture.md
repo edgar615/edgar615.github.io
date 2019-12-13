@@ -26,7 +26,7 @@ InnoDB 通过 redo 日志来保证数据的一致性。如果保存所有的重�
 
 磁盘中的结构分为两大类：表空间和重做日志。
 
-- [表空间](https://edgar615.github.io/innodb-tablespace.html)：分为系统表空间(MySQL 目录的 ibdata1 文件)，临时表空间，常规表空间，Undo 表空间以及 file-per-table 表空间(MySQL5.7默认打开file_per_table 配置）。系统表空间又包括了InnoDB数据字典，双写缓冲区(Doublewrite Buffer)，修改缓存(Change Buffer），Undo日志等。
+- [表空间](https://edgar615.github.io/innodb-tablespace.html)：分为系统表空间(MySQL 目录的 ibdata1 文件)，临时表空间，常规表空间，Undo 表空间以及 file-per-table 表空间(MySQL5.7默认打开file_per_table 配置）。系统表空间又包括了InnoDB数据字典，[双写缓冲区(Doublewrite Buffer)](https://edgar615.github.io/innodb-doublewrite-buffer.html)，修改缓存(Change Buffer），Undo日志等。
 - [Redo日志](https://edgar615.github.io/innodb-redo-log.html)：存储的就是 Log Buffer 刷到磁盘的数据。
 
 
