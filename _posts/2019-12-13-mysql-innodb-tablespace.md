@@ -1,7 +1,7 @@
 ---
 layout: post
-title: InnoDB架构-文件存储结构（part1）
-date: 2019-05-31
+title: InnoDB架构-文件存储结构（part5）
+date: 2019-12-13
 categories:
     - MySQL
 comments: true
@@ -9,6 +9,7 @@ permalink: innodb-tablespace.html
 ---
 
 # 文件存储结构
+
 ![](/assets/images/posts/mysql-index/mysql-index-1.jpg)
 
 ## 表空间
