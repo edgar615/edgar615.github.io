@@ -301,11 +301,11 @@ static final int tableSizeFor(int cap) {
 }
 ```
 
-![](/assets/images/posts/hashmap/hashmap-7.png)
+![](/assets/images/posts/hashmap/hashmap-7.jpg)
 
 对于取模计算`index = (table.length - 1) & hash`，由于数组的大小永远是一个2次幂，在扩容之后，一个元素的新索引要么是在原位置，要么就是在原位置加上扩容前的容量。这个方法的巧妙之处全在于&运算，之前提到过&运算只会关注n - 1（n = 数组长度）的有效位，当扩容之后，n的有效位相比之前会多增加一位（n会变成之前的二倍，所以确保数组长度永远是2次幂很重要），然后只需要判断hash在新增的有效位的位置是0还是1就可以算出新的索引位置，如果是0，那么索引没有发生变化，如果是1，索引就为原索引加上扩容前的容量。
 
-![](/assets/images/posts/hashmap/hashmap-8.png)
+![](/assets/images/posts/hashmap/hashmap-8.jpg)
 
 因此，我们在扩充HashMap的时候，不需要像JDK1.7的实现那样重新计算hash，只需要看看原来的hash值新增的那个bit是1还是0就好了，是0的话索引没变，是1的话索引变成“原索引+oldCap”，可以看看下图为16扩充为32的resize示意图：
 
