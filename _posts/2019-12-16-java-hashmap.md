@@ -24,7 +24,7 @@ JDK8对HashMap底层的实现进行了优化，例如引入红黑树的数据结
 
 ![](/assets/images/posts/hashmap/hashmap-1.png)
 
-HashMap就是使用哈希表来存储的。哈希表为解决冲突，可以采用开放地址法和链地址法等来解决问题，Java中HashMap采用了链地址法。链地址法，简单来说，就是数组加链表的结合。在每个数组元素上都一个链表结构，当数据被Hash后，得到数组下标，把数据放在对应下标元素的链表上。
+HashMap就是使用哈希表来存储的。但是散列函数不可能是完美的，key分布完全均匀的情况是不存在的，所以碰撞冲突总是难以避免。哈希表为解决冲突，可以采用开放地址法和链地址法等来解决问题，Java中HashMap采用了链地址法。链地址法，简单来说，就是数组加链表的结合。在每个数组元素上都一个链表结构，当数据被Hash后，得到数组下标，把数据放在对应下标元素的链表上。
 
 对于`put`方法，HashMap通过对key计算它的hash值来定位该键值对的存储位置，有时两个key会定位到相同的位置，表示发生了Hash碰撞。当然Hash算法计算结果越分散均匀，Hash碰撞的概率就越小，map的存取效率就会越高。
 
@@ -133,6 +133,7 @@ final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
 			   boolean evict) {
 	Node<K,V>[] tab; Node<K,V> p; int n, i;
 	// 如果原table是空的或者未存储任何元素则需要先初始化进行tab的初始化
+	// HashMap使用了Lazy策略，table数组只会在第一次调用put()函数时进行初始化，这是一种防止内存浪费的做法，像ArrayList也是Lazy的，它在第一次调用add()时才会初始化内部的数组。
 	if ((tab = table) == null || (n = tab.length) == 0)
 		n = (tab = resize()).length;
 	// 通过取模计算确定元素在table数组中的索引，当对应位置为null时，将新元素放入数组中
@@ -188,6 +189,8 @@ final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
 ```
 
 # resize
+HashMap通过负载因子（Load Factor）乘以table数组的长度来计算出临界值，算法：`threshold = load_factor * capacity`。比如，HashMap的默认初始容量为16（`capacity = 16`），默认负载因子为0.75（`load_factor = 0.75`），那么临界值就为`threshold = 0.75 * 16 = 12`，只要Entry的数量大于12，就会触发扩容操作。
+
 扩容方法更复杂
 
 ```
@@ -284,21 +287,32 @@ final Node<K,V>[] resize() {
 
 JDK1.8对链表的扩容进行了优化
 
-> 完全摘自美团技术团队的文章
+table数组的大小约束对于整个HashMap都至关重要，为了防止传入一个不是2次幂的整数，必须要有所防范。`tableSizeFor()`函数会尝试修正一个整数，并转换为离该整数最近的2次幂。
 
-经过观测可以发现，我们使用的是2次幂的扩展(指长度扩为原来2倍)，所以，元素的位置要么是在原位置，要么是在原位置再移动2次幂的位置。看下图可以明白这句话的意思，n为table的长度，图（a）表示扩容前的key1和key2两种key确定索引位置的示例，图（b）表示扩容后key1和key2两种key确定索引位置的示例，其中hash1是key1对应的哈希与高位运算结果。
+```
+static final int tableSizeFor(int cap) {
+	int n = cap - 1;
+	n |= n >>> 1;
+	n |= n >>> 2;
+	n |= n >>> 4;
+	n |= n >>> 8;
+	n |= n >>> 16;
+	return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+}
+```
 
-![](/assets/images/posts/hashmap/hashmap-4.png)
+![](/assets/images/posts/hashmap/hashmap-7.png)
 
-元素在重新计算hash之后，因为n变为2倍，那么n-1的mask范围在高位多1bit(红色)，因此新的index就会发生这样的变化：
+对于取模计算`index = (table.length - 1) & hash`，由于数组的大小永远是一个2次幂，在扩容之后，一个元素的新索引要么是在原位置，要么就是在原位置加上扩容前的容量。这个方法的巧妙之处全在于&运算，之前提到过&运算只会关注n - 1（n = 数组长度）的有效位，当扩容之后，n的有效位相比之前会多增加一位（n会变成之前的二倍，所以确保数组长度永远是2次幂很重要），然后只需要判断hash在新增的有效位的位置是0还是1就可以算出新的索引位置，如果是0，那么索引没有发生变化，如果是1，索引就为原索引加上扩容前的容量。
 
-![](/assets/images/posts/hashmap/hashmap-5.png)
+![](/assets/images/posts/hashmap/hashmap-8.png)
 
 因此，我们在扩充HashMap的时候，不需要像JDK1.7的实现那样重新计算hash，只需要看看原来的hash值新增的那个bit是1还是0就好了，是0的话索引没变，是1的话索引变成“原索引+oldCap”，可以看看下图为16扩充为32的resize示意图：
 
 ![](/assets/images/posts/hashmap/hashmap-6.png)
 
 这个设计确实非常的巧妙，既省去了重新计算hash值的时间，而且同时，由于新增的1bit是0还是1可以认为是随机的，因此resize的过程，均匀的把之前的冲突的节点分散到新的bucket了。这一块就是JDK1.8新增的优化点。有一点注意区别，JDK1.7中rehash的时候，旧链表迁移新链表的时候，如果在新表的数组索引位置相同，则链表元素会倒置，但是从上图可以看出，JDK1.8不会倒置。
+
 
 # get方法
 弄清楚put和resize方法后，get方法就很清晰了，这里不在贴代码了
@@ -317,11 +331,11 @@ JDK1.8解决了并发情况下的死循环问题，但是依然会存在线程�
 
 # 为什么转换红黑树的阈值是8
 
-因为在元素放置过程中，如果一个对象哈希冲突，都被放置到同一个桶里，则会形成一个链表，而链表查询是线性的，会严重影响存取的性能
+因为在元素放置过程中，如果一个对象哈希冲突，都被放置到同一个桶里，则会形成一个链表，而链表查询是线性的，在查找的效率上只有`O(n)`，而我们大部分的操作都是在进行查找，在`hashCode()`设计的不是非常良好的情况下，碰撞冲突可能会频繁发生，链表也会变得越来越长，这个效率是非常差的。
 
 而且在现实世界，构造哈希冲突的数据并不是非常复杂的事情，恶意代码就可以利用这些数据大量与服务器端交互，导致服务器端 CPU 大量占用，这就构成了哈希碰撞拒绝服务攻击，国内一线互联网公司就发生过类似攻击事件
 
-所以为了保证数据安全及相关操作效率当链表长度达到8就转成红黑树，而当长度降到6就转成普通链表。
+所以为了保证数据安全及相关操作效率当链表长度达到8就转成红黑树，而当长度降到6就转成普通链表。这样查找红黑树所需的时间就只有`O(log n)`了
 
 当hashCode离散性很好的时候，树型bin用到的概率非常小，因为数据均匀分布在每个bin中，几乎不会有bin中链表长度会达到阈值。但是在随机hashCode下，离散性可能会变差，然而JDK又不能阻止用户实现这种不好的hash算法，因此就可能导致不均匀的数据分布。不过理想情况下随机hashCode算法下所有bin中节点的分布频率会遵循泊松分布，我们可以看到，一个bin中链表长度达到8个元素的概率为0.00000006，几乎是不可能事件。所以，之所以选择8，是根据概率统计决定的。由此可见，发展30年的Java每一项改动和优化都是非常严谨和科学的。
 
@@ -362,3 +376,5 @@ https://mp.weixin.qq.com/s/AxL1yP9CcOtREwxnDHGaUg
 https://mp.weixin.qq.com/s/dGcjjHipK-oIxKZuTQeAqw
 
 https://mp.weixin.qq.com/s/Tf5SsWJHKsVTbqdSuG-6EQ
+
+https://sylvanassun.github.io/2018/03/16/2018-03-16-map_family/
