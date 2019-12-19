@@ -112,6 +112,45 @@ permalink: heap-sort.html
 
 ![](/assets/images/posts/sorting-algorithm/heap-sort-18.png)
 
+# 源码
+
+```
+  @Override
+  public void sort(int[] array) {
+    buildHeap(array, array.length);
+    int k = array.length;
+    while (k > 0) {
+      SortUtils.swap(array, 0, k - 1);
+      --k;
+      heapify(array, 0, k);
+    }
+  }
+
+  private void buildHeap(int[] array, int len) {
+    for (int i = (int) Math.floor(len / 2) - 1; i >= 0; i--) {
+      heapify(array, i, len);
+    }
+  }
+
+  private void heapify(int[] array, int i, int len) {
+    while (true) {
+      int maxPos = i;
+      int left = 2 * i + 1;
+      int right = 2 * i + 2;
+      if (left < len && array[i] < array[left]) {
+        maxPos = left;
+      };
+      if (right < len && array[maxPos] < array[right]) {
+        maxPos = right;
+      };
+      if (maxPos == i) {
+        break;
+      };
+      SortUtils.swap(array, i, maxPos);
+      i = maxPos;
+    }
+  }
+```
 
 # 参考资料
 
