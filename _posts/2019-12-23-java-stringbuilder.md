@@ -1,11 +1,11 @@
 ---
 layout: post
-title: java StringBuidler为什么线程不安全
+title: StringBuidler分析
 date: 2019-12-23
 categories:
     - java
 comments: true
-permalink: java-stringbuild.html
+permalink: java-stringbuilder.html
 ---
 
 我们都知道StringBuilder不是线程安全的，StringBuffer是线程安全的，现在看一下原因
@@ -206,6 +206,8 @@ System.arraycopy(array, 0, dst, 17, 1);
 
 为了验证猜想在参考`StringBuilder`封装了一个Append对象用来测试多线程下的`ArrayIndexOutOfBoundsException`
 
+> StringBuilder比较难模拟
+
 ```
 public class Append {
 
@@ -242,7 +244,41 @@ public class Append {
 
 运行后发现抛出了ArrayIndexOutOfBoundsException
 
-总结
+
+**StringBuffer为什么线程安全**
+
+简单看了一下`StringBuffer`的源码，发现它也是继承自`AbstractStringBuilder`，不同的是它的`append`方法都是同步方法
+
+```
+public synchronized StringBuffer append(String str) {
+	toStringCache = null;
+	super.append(str);
+	return this;
+}
+```
+
+在源码中我们发现`StringBuffer`多了一个`toStringCache`变量
+
+```
+/**
+ * A cache of the last value returned by toString. Cleared
+ * whenever the StringBuffer is modified.
+ */
+private transient char[] toStringCache;
+```
+
+它是用来记录上一次`toString`的返回值，用来提高性能，一旦发生`append`，就会重置为null
+
+```
+public synchronized String toString() {
+	if (toStringCache == null) {
+		toStringCache = Arrays.copyOfRange(value, 0, count);
+	}
+	return new String(toStringCache, true);
+}
+```
+
+**总结**
 
 - StringBuilder在多线程环境下会出现数据丢失和ArrayIndexOutOfBoundsException的问题
 - 默认容量为16（根据字符串构建为字符串长度+16），新容量扩为 大小：变成2倍+2
