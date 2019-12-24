@@ -78,6 +78,14 @@ Builder : 1
     System.out.println("Builder : " + (System.currentTimeMillis() - t0));
 ```
 
+输出
+
+```
+strings:3
+Buffers : 9
+Builder : 8
+```
+
 这时发现string的拼接最快，因为String 对象的直接相加，JVM 会自动对其进行优化，也就是说 `"some " + "string"` 在编译期间会自动优化为 "some string"，直接一次性创建完成，所以效率肯定要高于`StringBuffer`和`StringBuilder`的 append 拼接。
 
 但是要注意对于下面这种间接相加的操作，效率要比直接相加低，因为在编译器不会对引用变量进行优化。
@@ -86,6 +94,24 @@ Builder : 1
 String str1 = "Hello";
 String str2 = "World";
 String str3 = str1+str2;
+```
+
+测试一下
+
+```
+    long t0 = System.currentTimeMillis();
+    for (int i = 0; i < 100000; i++) {
+      String some = "some ";
+      String string = "string";
+      String withString = some + string;
+    }
+    System.out.println("strings:" + (System.currentTimeMillis() - t0));
+```
+
+输出
+
+```
+strings:17
 ```
 
 在多线程下比较`StringBuffer`和`StringBuilder`
