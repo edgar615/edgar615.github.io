@@ -8,9 +8,6 @@ comments: true
 permalink: jvm-string-pool.html
 ---
 
-> 这篇文章大部分内容都是抄的美团的文章
-> PS：以前收藏了好几篇美团的技术文章后来都被删了，不知道原因
-
 在 JAVA 语言中有8中基本类型和一种比较特殊的类型String。这些类型为了使他们在运行过程中速度更快，更节省内存，都提供了一种常量池的概念。常量池就类似一个JAVA系统级别提供的缓存。
 
 > 基本类型的缓存参考[这篇](https://edgar615.github.io/jvm-integer-cache.html)
