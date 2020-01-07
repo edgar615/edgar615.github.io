@@ -79,11 +79,11 @@ Mark Word在32位JVM中的长度是4个字节，在64位JVM中长度是8个字�
 
 64位JVM Mark Word 结构
 
-![](/assets/images/posts/synchronized/object-memory-3.png)
+![](/assets/images/posts/object-memory/object-memory-3.png)
 
 Mark Word在不同的锁状态下存储的内容不同，在32位JVM中是这么存的：
 
-![](/assets/images/posts/synchronized/object-memory-4.png)
+![](/assets/images/posts/object-memory/object-memory-4.png)
 
 其中无锁和偏向锁的锁标志位都是01，只是在前面的1bit区分了这是无锁状态还是偏向锁状态。
 

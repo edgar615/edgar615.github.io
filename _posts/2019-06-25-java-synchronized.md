@@ -1,7 +1,7 @@
 ---
 layout: post
 title: java并发系列-synchronized原理
-date: 2019-06-24
+date: 2019-06-25
 categories:
     - java
 comments: true
@@ -146,17 +146,7 @@ public class thread.start.SynchronizedDemo {
 
 锁标记存放在Java对象头的Mark Word中。
 
-Java对象头长度
-
-![](/assets/images/posts/synchronized/synchronized-3.png)
-
-32位JVM Mark Word 结构
-
-![](/assets/images/posts/synchronized/synchronized-4.png)
-
-64位JVM Mark Word 结构
-
-![](/assets/images/posts/synchronized/synchronized-6.png)
+> https://edgar615.github.io/java-object-memory.html
 
 # 锁的状态
 锁主要存在四种状态，依次是：无锁状态、偏向锁状态、轻量级锁状态、重量级锁状态，锁可以从偏向锁升级到轻量级锁，再升级的重量级锁。但是锁的升级是单向的，也就是说只能从低到高升级，不会出现锁的降级。
@@ -216,9 +206,30 @@ JDK 1.6引入了更加聪明的自旋锁，即自适应自旋锁。所谓自适�
 
 **偏向锁针对的是从始至终只有一个线程请求某一把锁。是轻量级锁的更进一步的乐观情况。**
 
+
+JVM一般是这样使用锁和Mark Word的：
+
+1，当没有被当成锁时，这就是一个普通的对象，Mark Word记录对象的HashCode，锁标志位是01，是否偏向锁那一位是0。
+
+2，当对象被当做同步锁并有一个线程A抢到了锁时，锁标志位还是01，但是否偏向锁那一位改成1，前23bit记录抢到锁的线程id，表示进入偏向锁状态。
+
+3，当线程A再次试图来获得锁时，JVM发现同步锁对象的标志位是01，是否偏向锁是1，也就是偏向状态，Mark Word中记录的线程id就是线程A自己的id，表示线程A已经获得了这个偏向锁，可以执行同步锁的代码。
+
+4，当线程B试图获得这个锁时，JVM发现同步锁处于偏向状态，但是Mark Word中的线程id记录的不是B，那么线程B会先用CAS操作试图获得锁，这里的获得锁操作是有可能成功的，因为线程A一般不会自动释放偏向锁。如果抢锁成功，就把Mark Word里的线程id改为线程B的id，代表线程B获得了这个偏向锁，可以执行同步锁代码。如果抢锁失败，则继续执行步骤5。
+
+5，偏向锁状态抢锁失败，代表当前锁有一定的竞争，偏向锁将升级为轻量级锁。JVM会在当前线程的线程栈中开辟一块单独的空间，里面保存指向对象锁Mark Word的指针，同时在对象锁Mark Word中保存指向这片空间的指针。上述两个保存操作都是CAS操作，如果保存成功，代表线程抢到了同步锁，就把Mark Word中的锁标志位改成00，可以执行同步锁代码。如果保存失败，表示抢锁失败，竞争太激烈，继续执行步骤6。
+
+6，轻量级锁抢锁失败，JVM会使用自旋锁，自旋锁不是一个锁状态，只是代表不断的重试，尝试抢锁。从JDK1.7开始，自旋锁默认启用，自旋次数由JVM决定。如果抢锁成功则执行同步锁代码，如果失败则继续执行步骤7。
+
+7，自旋锁重试之后如果抢锁依然失败，同步锁会升级至重量级锁，锁标志位改为10。在这个状态下，未抢到锁的线程都会被阻塞。
+
 网上找到的从偏向锁膨胀至重量锁的完全流程图
 
 ![](/assets/images/posts/synchronized/synchronized-2.png)
+
+另一个图
+
+![](/assets/images/posts/synchronized/synchronized-3.jpg)
 
 ## 锁粗化（Lock Coarsening）
 锁粗化是指减少不必要的紧连在一起的unlock，lock操作，将多个连续的锁扩展成一个范围更大的锁。
