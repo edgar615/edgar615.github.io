@@ -98,7 +98,84 @@ public final class String {
 2. UnsafeSizeOf : 使用unsafe
 3. ReflectionSizeOf : 通过反射出来Class的成员，通过成员类型进行计算
 
+## Instrumentation
+
+`Instrumentation.getObjectSize()`的方式，这种方法得到的是Shallow Size，即遇到引用时，只计算引用的长度，不计算所引用的对象的实际大小。如果要计算所引用对象的实际大小，可以通过递归的方式去计算。
+
+`java.lang.instrument.Instrumentation`的实例必须通过指定javaagent的方式才能获得，具体的步骤如下： 
+
+1. 定义一个类，提供一个premain方法: public static void premain(String agentArgs, Instrumentation instP) 
+2. 创建META-INF/MANIFEST.MF文件，内容是指定PreMain的类是哪个： Premain-Class: ObjectShallowSize 
+3. 把这个类打成jar，然后用java -javaagent XXXX.jar XXX.main的方式执行
+
+下面先定义一个类来获得java.lang.instrument.Instrumentation的实例,并提供了一个static的sizeOf方法对外提供Instrumentation的能力
+
+```
+public class ObjectShallowSize {
+    private static Instrumentation inst;
+
+    public static void premain(String agentArgs, Instrumentation instP){
+        inst = instP;
+    }
+
+    public static long sizeOf(Object obj){
+        return inst.getObjectSize(obj);
+    }
+}
+```
+
+通过maven插件定义META-INF/MANIFEST.MF文件
+
+```
+  <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-jar-plugin</artifactId>
+	<version>2.3.1</version>
+	<configuration>
+	  <archive>
+		<manifest>
+		  <addClasspath>true</addClasspath>
+		</manifest>
+		<manifestEntries>
+		  <Premain-Class>
+			com.github.edgar615.sizeof.ObjectShallowSize
+		  </Premain-Class>
+		</manifestEntries>
+	  </archive>
+	</configuration>
+  </plugin>
+```
+
+打包好jar，在需要使用的项目中引用这个jar然后指定参数运行`–javaagent:D:\dev\workspace\sizeof\target\sizeof-1.0.0.jar `
+
+```
+public class Memory {
+
+  public static void main(String[] args) {
+    System.out.println(ObjectShallowSize.sizeOf(new MemoryObject()));
+  }
+}
+public class MemoryObject {
+
+  String str;
+  int i;
+  long j;
+  float f;
+  double d;
+  byte b;
+  char c;
+  boolean bl;
+}
+```
+
+输出 48
+
+
+
+
+
 其他方法
+
 ```
 Runtime r = Runtime.getRuntime();
 
