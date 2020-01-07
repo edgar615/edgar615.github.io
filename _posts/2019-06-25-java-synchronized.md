@@ -154,10 +154,6 @@ Java对象头长度
 
 ![](/assets/images/posts/synchronized/synchronized-4.png)
 
-32位JVM Mark Word 状态变化
-
-![](/assets/images/posts/synchronized/synchronized-5.png)
-
 64位JVM Mark Word 结构
 
 ![](/assets/images/posts/synchronized/synchronized-6.png)
