@@ -168,11 +168,29 @@ public class MemoryObject {
 }
 ```
 
-输出 48
+关闭压缩`-XX:-UseCompressedOops`输出56：对象头（16）+long（8）+double（8）+int（4）+float（4）+char（2）+byte（1）+bool（1）+补齐（4）+string引用（8）
+
+开启压缩`-XX:+UseCompressedOops`输出 48：对象头（12）+int（4）+long（8）+double（8）+float（4）+char（2）+byte（1）+bool（1）+string引用（4）+补齐（4位）
+
+开启压缩后，打破了分配策略，如果我们把int、float、char删掉，开启压缩的时候长度为40，可以用jol看他的分配情况
+
+```
+ OFFSET  SIZE               TYPE DESCRIPTION                               VALUE
+      0    12                    (object header)                           N/A
+     12     1               byte MemoryObject.b                            N/A
+     13     1            boolean MemoryObject.bl                           N/A
+     14     2                    (alignment/padding gap)                  
+     16     8               long MemoryObject.j                            N/A
+     24     8             double MemoryObject.d                            N/A
+     32     4   java.lang.String MemoryObject.str                          N/A
+     36     4                    (loss due to the next object alignment)
+Instance size: 40 bytes
+Space losses: 2 bytes internal + 4 bytes external = 6 bytes total
+```
 
 
 
-
+> 可以和下面的其他方法以前验证
 
 其他方法
 
