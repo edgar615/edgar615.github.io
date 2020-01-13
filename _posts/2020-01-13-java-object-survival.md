@@ -69,6 +69,8 @@ public static void testGC(){
 
 通过可达性算法，成功解决了引用计数所无法解决的问题-“循环依赖”，只要你无法与 GC Root 建立直接或间接的连接，系统就会判定你为可回收对象。那这样就引申出了另一个问题，哪些属于 GC Root。
 
+而对象的可达性与[引用类型](https://edgar615.github.io/java-reference.html)密切相关
+
 # GC Root
 GC Root的对象是可以从堆外部访问的对象
 
@@ -208,7 +210,7 @@ for (;;) {
 Jvm会给每个实现了finalize方法的实例创建一个监听,这个称为Finalizer,每次调用对象的finalize方法时,JVM会创建一个`java.lang.ref.Finalizer`对象,这个Finalizer对象会持有这个对象的引用,由于这些对象被Finilizer对象引用了,当对象数量较多时,就会导致Eden区空间满了,经历多次youngGC后可能对象就进入到老年代了.
 `java.lang.ref.Finalizer`类继承自`java.lang.ref.FinalReference`,也是Reference的一种,因此Finalizer类里也有一个引用队列,这个引用队列是JVM和垃圾回收器打交道的唯一途径,当垃圾回收器需要回收该对象时,会把该对象放到引用队列中,这样java.lang.ref.Finalizer类就可以从队列中取出该对象,执行对象的finalize方法,并清除和该对象的引用关系.需要注意的是只有finalize方法实现不为空时JVM才会执行上述操作,JVM在类的加载过程中会标记该类是否为finalize类.
 
-Reference类有一个高优先级的线程`ReferenceHandler`他的任务则是死循环执行 `tryHandlePending` 方法。处理 Reference 的 pending 属性，而这个属性其实就是 Reference 自己。GC 的时候，会设置这个地址 pending 地址。当这个线程发现 pending 地址不是空，就会尝试将自身放到自己的 queue 属性队列中。
+Reference类有一个高优先级的线程`ReferenceHandler`他的任务则是死循环执行 `tryHandlePending` 方法，处理 Reference 的 pending 属性，而这个属性其实就是 Reference 自己。GC 的时候，会设置这个地址 pending 地址。当这个线程发现 pending 地址不是空，就会尝试将自身放到自己的 queue 属性队列中。
 
 ```
 ReferenceQueue<? super Object> q = r.queue;
@@ -250,3 +252,5 @@ https://help.eclipse.org/2019-12/index.jsp?topic=%2Forg.eclipse.mat.ui.help%2Fco
 https://www.yourkit.com/docs/java/help/gc_roots.jsp
 
 https://www.ezlippi.com/blog/2018/04/final-reference.html
+
+https://blog.csdn.net/qq_27639777/article/details/90143738
