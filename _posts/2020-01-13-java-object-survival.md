@@ -8,6 +8,7 @@ comments: true
 permalink: java-object-survival.html
 ---
 
+
 > 本文文字图片基本来自参考资料
 
 垃圾回收（Garbage Collection，GC），顾名思义就是释放垃圾占用的空间，防止内存泄露。既然我们要做垃圾回收，首先我们得搞清楚垃圾的定义是什么，哪些内存是需要回收的。
