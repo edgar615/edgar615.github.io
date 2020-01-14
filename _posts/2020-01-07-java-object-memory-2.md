@@ -188,9 +188,62 @@ Instance size: 40 bytes
 Space losses: 2 bytes internal + 4 bytes external = 6 bytes total
 ```
 
-
-
 > 可以和下面的其他方法以前验证
+
+## unsafe
+
+Java和C++语言的一个重要区别就是Java中我们无法直接操作一块内存区域，不能像C++中那样可以自己申请内存和释放内存。Java中的Unsafe类为我们提供了类似C++手动管理内存的能力。
+Unsafe类，全限定名是sun.misc.Unsafe，从名字中我们可以看出来这个类对普通程序员来说是“危险”的，一般应用开发者不会用到这个类。
+
+> 建议先看这个知乎帖子第一楼R大的回答：[为什么JUC中大量使用了sun.misc.Unsafe 这个类，但官方却不建议开发者使用](https://www.zhihu.com/question/29266773?sort=created)。
+>
+> 使用Unsafe要注意以下几个问题：
+>
+> - 1、Unsafe有可能在未来的Jdk版本移除或者不允许Java应用代码使用，这一点可能导致使用了Unsafe的应用无法运行在高版本的Jdk。
+> - 2、Unsafe的不少方法中必须提供原始地址(内存地址)和被替换对象的地址，偏移量要自己计算，一旦出现问题就是JVM崩溃级别的异常，会导致整个JVM实例崩溃，表现为应用程序直接crash掉。
+> - 3、Unsafe提供的直接内存访问的方法中使用的内存不受JVM管理(无法被GC)，需要手动管理，一旦出现疏忽很有可能成为内存泄漏的源头。
+>
+> 暂时总结出以上三点问题。Unsafe在JUC(java.util.concurrent)包中大量使用(主要是CAS)，在netty中方便使用直接内存，还有一些高并发的交易系统为了提高CAS的效率也有可能直接使用到Unsafe。总而言之，Unsafe类是一把双刃剑。
+>
+> https://www.cnblogs.com/throwable/p/9139947.html
+
+测试代码
+
+```
+Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
+theUnsafe.setAccessible(true);
+Unsafe unsafe = (Unsafe) theUnsafe.get(null);
+Field[] fields = MemoryObject.class.getDeclaredFields();
+for(Field f: fields){
+	System.out.println(f.getName() + " offset: " +unsafe.objectFieldOffset(f));
+}
+```
+
+开启压缩输出
+
+```
+str offset: 40
+i offset: 12
+j offset: 16
+f offset: 32
+d offset: 24
+b offset: 36
+bl offset: 37
+```
+
+关闭压缩输出
+
+```
+str offset: 48
+i offset: 32
+j offset: 16
+f offset: 36
+d offset: 24
+b offset: 40
+bl offset: 41
+```
+
+
 
 其他方法
 
