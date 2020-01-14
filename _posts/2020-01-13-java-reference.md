@@ -98,7 +98,7 @@ Reference类是所有引用类型的基类，它与垃圾回收是密切配合�
 public abstract class Reference<T> {
 	// 引用的对象
     private T referent;
-	// 回收队列，由使用者在Reference的构造函数中指定
+	// 回收队列，由使用者在Reference的构造函数中指定，一旦Reference对象放入了队列里面，那么queue就会被设置为ReferenceQueue.ENQUEUED，来标识当前Reference已经进入到队里里面了
     volatile ReferenceQueue<? super T> queue;
 	// 当该引用被加入到queue中的时候，该字段被设置为queue中的下一个元素，以形成链表结构.其取值会根据Reference不同状态发生改变，
     volatile Reference next;
@@ -118,13 +118,14 @@ public abstract class Reference<T> {
 
 **queue**
 
+ReferenceQueue名义上是一个队列，实际内部是使用单链表来表示的单向队列，**可以理解为queue就是一个链表，其自身仅存储当前的head节点，后面的节点由每个reference节点通过next来保持即可**。所以Reference对象本身就是一个链表的节点，这个链表数据来源是由ReferenceHander线程从pending队列中取的数据构建的。一旦Reference对象放入了队列里面，那么queue就会被设置为ReferenceQueue.ENQUEUED，来标识当前Reference已经进入到队里里面了
+
 这个队列的意义在于增加一种判断机制，可以在外部通过监控这个队列来判断对象是否被回收。如果一个对象即将被回收，那么引用这个对象的reference对象就会被放到这个队列中。通过监控这个队列，就可以取出这个reference后再进行一些善后处理。
 
 如果没有这个队列，就只能通过不断地轮询reference对象，通过get方法是否返回null( phantomReference对象不能这样做，其get方法始终返回null，因此它只有带queue的构造函数 )来判断对象是否被回收。
 
 这两种方法均有相应的使用场景，具体使用需要具体情况具体分析。比如在weakHashMap中，就通过查询queue的数据，来判定是否有对象将被回收。而ThreadLocalMap，则采用判断get()是否为null来进行处理。
 
-ReferenceQueue名义上是一个队列，实际内部是使用单链表来表示的单向队列，可以理解为queue就是一个链表，其自身仅存储当前的head节点，后面的节点由每个reference节点通过next来保持即可。
 
 **discovered**
 
@@ -137,6 +138,11 @@ ReferenceQueue名义上是一个队列，实际内部是使用单链表来表示
 queue队列使用next来查找下一个reference，pending队列使用discovered来查找下一个reference。
 
 > 注意要查找的下一个对象实际和reference对象的状态有关
+
+**pending**
+
+pending与discovered一起构成了一个pending单向链表，**注意pending是一个静态对象，所以是全局唯一的**，pending为链表的头节点，discovered为链表当前Reference节点指向下一个节点的引用，这个队列是由jvm的垃圾回收器构建的，当对象除了被reference引用之外没有其它强引用了，jvm的垃圾回收器就会将指向需要回收的对象的Reference都放入到这个队列里面。
+
 
 ##  状态
 
@@ -266,11 +272,12 @@ static boolean tryHandlePending(boolean waitForNotify) {
 				r = pending;
 				// 使用 'instanceof' 有时会导致OutOfMemoryError，所以在将r从链表中摘除时先进行这个操作（why?）
 				c = r instanceof Cleaner ? (Cleaner) r : null;
-				// 移除头结点，将pending指向其后一个节点
+				// 移除头结点，将pending指向其后一个节点，即discovered
 				pending = r.discovered;
-				// 此时r为原来pending链表的头结点，已经从链表中脱离出来
+				// 将当前节点的discovered设置为null；当前节点已经出队，不需要组成链表了
 				r.discovered = null;
 			} else {
+				// 如果pending队列为空，则等待
 				// 在锁上等待可能会造成OutOfMemoryError，因为它会试图分配exception对象
 				// 垃圾收集器在完成收集时会通过notify方法唤醒ReferenceHandler
 				if (waitForNotify) {
@@ -309,13 +316,140 @@ static boolean tryHandlePending(boolean waitForNotify) {
 
 > 垃圾回收器会把 Reference对象添加进入discovered和 pending，ReferenceHandler 会移除它
 
-这一块看了很久还是有些没有完全搞清楚，网上找了个图片加深理解
-
-![](/assets/images/posts/java-object-survival/java-reference-2.png)
-
-
 # ReferenceQueue
 ReferenceQueue队列是一个单向链表，ReferenceQueue里面只有一个header成员变量持有队列的队头，Reference对象是从队头做出队入队操作，所以它是一个后进先出的队列
+
+## 私有变量
+
+```java
+public class ReferenceQueue<T> {
+
+	// 内部类，它是用来做状态识别的，重写了enqueue入队方法，永远返回false，所以它不会存储任何数据
+    private static class Null<S> extends ReferenceQueue<S> {
+        boolean enqueue(Reference<? extends S> r) {
+            return false;
+        }
+    }
+	// 当Reference对象创建时没有指定queue或Reference对象已经处于inactive状态
+    static ReferenceQueue<Object> NULL = new Null<>();
+    // 当Reference已经被ReferenceHander线程从pending队列移到queue里面时
+    static ReferenceQueue<Object> ENQUEUED = new Null<>();
+
+    static private class Lock { };
+    // 同步对象
+    private Lock lock = new Lock();
+    // 头节点
+    private volatile Reference<? extends T> head = null;
+    private long queueLength = 0;
+}
+```
+
+入队方法
+
+```java
+boolean enqueue(Reference<? extends T> r) { /* Called only by Reference class */
+	synchronized (lock) {
+		// 获取reference对象关联的ReferenceQueue，如果创建r时未注册ReferenceQueue则为NULL，同样如果r已从ReferenceQueue中移除其也为null
+		ReferenceQueue<?> queue = r.queue;
+		if ((queue == NULL) || (queue == ENQUEUED)) {
+			return false;
+		}
+		// 只有r的队列是当前队列才允许入队
+		assert queue == this;
+		// 将 refrence 的状态置为 Enqueued，表示已经被回收
+		r.queue = ENQUEUED;
+		// 更新头节点
+		r.next = (head == null) ? r : head;
+		head = r;
+		// 队列长度加1
+		queueLength++;
+		// 为FinalReference类型引用（强引用）增加FinalRefCount数量
+		if (r instanceof FinalReference) {
+			sun.misc.VM.addFinalRefCount(1);
+		}
+		// 唤醒其他线程
+		lock.notifyAll();
+		return true;
+	}
+}
+```
+
+出队
+
+```java
+public Reference<? extends T> poll() {
+	// 头结点为null直接返回，代表Reference还没有加入ReferenceQueue中
+	if (head == null)
+		return null;
+	synchronized (lock) {
+		return reallyPoll();
+	}
+}
+// 真正的出队方法,将队列头部第一个对象从队列中移除出来，如果队列为空则直接返回null（此方法不会被阻塞
+private Reference<? extends T> reallyPoll() {       /* Must hold lock */
+	Reference<? extends T> r = head;
+	if (r != null) {
+		@SuppressWarnings("unchecked")
+		// 保存下一个节点
+		Reference<? extends T> rn = r.next;
+		// 更新头节点，如果rn==r为null，否则就是下一个节点
+		head = (rn == r) ? null : rn;
+		// 更新Reference的queue值，代表r已从队列中移除
+		r.queue = NULL;
+		// 更新Reference的next为其本身
+		r.next = r;
+		// 队列长度减1
+		queueLength--;
+		// 为FinalReference类型引用（强引用）减少FinalRefCount数量
+		if (r instanceof FinalReference) {
+			sun.misc.VM.addFinalRefCount(-1);
+		}
+		return r;
+	}
+	return null;
+}
+```
+
+将头部第一个对象移出队列并返回，如果队列为空，则等待timeout时间后，返回null，这个方法会阻塞线程
+
+```java
+public Reference<? extends T> remove(long timeout)
+	throws IllegalArgumentException, InterruptedException
+{
+	if (timeout < 0) {
+		throw new IllegalArgumentException("Negative timeout value");
+	}
+	synchronized (lock) {
+		// 获取队列头节点指向的Reference
+		Reference<? extends T> r = reallyPoll();
+		if (r != null) return r;
+		long start = (timeout == 0) ? 0 : System.nanoTime();
+		// 在timeout时间内尝试重试获取
+		for (;;) {
+			// 等待队列上有结点通知
+			lock.wait(timeout);
+			// 获取队列中的头节点指向的Reference
+			r = reallyPoll();
+			if (r != null) return r;
+			if (timeout != 0) {
+				long end = System.nanoTime();
+				timeout -= (end - start) / 1000_000;
+				// 已超时但还没有获取到队列中的头节点指向的Reference返回null
+				if (timeout <= 0) return null;
+				start = end;
+			}
+		}
+	}
+}
+```
+
+再来整体回顾一下Reference的核心处理流程。JVM在GC时如果当前对象只被Reference对象引用，JVM会根据Reference具体类型与堆内存的使用情况决定是否把对应的Reference对象加入到一个由Reference构成的pending链表上，如果能加入pending链表JVM同时会通知ReferenceHandler线程进行处理。ReferenceHandler线程收到通知后会调用`Cleaner#clean`或`ReferenceQueue#enqueue`方法进行处理。如果引用当前对象的Reference类型为WeakReference且堆内存不足，那么JMV就会把WeakReference加入到pending-Reference链表上，然后ReferenceHandler线程收到通知后会异步地做入队列操作。而我们的应用程序中的线程便可以不断地去拉取ReferenceQueue中的元素来感知JMV的堆内存是否出现了不足的情况，最终达到根据堆内存的情况来做一些处理的操作。实际上WeakHashMap低层便是过通上述过程实现的，只不过实现细节上有所偏差。
+
+这一块看了很久还是有些没有完全搞清楚，网上找了个图片加深理解
+
+![](/assets/images/posts/java-reference/java-reference-2.png)
+
+![](/assets/images/posts/java-reference/java-reference-3.jpg)
 
 # 参考资料
 
@@ -323,6 +457,6 @@ https://zhuanlan.zhihu.com/p/77357666
 
 https://cloud.tencent.com/developer/article/1366147
 
-http://www.throwable.club/2019/02/16/java-reference/
+http://www.throwable.club/2019/02/16/java-reference
 
-https://juejin.im/post/5d9c61d0e51d45780c34a83a#heading-2
+https://juejin.im/post/5d9c61d0e51d45780c34a83a
