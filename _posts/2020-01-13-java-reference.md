@@ -363,7 +363,7 @@ boolean enqueue(Reference<? extends T> r) { /* Called only by Reference class */
 		head = r;
 		// 队列长度加1
 		queueLength++;
-		// 为FinalReference类型引用（强引用）增加FinalRefCount数量
+		// 为FinalReference类型引用增加FinalRefCount数量
 		if (r instanceof FinalReference) {
 			sun.misc.VM.addFinalRefCount(1);
 		}
@@ -400,7 +400,7 @@ private Reference<? extends T> reallyPoll() {       /* Must hold lock */
 		r.next = r;
 		// 队列长度减1
 		queueLength--;
-		// 为FinalReference类型引用（强引用）减少FinalRefCount数量
+		// 为FinalReference类型引用减少FinalRefCount数量
 		if (r instanceof FinalReference) {
 			sun.misc.VM.addFinalRefCount(-1);
 		}
