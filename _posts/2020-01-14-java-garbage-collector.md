@@ -40,6 +40,8 @@ Serial（英文连续）是最基本垃圾收集器，使用复制算法，曾�
 
 Serial 是一个单线程的收集器，它不但只会使用一个 CPU 或一条线程去完成垃圾收集工作，并且在进行垃圾收集的同时，必须暂停其他所有的工作线程，直到垃圾收集结束。Serial 垃圾收集器虽然在收集垃圾过程中需要暂停所有其他的工作线程，但是它简单高效，对于限定单个 CPU 环境来说，没有线程交互的开销，可以获得最高的单线程垃圾收集效率，因此 Serial垃圾收集器依然是 java 虚拟机运行在 Client 模式下默认的新生代垃圾收集器。
 
+![](/assets/images/posts/garbage-collector/garbage-collector-2.png)
+
 可以添加参数`-XX:+UseSerialGC`来显式的使用串行垃圾收集器；
 
 # ParNew垃圾收集器
@@ -48,7 +50,7 @@ ParNew 垃圾收集器其实是 Serial 收集器的多线程版本，也使用�
 
 ParNew 收集器默认开启和 CPU 数目相同的线程数，可以通过`-X:ParallelGCThreads` 参数来限制垃圾收集器的线程数。ParNew 虽然是除了多线程外和 Serial 收集器几乎完全一样，但是 ParNew 垃圾收集器是很多 java虚拟机运行在 Server 模式下新生代的默认垃圾收集器。
 
-![](/assets/images/posts/garbage-collector/garbage-collector-2.jpg)
+![](/assets/images/posts/garbage-collector/garbage-collector-2.1.jpg)
 
 参数
 
@@ -172,6 +174,10 @@ CMS 的 GC 停顿时间约 80% 都在最终标记阶段（Final Remark），若�
 
 ![](/assets/images/posts/garbage-collector/garbage-collector-11.jpg)
 
+> ### 空间分配担保：
+>
+> 在发生Minor  GC之前，虚拟机会先检查老年代最大可用的连续空间是否大于新生代所有对象总空间，如果这个条件成立，那么Minor  GC可以确保是安全的，如果不成立，则虚拟机会查看HandlePromotionFailure设置值是否允许担保失败。如果允许，则继续检查老年代最大可用连续空间是否大于历次晋升到老年代对象的平均大小，如果是，就尝试进行一次Minor  GC(失败进行Full GC),如果不是，或者不允许担保失败，改为进行一次Full GC。
+
 并发模式失败和晋升失败都会导致长时间的停顿，常见解决思路如下：
 
 - 降低触发 CMS GC 的阈值。即参数` -XX:CMSInitiatingOccupancyFraction` 的值，让 CMS GC 尽早执行，以保证有足够的空间。
@@ -253,6 +259,7 @@ Young GC 主要是对 Eden 区进行 GC，它在 Eden 空间耗尽时触发，�
 - 统计计算回收收益高（基于释放空间和暂停目标）的老年代分区集合。
 
 ## G1调优注意点
+
 ### Full GC 问题
 
 G1 的正常处理流程中没有 Full GC，只有在垃圾回收处理不过来（或者主动触发）时才会出现，G1 的 Full GC 就是单线程执行的 Serial old gc，会导致非常长的 STW，是调优的重点，需要尽量避免 Full GC。
@@ -282,6 +289,21 @@ G1 的正常处理流程中没有 Full GC，只有在垃圾回收处理不过来
 #### 平均响应时间设置
 
 使用应用的平均响应时间作为参考来设置 `MaxGCPauseMillis`，JVM 会尽量去满足该条件，可能是 90% 的请求或者更多的响应时间在这之内， 但是并不代表是所有的请求都能满足，平均响应时间设置过小会导致频繁 GC。
+
+## 参数列表
+
+| 选项和默认值                         | 描述                                                         |
+| ------------------------------------ | ------------------------------------------------------------ |
+| -XX:+UseG1GC                         | 使用垃圾优先(G1,Garbage First)收集器                         |
+| -XX:MaxGCPauseMillis=n               | 设置垃圾收集暂停时间最大值指标。这是一个软目标，Java虚拟机将尽最大努力实现它 |
+| -XX:InitiatingHeapOccupancyPercent=n | 触发并发垃圾收集周期的整个堆空间的占用比例。它被垃圾收集使用，用来触发并发垃圾收集周期，基于整个堆的占用情况，不只是一个代上(比如：G1)。0值 表示’do constant GC cycles’。默认是45 |
+| -XX:NewRatio=n                       | 年轻代与年老代的大小比例，默认值是2                          |
+| -XX:SurvivorRatio=n                  | eden与survivor空间的大小比例，默认值8                        |
+| -XX:MaxTenuringThreshold=n           | 最大晋升阈值，默认值15                                       |
+| -XX:ParallerGCThreads=n              | 设置垃圾收集器并行阶段的线程数量。默认值根据Java虚拟机运行的平台有所变化 |
+| -XX:ConcGCThreads=n                  | 并发垃圾收集器使用的线程数量，默认值根据Java虚拟机运行的平台有所变化 |
+| -XX:G1ReservePercent=n               | 为了降低晋升失败机率设置一个假的堆的储备空间的上限大小，默认值是10 |
+| -XX:G1HeapRegionSize=n               | 使用G1收集器，Java堆被细分成一致大小的区域。这设置个体的细分的大小。这个参数的默认值由工学意义上的基于堆的大小决定 |
 # 参考资料
 
 https://www.cnblogs.com/cxxjohnson/p/8625713.html
