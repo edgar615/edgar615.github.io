@@ -1,7 +1,7 @@
 ---
 layout: post
 title: JVM垃圾收集器
-date: 2020-01-14
+date: 2020-01-15
 categories:
     - JVM
 comments: true
@@ -111,6 +111,8 @@ CMS（Concurrent Mark and Sweep 并发-标记-清除），是一款基于并发�
 CMS GC 以获取最小停顿时间为目的，尽可能减少 STW 时间，可以分为 7 个阶段：
 
 ![](/assets/images/posts/garbage-collector/garbage-collector-5.jpg)
+
+> 结合GC日志加深理解
 
 ### 阶段 1：初始标记（Initial Mark）
 此阶段的目标是标记老年代中所有存活的对象, 包括 GC Root 的直接引用, 以及由新生代中存活对象所引用的对象，触发第一次 STW 事件。这个过程是支持多线程的（JDK7 之前单线程，JDK8 之后并行，可通过参数 `CMSParallelInitialMarkEnabled` 调整）。
@@ -311,3 +313,9 @@ https://www.cnblogs.com/cxxjohnson/p/8625713.html
 https://mp.weixin.qq.com/s/gddff77gPdi5s2Hc9HBtcg
 
 https://mp.weixin.qq.com/s/ezmD1XXgPoVoCo0nkKavdg
+
+https://plumbr.io/handbook/garbage-collection-algorithms-implementations
+
+https://www.oracle.com/technetwork/tutorials/tutorials-1876574.html
+
+https://docs.oracle.com/javase/9/gctuning/garbage-first-garbage-collector.htm
