@@ -68,6 +68,48 @@ ClassLoader使用的是双亲委派模型来搜索类的，每个ClassLoader实�
 ### 安全因素
 如果不使用这种委派模式，那我们就可以随时使用自定义的String来动态替代java核心api中定义的类型，这样会存在非常大的安全隐患，而双亲委托的方式，就可以避免这种情况，因为String已经在启动时就被引导类加载器（Bootstrap ClassLoader）加载，所以用户自定义的ClassLoader永远也无法加载一个自己写的String，除非你改变JDK中ClassLoader搜索类的默认算法。
 
+## 源码实现
+
+双亲委派模型的实现非常简单，实现双亲委派的代码在java.lang.ClassLoader的loadClass()方法之中，如下面的代码所示：
+
+```java
+protected Class<?> loadClass(String name, boolean resolve)
+	throws ClassNotFoundException
+{
+	synchronized (getClassLoadingLock(name)) {
+		// 检查类是否已加载
+		Class<?> c = findLoadedClass(name);
+		if (c == null) {
+			long t0 = System.nanoTime();
+			try {
+				if (parent != null) {
+					c = parent.loadClass(name, false);
+				} else {
+					c = findBootstrapClassOrNull(name);
+				}
+			} catch (ClassNotFoundException e) {
+				// 说明父类加载器无法完成加载请求
+			}
+
+			if (c == null) {
+				// 在父类加载器无法完成加载请求时，使用本类加载器加载
+				long t1 = System.nanoTime();
+				c = findClass(name);
+
+				// this is the defining class loader; record the stats
+				sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);
+				sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
+				sun.misc.PerfCounter.getFindClasses().increment();
+			}
+		}
+		if (resolve) {
+			resolveClass(c);
+		}
+		return c;
+	}
+}
+```
+
 ## JVM在搜索类的时候，如何判断两个class相同
 JVM在判定两个class是否相同时，不仅要判断两个类名是否相同，而且要判断是否由同一个类加载器实例加载的。只有两者同时满足的情况下，JVM才认为这两个class是相同的。就算两个class是同一份class字节码，如果被两个不同的ClassLoader实例所加载，JVM也会认为它们是两个不同class。
 
@@ -82,6 +124,41 @@ JVM在判定两个class是否相同时，不仅要判断两个类名是否相同
     System.out.println(ClassLoaderMain.class.getClassLoader().getParent());
     // null
     System.out.println(ClassLoaderMain.class.getClassLoader().getParent().getParent());
+```
+
+# 线程上下文加载器
+在Thread类里面有一个属性`private ClassLoader contextClassLoader;`我们称为线程上下文加载器
+
+类加载器默认遵循双亲委派准则。而线程上下文加载器就是为了解决当父类加载器加载到的类却依赖子类加载器的情况。就是如下一个例子。
+
+> Aclassloader是Bclassloader的父，Aclassloader的加载路径是x.class，x.class依赖y.class，Bclassloader的加载路径是y.class。现在开始加载x.class。 Aclassloader加载到了，开始加载y.class，Aclassloader遵循双亲委托，继续让父找，这样就会出现class not find 的问题。
+
+一个非常经典的例子就是SQL的驱动管理类——`java.sql.DriverManager`。`java.sql.DriverManager`是Java的标准服务，该类放在rt.jar中，因此是由启动类加载器加载的，但是在应用启动的时候，该驱动类管理是需要加载由不同数据库厂商实现的驱动，但是启动类加载器找不到这些具体的实现类
+
+线程上下文加载器可以通过java.lang.Thread类的setContextClassLoader()方法进行设置，如果创建线程时候它还没有被设置，就会从父线程中继承一个，如果在应用程序的全局范围都没有设置过的话，那这个类加载器就是应用程序类加载器。
+
+有了线程上下文加载器，就可以解决上面的问题——父类加载器需要请求子类加载器完成类加载的动作，这种行为实际上就是打破了双亲委派的加载规则。
+
+我们可以看一下`DriverManager`的源码，有一个静态代码块初始化Driver
+
+```java
+    static {
+        loadInitialDrivers();
+        println("JDBC DriverManager initialized");
+    }
+```
+
+而`loadInitialDrivers`最终是通过`ServiceLoader.load`方法加载驱动
+
+```java
+ServiceLoader<Driver> loadedDrivers = ServiceLoader.load(Driver.class);
+```
+
+```java
+   public static <S> ServiceLoader<S> load(Class<S> service) {
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        return ServiceLoader.load(service, cl);
+    }
 ```
 
 # 类加载过程
