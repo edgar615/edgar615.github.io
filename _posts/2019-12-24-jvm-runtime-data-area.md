@@ -178,6 +178,12 @@ JDK1.8
 
 大部分情况，对象都会首先在 Eden 区域分配，在一次新生代垃圾回收后，如果对象还存活，则会进入 s0 或者 s1，并且对象的年龄还会加 1(Eden区->Survivor 区后对象的初始年龄变为1)，当它的年龄增加到一定程度（默认为15岁），就会被晋升到老年代中。对象晋升到老年代的年龄阈值，可以通过参数`-XX:MaxTenuringThreshold`来设置。
 
+**参数**
+
+- `-XX:InitialSurvivorRatio` 新生代Eden/Survivor空间的初始比例，默认8
+- `-XX:NewRatio` Old区/Young区的内存比例，默认2
+- `-XX:MaxTenuringThreshold` 一个对象从新生代晋升到老年代的阈值。默认值是**15**
+
 # 方法区
 
 方法区与 Java 堆一样，是各个线程共享的内存区域，它用于存储已被虚拟机加载的类信息、常量、静态变量、即时编译器编译后的代码等数据。虽然Java虚拟机规范把方法区描述为堆的一个逻辑部分，但是它却有一个别名叫做Non-Heap（非堆），目的应该是与 Java 堆区分开来。
@@ -209,7 +215,9 @@ JDK 1.8 之前通常通过下面这些参数来调节方法区大小
 JDK 1.8 彻底移除了永久代，取而代之是元空间，元空间使用的是直接内存。
 
 - `-XX:MetaspaceSize=N` 设置Metaspace的初始（和最小大小）
-- `-XX:MaxMetaspaceSize=N` 设置Metaspace的最大大小
+- `-XX:MaxMetaspaceSize=N` 设置Metaspace的最大大小，超过此值就会触发Full GC，此值默认没有限制，但应取决于系统内存的大小。JVM会动态地改变此值。
+- `-XX:MinMetaspaceFreeRatio` 在GC之后，最小的Metaspace剩余空间容量的百分比，减少为分配空间所导致的垃圾收集
+- `-XX:MaxMetaspaceFreeRatio` 在GC之后，最大的Metaspace剩余空间容量的百分比，减少为释放空间所导致的垃圾收集
 
 与永久代很大的不同就是，如果不指定大小的话，随着更多类的创建，虚拟机会耗尽所有可用的系统内存。
 
