@@ -135,12 +135,23 @@ public class thread.start.SynchronizedDemo {
 > 
 > Other threads that are blocking to enter the monitor are allowed to attempt to do so.
 
-> 总结：
->
-> synchronized 的语义底层是通过一个 Monitor 的对象来完成，
->
+synchronized 的语义底层是通过一个 Monitor 的对象来完成，任何对象都有一个monitor与之相关联，当且一个monitor被持有之后，他将处于锁定状态。线程执行到monitorenter指令时，将会尝试获取对象所对应的monitor所有权，即尝试获取对象的锁；
+
 > wait/notify等方法也依赖于monitor对象，这就是为什么只有在同步的块或者方法中才能调用wait/notify等方法，否则会抛出java.lang.IllegalMonitorStateException的异常的原因
 
+## Monitor
+什么是Monitor？我们可以把它理解为一个同步工具，也可以描述为一种同步机制，它通常被描述为一个对象。 与一切皆对象一样，所有的Java对象是天生的Monitor，每一个Java对象都有成为Monitor的潜质，因为在Java的设计中 ，每一个Java对象都带了一把看不见的锁，它叫做内部锁或者Monitor锁。
+
+Monitor 是线程私有的数据结构，每一个线程都有一个可用monitor record列表，同时还有一个全局的可用列表。每一个被锁住的对象都会和一个monitor关联（对象头的[MarkWord](https://edgar615.github.io/java-object-memory.html)中的LockWord指向monitor的起始地址），同时monitor中有一个Owner字段存放拥有该锁的线程的唯一标识，表示该锁被这个线程占用。其结构如下：
+
+![](/assets/images/posts/synchronized/synchronized-4.jpg)
+
+- Owner：初始时为NULL表示当前没有任何线程拥有该monitor record，当线程成功拥有该锁后保存线程唯一标识，当锁被释放时又设置为NULL；
+- EntryQ: 关联一个系统互斥锁（semaphore），阻塞所有试图锁住monitor record失败的线程
+- RcThis: 表示blocked或waiting在该monitor record上的所有线程的个数。
+- Nest: 用来实现重入锁的计数。
+- HashCode:保存从对象头拷贝过来的HashCode值（可能还包含GC age）。
+- Candidate:用来避免不必要的阻塞或等待线程唤醒，因为每一次只有一个线程能够成功拥有锁，如果每次前一个释放锁的线程唤醒所有正在阻塞或等待的线程，会引起不必要的上下文切换（从阻塞到就绪然后因为竞争锁失败又被阻塞）从而导致性能严重下降。Candidate只有两种可能的值0表示没有需要唤醒的线程1表示要唤醒一个继任线程来竞争锁。
 
 # 锁存放的位置
 
