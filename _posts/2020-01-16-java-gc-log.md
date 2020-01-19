@@ -29,6 +29,12 @@ permalink: java-gc-log.html
 - -XX:+HeapDumpOnOutOfMemoryError 当JVM发生OOM时，自动生成DUMP文件
 - -XX:HeapDumpPath:/dumps/ 生成DUMP文件的路径，也可以指定文件名称，如果不指定文件名，默认为：`java_<pid>_<date>_<time>_heapDump.hprof`。
 
+
+
+> 通过`-XX:+LogVMOutput -XX:LogFile=vm.log`可以打印所有的虚拟机日志
+
+
+
 下面用一段测试代码来测试GC日志，堆内存100m
 
 ```java
@@ -183,14 +189,14 @@ CommandLine flags: -XX:InitialHeapSize=104857600 -XX:MaxHeapSize=104857600 -XX:+
 
 # -XX:+PrintGCApplicationStoppedTime
 
-打印垃圾回收期间程序暂停的时间
+打印程序暂停的时间，下面的例子标识程序暂停了0.0000555秒，其中有0.0000241秒在等待所有的应用线程都到达安全点：不止GC引起的
 
 ```
 Total time for which application threads were stopped: 0.0000555 seconds, Stopping threads took: 0.0000241 seconds
 ```
 
 # -XX:+PrintGCApplicationConcurrentTime
-打印每次垃圾回收前,程序未中断的执行时间.
+打印程序未中断的执行时间，即持续运行时间.
 
 ```
 Application time: 0.8746348 seconds
@@ -228,10 +234,15 @@ new threshold 7即标识新的存活周期的阈值为7。
 ```
 
 - vmop：引发STW的原因，以及触发时间
-- total ：STW发生时，JVM存在的线程数目。
-- initially_running ：STW发生时，仍在运行的线程数，这项是Spin阶段的 时间来源
-- wait_to_block ： STW需要阻塞的线程数目，这项是block阶段的时间来源
-- spin,block,cleanup,vmop的时间，sync=spin + block + 其他。
+  - ”no vm operation”，就说明这是一个”保证安全点”。JVM默认每秒会触发一次安全点来处理那些非紧急的排队的操作，GuaranteedSafepointInterval选项可以用来调整这一行为（设置为0的话就会禁用该功能）
+- total ：安全点里的总线程数。
+- initially_running ：安全点时开始时正在运行状态的线程数，这项是Spin阶段的 时间来源
+- wait_to_block ： 在VM Operation开始前需要等待其暂停的线程数，这项是block阶段的时间来源
+- spin 等待线程响应safepoint号召的时间
+- block 暂停所有线程所用的时间
+- sync 等于 spin+block，这是从开始到进入安全点所耗的时间，可用于判断进入安全点耗时
+- cleanup 清理所用时间
+- vmop  真正执行VM Operation的时间
 
 > safepoint的执行一共可以分为四个阶段：
 >
@@ -244,11 +255,13 @@ new threshold 7即标识新的存活周期的阈值为7。
 
 > JVM STW 很多情况都是因为要GC，但在JVM里需要STW的情况有下面几种
 >
-> - Garbage collection pauses
-> - Code deoptimization
-> - Flushing code cacheClass redefinition (e.g. hot swap or instrumentation)
-> - Biased lock revocation
-> - Various debug operation (e.g. deadlock check or stacktrace dump)
+> - 垃圾回收(这是最常见的场景)
+> - 取消偏向锁(JVM会使用偏向锁来优化锁的获取过程)
+> - Class重定义(比如常见的hotswap和instrumentation)
+> - Code Cache Flushing(JDK1.8在CodeCache满的情况下就可能出现)
+> - 线程堆栈转储(jstack命令)
+>
+> 安全点的相关知识查看 https://edgar615.github.io/java-gc-root.html
 
 
 
