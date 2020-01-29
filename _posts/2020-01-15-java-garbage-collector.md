@@ -11,25 +11,21 @@ permalink: java-garbage-collector.html
 > 内容基本来自参考资料
 
 
-
-**安全区域：**
-
-对于处于sleep或blocked状态的线程，这时候它们无法响应JVM的中断请求，对于这种情况，就需要安全区域(Safe Region)来解决。
-
-安全区域是指在一段代码之中，引用关系不会发生改变，在这个区域中任何地方开始GC都是安全的。
-
-在线程执行到Safe Region中的代码时，首先标识自己已经进入了Safe Region，在这段时间JVM发起GC时，就不用管标识自己为Safe Region状态的线程了。在线程需要离开Safe Region时，它要检查系统是否已经完成了根节点枚举(或者是整个GC过程),如果完成了，线程就继续执行，否则就必须等待直到收到可以安全离开Safe Region的信号为止。
-
-
 HotSpot虚拟机中有7种垃圾收集器：Serial、ParNew、Parallel Scavenge、Serial Old、Parallel Old、CMS、G1
 
 ![](/assets/images/posts/garbage-collector/garbage-collector-1.png)
 
+- 在新生代工作的垃圾回收器：Serial, ParNew, ParallelScavenge
+- 在老年代工作的垃圾回收器：CMS，Serial Old, Parallel Old
+- 同时在新老生代工作的垃圾回收器：G1
+
+图片中的垃圾收集器如果存在连线，则代表它们之间可以配合使用，接下来我们来看看各个垃圾收集器的具体功能。
+
 # Serial垃圾收集器
 
-Serial（英文连续）是最基本垃圾收集器，使用复制算法，曾经是 JDK1.3.1 之前新生代唯一的垃圾收集器。
+Serial（英文连续）是最基本垃圾收集器，使用**复制算法**，曾经是 JDK1.3.1 之前新生代唯一的垃圾收集器。
 
-Serial 是一个单线程的收集器，它不但只会使用一个 CPU 或一条线程去完成垃圾收集工作，并且在进行垃圾收集的同时，必须暂停其他所有的工作线程，直到垃圾收集结束。Serial 垃圾收集器虽然在收集垃圾过程中需要暂停所有其他的工作线程，但是它简单高效，对于限定单个 CPU 环境来说，没有线程交互的开销，可以获得最高的单线程垃圾收集效率，因此 Serial垃圾收集器依然是 java 虚拟机运行在 Client 模式下默认的新生代垃圾收集器。
+Serial 是一个单线程的收集器，它不但只会使用一个 CPU 或一条线程去完成垃圾收集工作，**并且在进行垃圾收集的同时，必须暂停其他所有的工作线程，直到垃圾收集结束**，也就是说在 GC 期间，此时的应用不可用。Serial 垃圾收集器虽然在收集垃圾过程中需要暂停所有其他的工作线程，但是它简单高效，对于限定单个 CPU 环境来说，没有线程交互的开销，可以获得最高的单线程垃圾收集效率，因此 Serial垃圾收集器依然是 java 虚拟机运行在 **Client** 模式下默认的新生代垃圾收集器。
 
 ![](/assets/images/posts/garbage-collector/garbage-collector-2.png)
 
@@ -37,9 +33,11 @@ Serial 是一个单线程的收集器，它不但只会使用一个 CPU 或一�
 
 # ParNew垃圾收集器
 
-ParNew 垃圾收集器其实是 Serial 收集器的多线程版本，也使用复制算法，除了使用多线程进行垃圾收集之外，其余的行为和 Serial 收集器完全一样，ParNew 垃圾收集器在垃圾收集过程中同样也要暂停所有其他的工作线程。
+ParNew 垃圾收集器其实是 Serial 收集器的多线程版本，也使用**复制算法**，除了使用多线程进行垃圾收集之外，其余的行为和 Serial 收集器完全一样，ParNew 垃圾收集器在垃圾收集过程中同样也要暂停所有其他的工作线程。
 
-ParNew 收集器默认开启和 CPU 数目相同的线程数，可以通过`-X:ParallelGCThreads` 参数来限制垃圾收集器的线程数。ParNew 虽然是除了多线程外和 Serial 收集器几乎完全一样，但是 ParNew 垃圾收集器是很多 java虚拟机运行在 Server 模式下新生代的默认垃圾收集器。
+在多 CPU 的情况下，由于 ParNew 的多线程回收特性，毫无疑问垃圾收集会更快，也能有效地减少 STW 的时间，提升应用的响应速度。
+
+ParNew 收集器默认开启和 CPU 数目相同的线程数，可以通过`-X:ParallelGCThreads` 参数来限制垃圾收集器的线程数。ParNew 虽然是除了多线程外和 Serial 收集器几乎完全一样，但是 ParNew 垃圾收集器是很多 java虚拟机运行在 **Server** 模式下新生代的默认垃圾收集器。
 
 ![](/assets/images/posts/garbage-collector/garbage-collector-2.1.jpg)
 
@@ -49,42 +47,46 @@ ParNew 收集器默认开启和 CPU 数目相同的线程数，可以通过`-X:P
 - `-XX:+UseParNewGC`：强制指定使用ParNew；    
 - `-XX:ParallelGCThreads`：指定垃圾收集的线程数量，ParNew默认开启的收集线程与CPU的数量相同
 
+除了 Serial  收集器，**只有它能与 CMS 收集器配合工作**，CMS 是一个划时代的垃圾收集器，是真正意义上的**并发收集器**，它第一次实现了垃圾收集线程与用户线程（基本上）同时工作，它采用的是传统的GC 收集器代码框架，与 Serial,ParNew 共用一套代码框架，所以能与这两者一起配合工作，而后文提到的 Parallel Scavenge 与 G1 收集器没有使用传统的 GC收集器代码框架，而是另起炉灶独立实现的，另外一些收集器则只是共用了部分的框架代码,所以无法与 CMS 收集器一起配合工作。
+
 # Parallel Scavenge收集器
 
-Parallel Scavenge 收集器也是一个新生代垃圾收集器，同样使用复制算法，也是一个多线程的垃
-圾收集器，它重点关注的是程序达到一个可控制的吞吐量
+Parallel Scavenge 收集器也是一个**新生代**垃圾收集器，同样使用**复制算法**，也是一个多线程的垃圾收集器，但它与ParNew 收集器的关注点不同。ParNew 等垃圾收集器关注的是尽可能缩短垃圾收集时用户线程的停顿时间，而 Parallel Scavenge它重点关注的是程序达到一个可控制的吞吐量
 
 - 吞吐量：CPU用于运行用户代码的时间与CPU消耗的总时间的比值。
 - 吞吐量 = （执行用户代码时间）/（执行用户代码时间+垃圾回收占用时间）
 
-高吞吐量可以最高效率地利用 CPU 时间，尽快地完成程序的运算任务，主要适用于在后台运算而
-不需要太多交互的任务。自适应调节策略也是 ParallelScavenge 收集器与 ParNew 收集器的一个
-重要区别。
+也就是说 ParNew 等垃圾收集器更适合用到与用户交互的程序，因为停顿时间越短，用户体验越好，而 Parallel Scavenge 收集器关注的是吞吐量，高吞吐量可以最高效率地利用 CPU 时间，尽快地完成程序的运算任务，所以更适合做后台运算等不需要太多用户交互的任务。
+
+**自适应调节策略也是 ParallelScavenge 收集器与 ParNew 收集器的一个重要区别。**
 
 参数
 
 - `-XX:MaxGCPauseMillis`  控制最大垃圾收集停顿时间，大于0的毫秒数；      MaxGCPauseMillis设置得稍小，停顿时间可能会缩短，但也可能会使得吞吐量下降； 因为可能导致垃圾收集发生得更频繁；
 - `-XX:GCTimeRatio`  设置垃圾收集时间占总时间的比率，0<n<100的整数；GCTimeRatio相当于设置吞吐量大小； 垃圾收集执行时间占应用程序执行时间的比例的计算方法是：`1 / (1 + n)`例如选项`-XX:GCTimeRatio=19`，设置了垃圾收集时间占总时间的`5%=1/(1+19)`；默认值是99，`1%=1/(1+99)`
+- `-XX:UseAdaptiveSizePolicy` 开启这个参数后，就不需要手工指定新生代大小,Eden 与 Survivor 
+  比例（SurvivorRatio）等细节，只需要设置好基本的堆大小（-Xmx 
+  设置最大堆）,以及最大垃圾收集时间与吞吐量大小，虚拟机就会根据当前系统运行情况收集监控信息，动态调整这些参数以尽可能地达到我们设定的最大垃圾收集时间或吞吐量大小这两个指标
 
 # Serial Old收集器
 
-Serial Old 是 Serial 垃圾收集器年老代版本，它同样是个单线程的收集器，使用标记 -整理算法，这个收集器也主要是运行在 Client 默认的 java 虚拟机默认的年老代垃圾收集器。
+Serial Old 是 Serial 垃圾收集器年老代版本，它同样是个单线程的收集器，使用**标记 -整理算法**，这个收集器也主要是运行在 Client 默认的 java 虚拟机默认的年老代垃圾收集器。
 
 在 Server 模式下，主要有两个用途：
 
 - 在 JDK1.5 之前版本中与新生代的 Parallel Scavenge 收集器搭配使用。
-- 作为年老代中使用 CMS 收集器的后备垃圾收集方案。
+- 作为年老代中使用 CMS 收集器的后备垃圾收集方案。在并发收集发生 Concurrent Mode Failure 时使用。
 
-![](/assets/images/posts/garbage-collector/garbage-collector-3.png)
+![](/assets/images/posts/garbage-collector/garbage-collector-3.jpg)
 
 # Parallel Old收集器
 
-Parallel Old 收集器是 Parallel Scavenge 的年老代版本，使用多线程的标记-整理算法，在 JDK1.6
+Parallel Old 收集器是 Parallel Scavenge 的年老代版本，使用多线程的**标记-整理算法**，在 JDK1.6
 才开始提供。在 JDK1.6 之前，新生代使用 ParallelScavenge 收集器只能搭配年老代的 Serial Old 收集器，只能保证新生代的吞吐量优先，无法保证整体的吞吐量，Parallel Old 正是为了在年老代同样提供吞吐量优先的垃圾收集器，如果系统对吞吐量要求比较高，可以优先考虑新生代 Parallel Scavenge和年老代 Parallel Old 收集器的搭配策略。
 
 新生代 Parallel Scavenge 和年老代 Parallel Old 收集器搭配运行过程图：
 
-![](/assets/images/posts/garbage-collector/garbage-collector-4.png)
+![](/assets/images/posts/garbage-collector/garbage-collector-4.jpg)
 
 参数
 
