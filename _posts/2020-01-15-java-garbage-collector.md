@@ -93,7 +93,7 @@ Parallel Old 收集器是 Parallel Scavenge 的年老代版本，使用多线程
 - `-XX:+UseParallelOldGC`：指定使用Parallel Old收集器；
 
 # CMS
-CMS（Concurrent Mark and Sweep 并发-标记-清除），是一款基于并发、使用标记清除算法的垃圾回收算法，只针对老年代进行垃圾回收。CMS 收集器工作时，尽可能让 GC 线程和用户线程并发执行，以达到降低 STW 时间的目的。
+CMS（Concurrent Mark and Sweep 并发-标记-清除），是一款基于并发、使用**标记清除算法**的垃圾回收算法，只针对老年代进行垃圾回收。CMS 收集器工作时，尽可能让 GC 线程和用户线程并发执行，以达到降低 STW 时间的目的。
 
 通过`-XX:+UseConcMarkSweepGC`参数启用 CMS 垃圾收集器
 
@@ -108,7 +108,7 @@ CMS GC 以获取最小停顿时间为目的，尽可能减少 STW 时间，可�
 > 结合GC日志加深理解
 
 ### 阶段 1：初始标记（Initial Mark）
-此阶段的目标是标记老年代中所有存活的对象, 包括 GC Root 的直接引用, 以及由新生代中存活对象所引用的对象，触发第一次 STW 事件。这个过程是支持多线程的（JDK7 之前单线程，JDK8 之后并行，可通过参数 `CMSParallelInitialMarkEnabled` 调整）。
+此阶段的目标是标记老年代中所有存活的对象, 包括 GC Root 的直接引用, 以及由新生代中存活对象所引用的对象，**触发第一次 STW 事件**。这个过程是支持多线程的（JDK7 之前单线程，JDK8 之后并行，可通过参数 `CMSParallelInitialMarkEnabled` 调整）。
 
 ![](/assets/images/posts/garbage-collector/garbage-collector-6.jpg)
 
@@ -118,7 +118,7 @@ CMS GC 以获取最小停顿时间为目的，尽可能减少 STW 时间，可�
 ![](/assets/images/posts/garbage-collector/garbage-collector-7.jpg)
 
 ### 阶段 3：并发预清理（Concurrent Preclean）
-此阶段 GC 线程和应用线程也是并发执行，因为阶段 2 是与应用线程并发执行，可能有些引用关系已经发生改变。 
+此阶段 GC 线程和应用线程也是并发执行用于标记老年代存活的对象。这个阶段目的是为了让重新标记阶段的STW尽可能短。这个阶段的目标是在并发标记阶段被应用线程影响到的老年代对象。因为阶段 2 是与应用线程并发执行，可能有些引用关系已经发生改变：有些对象会从新生代晋升到老年代、有些老年代的对象引用会被改变、有些对象会直接分配到老年代。 
 
 通过卡片标记（Card Marking），提前把老年代空间逻辑划分为相等大小的区域（Card）。
 
@@ -135,13 +135,29 @@ CMS GC 以获取最小停顿时间为目的，尽可能减少 STW 时间，可�
 - 达到循环执行时间阈值
 - 新生代内存使用率达到阈值
 
+可中断预清理的价值：在进入重新标记阶段之前尽量等到一个Minor GC，尽量缩短重新标记阶段的停顿时间。另外可中断预清理会在Eden达到50%的时候开始，这时候离下一次minor gc还有半程的时间，这个还有另一个意义，即避免短时间内连着的两个停顿
+
+在预清理步骤后，如果满足下面两个条件，就不会开启可中断的预清理，直接进入重新标记阶段：
+
+- Eden的使用空间大于`CMSScheduleRemarkEdenSizeThreshold`，这个参数的默认值是2M；
+- Eden的使用率大于等于`CMSScheduleRemarkEdenPenetration`，这个参数的默认值是50%。
+
+如果不满足上面两个条件，则进入可中断的预清理，可中断预清理可能会执行多次，那么退出这个阶段的出口有两个
+
+- 设置了`CMSMaxAbortablePrecleanLoops`，并且执行的次数超过了这个值，这个参数的默认值是0；
+- 执行可中断预清理的时间超过了`CMSMaxAbortablePrecleanTime`，这个参数的默认值是5000毫秒。
+
+有可能可中断预清理过程中一直没等到Minor gc，这时候进入最终标记阶段的话，新生代还有很多活着的对象，就回导致STW变长，因此CMS还提供了`CMSScavengeBeforeRemark`参数，可以在进入最终标记之前强制进行依次Minor gc。
+
 ### 阶段 5：最终标记（Final Remark）
-这是 GC 事件中第二次（也是最后一次）STW 阶段，目标是完成老年代中所有存活对象的标记。
+**这是 GC 事件中第二次（也是最后一次）STW 阶段**，目标是完成老年代中所有存活对象的标记。
 在此阶段执行：
 
 - 遍历新生代对象，重新标记
 - 根据 GC Roots，重新标记
 - 遍历老年代的 Dirty Card，重新标记
+
+如果预清理的工作没做好，这一步扫描新生代的时候就会花很多时间，导致这个阶段的停顿时间过长。这个过程是多线程的
 
 ### 阶段 6：并发清除（Concurrent Sweep）
 此阶段与应用程序并发执行，不需要 STW 停顿，根据标记结果清除垃圾对象。
@@ -151,14 +167,23 @@ CMS GC 以获取最小停顿时间为目的，尽可能减少 STW 时间，可�
 ### 阶段 7：并发重置（Concurrent Reset）
 此阶段与应用程序并发执行，重置 CMS 算法相关的内部数据, 为下一次 GC 循环做准备。
 
+从上面的描述中可以看到初始标记和最终标记两个阶段会发生 STW，造成用户线程挂起，不过初始标记仅标记 GC Roots 能关联的对象，速度很快，并发标记是进行 GC Roots  Tracing  的过程，重新标记是为了修正并发标记期间因用户线程继续运行而导致标记产生变动的那一部分对象的标记记录，这一阶段停顿时间一般比初始标记阶段稍长，但**远比并发标记时间短**。
+
+整个过程中耗时最长的是并发标记和标记清理，不过这两个阶段用户线程都可工作，所以不影响应用的正常使用。
+
 ## CMS常见问题
+### CPU敏感
+CMS 收集器对 CPU 资源非常敏感  原因也可以理解，比如本来我本来可以有 10 个用户线程处理请求，现在却要分出 3 个作为回收线程，吞吐量下降了30%，CMS 默认启动的回收线程数是 `（CPU数量+3）/ 4`, 如果 CPU 数量只有一两个，那吞吐量就直接下降 50%,显然是不可接受的
 
 ### 最终标记阶段停顿时间过长问题
 
 CMS 的 GC 停顿时间约 80% 都在最终标记阶段（Final Remark），若该阶段停顿时间过长，常见原因是新生代对老年代的无效引用，在上一阶段的并发可取消预清理阶段中，执行阈值时间内未完成循环，来不及触发 Young GC，清理这些无效引用
 
-
 通过添加参数：`-XX:+CMSScavengeBeforeRemark`在执行最终操作之前先触发 Young GC，从而减少新生代对老年代的无效引用，降低最终标记阶段的停顿。但如果在上个阶段（并发可取消的预清理）已触发 Young GC，也会重复触发 Young GC。
+
+## 浮动垃圾
+
+CMS 无法处理浮动垃圾（Floating Garbage）,可能出现 「Concurrent Mode Failure」而导致另一次 Full GC 的产生，由于在并发清理阶段用户线程还在运行，所以清理的同时新的垃圾也在不断出现，这部分垃圾只能在下一次 GC 时再清理掉（即浮动垃圾）。同时在垃圾收集阶段用户线程也要继续运行，就需要预留足够多的空间要确保用户线程正常执行，这就意味着 CMS 收集器不能像其他收集器一样等老年代满了再使用，JDK 1.5 默认当老年代使用了68%空间后就会被激活，jdk1.6之后是92%，当然这个比例可以通过` -XX:CMSInitiatingOccupancyFraction` 来设置，但是如果设置地太高很容易导致在 CMS 运行期间预留的内存无法满足程序要求，会导致 **Concurrent Mode Failure** 失败，这时会启用 Serial Old 收集器来重新进行老年代的收集，而我们知道 Serial Old 收集器是单线程收集器，这样就会导致 STW 更长了。
 
 ### 并发模式失败（concurrent mode failure）&晋升失败（promotion failed）问题。
 **并发模式失败**：当 CMS 在执行回收时，新生代发生垃圾回收，同时老年代又没有足够的空间容纳晋升的对象时，CMS 垃圾回收就会退化成单线程的 Full GC。所有的应用线程都会被暂停，老年代中所有的无效对象都被回收。
@@ -185,7 +210,32 @@ CMS 的 GC 停顿时间约 80% 都在最终标记阶段（Final Remark），若�
 - 新生代 Young GC 出现新生代晋升担保失败（promotion failed)）
 - 程序主动执行System.gc()
 
-可通过参数 `CMSFullGCsBeforeCompaction`的值，设置多少次 Full GC 触发一次压缩。默认值为 0，代表每次进入 Full GC 都会触发压缩，带压缩动作的算法为上面提到的单线程 Serial Old 算法，暂停时间（STW）时间非常长，需要尽可能减少压缩时间。
+可通过参数 `CMSFullGCsBeforeCompaction`的值，设置多少次 Full GC 触发一次压缩。默认值为 0，代表每次进入 Full GC 都会触发压缩，带压缩动作的算法为上面提到的单线程 Serial Old 算法，暂停时间（STW）时间非常长，需要尽可能减少压缩时间。也可以通过`-XX:+UseCMSCompactAtFullCollection`在 CMS 收集器顶不住要进行 FullGC 时开启内存碎片的合并整理过程
+
+### 永久代空间（或Java8的元空间）耗尽
+默认情况下,CMS不会对永久代进行收集，一旦永久代空间耗尽，就回触发Full GC。
+
+## **CMS的调优**
+
+### **针对停顿时间过长的调优**
+   首先需要判断是哪个阶段的停顿导致的，然后再针对具体的原因进行调优。使用CMS收集器的JVM可能引发停顿的情况有：
+
+1. Minor gc的停顿；
+2. 并发周期里初始标记的停顿；
+3. 并发周期里重新标记的停顿；
+4. Serial-Old收集老年代的停顿；
+5. Full GC的停顿。
+
+其中并发模式失败会导致第4种情况，晋升失败和永久代空间耗尽会导致第5种情况。
+
+## 参数
+1. `UseConcMarkSweepGC`	启用CMS收集器
+2. `UseCMSInitiatingOccupancyOnly` 关闭CMS的动态检查机制，只通过预设的阈值来判断是否启动并发收集周期
+3. `CMSInitiatingOccupancyFraction` 老年代空间占用到多少的时候启动并发收集周期，跟UseCMSInitiatingOccupancyOnly一起使用
+4. `ExplicitGCInvokesConcurrentAndUnloadsClasses` 将System.gc()触发的Full GC转换为一次CMS并发收集，并且在这个收集周期中卸载     Perm（Metaspace）区域中不需要的类
+5. `CMSClassUnloadingEnabled` 在CMS收集周期中，是否卸载类
+6. `ParallelRefProcEnabled` 是否开启并发引用处理
+7. `CMSScavengeBeforeRemark` 如果开启这个参数，会在进入重新标记阶段之前强制触发一次minor gc
 
 # G1
 G1（Garbage-First）是一款面向服务器的垃圾收集器，支持新生代和老年代空间的垃圾收集，主要针对配备多核处理器及大容量内存的机器。G1 最主要的设计目标是：实现可预期及可配置的 STW 停顿时间。
@@ -312,3 +362,5 @@ https://plumbr.io/handbook/garbage-collection-algorithms-implementations
 https://www.oracle.com/technetwork/tutorials/tutorials-1876574.html
 
 https://docs.oracle.com/javase/9/gctuning/garbage-first-garbage-collector.htm
+
+https://mp.weixin.qq.com/s/Q2FMEf7gQysGaqNHYvMJ-A
