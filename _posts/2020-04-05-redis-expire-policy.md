@@ -1,11 +1,11 @@
 ---
 layout: post
 title: redis过期删除策略
-date: 2019-06-20
+date: 2020-04-05
 categories:
     - redis
 comments: true
-permalink: redis-maxmemory-policy.html
+permalink: redis-expire-policy.html
 ---
 
 **[Redis缓存淘汰策略](https://edgar615.github.io/redis-maxmemory-policy.html)与Redis键的过期删除策略并不完全相同，前者是在Redis内存使用超过一定值的时候（一般这个值可以配置）使用的淘汰策略；而后者是通过定期删除+惰性删除两者结合的方式进行内存淘汰的。**
