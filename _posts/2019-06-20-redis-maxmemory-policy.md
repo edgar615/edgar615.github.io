@@ -8,7 +8,7 @@ comments: true
 permalink: redis-maxmemory-policy.html
 ---
 
-Redis缓存淘汰策略与Redis键的过期删除策略并不完全相同，前者是在Redis内存使用超过一定值的时候（一般这个值可以配置）使用的淘汰策略；而后者是通过定期删除+惰性删除两者结合的方式进行内存淘汰的。
+Redis缓存淘汰策略与Redis键的[过期删除策略](https://edgar615.github.io/redis-expire-policy.html)并不完全相同，前者是在Redis内存使用超过一定值的时候（一般这个值可以配置）使用的淘汰策略；而后者是通过定期删除+惰性删除两者结合的方式进行内存淘汰的。
 
 这里参照官方文档的解释重新叙述一遍过期删除策略：
 
@@ -30,6 +30,8 @@ redis支持下列策略
 - volatile-lfu  从所有配置了过期时间的键中驱逐使用频率最少的键，如果没有，回退到noeviction策略
 - allkeys-lfu  从所有键中驱逐使用频率最少的键
 
+在配置文件中，通过 `maxmemory-policy` 可以配置要使用哪一个淘汰机制。
+
 可以通过`info stats`查看evicted_keys指标找出已删除的键数量
 
 ```
@@ -38,6 +40,23 @@ redis支持下列策略
 ...
 evicted_keys:0
 ...
+```
+
+## 什么时候会进行淘汰？
+
+Redis 会在每一次处理命令的时候（processCommand 函数调用 freeMemoryIfNeeded）判断当前 Redis 是否达到了内存的最大限制，如果达到限制，则使用对应的算法去处理需要删除的 Key。
+
+伪代码如下：
+
+```c
+int processCommand(client *c)
+{
+    ...
+    if (server.maxmemory) {
+        int retval = freeMemoryIfNeeded();  
+    }
+    ...
+}
 ```
 
 # LRU
