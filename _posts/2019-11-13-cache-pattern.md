@@ -41,7 +41,7 @@ Cache Aside模式建议**先写数据库，再淘汰缓存**。为什么？
 
 ![](/assets/images/posts/cache/cache-aside-8.png)
 
-**先更新缓存，再写数据库**
+**先写数据库，在更新缓存**
 
 ![](/assets/images/posts/cache/cache-aside-9.png)
 
