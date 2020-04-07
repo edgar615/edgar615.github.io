@@ -24,7 +24,7 @@ author:
 permalink: /:categories/:title/
 sass:
   style: compressed
-paginate: 10
+paginate: 20
 paginate_path: "/:num/"
 markdown: kramdown
 gitalk:
