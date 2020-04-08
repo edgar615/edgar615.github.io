@@ -3,7 +3,7 @@ layout: post
 title: Java GC日志
 date: 2020-01-16
 categories:
-    - JVM
+    - jvm
 comments: true
 permalink: java-gc-log.html
 ---

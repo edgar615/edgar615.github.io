@@ -3,7 +3,7 @@ layout: post
 title: Java reference
 date: 2020-01-13
 categories:
-    - JVM
+    - jvm
 comments: true
 permalink: java-reference.html
 ---

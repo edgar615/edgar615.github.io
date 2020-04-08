@@ -3,7 +3,7 @@ layout: post
 title: JVM垃圾收集器
 date: 2020-01-15
 categories:
-    - JVM
+    - jvm
 comments: true
 permalink: java-garbage-collector.html
 ---
