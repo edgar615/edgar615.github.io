@@ -98,7 +98,10 @@ static inline char sdsReqType(size_t string_size) {
 
 > 上面的字节数组的空白处表示未使用空间，是Redis优化的空间策略，给字符串的操作留有余地，保证安全提高效率
 
+**通过SDS的结构可以看出，buf数组的长度=free+len+1（其中1表示字符串结尾的空字符）；所以，一个SDS结构占据的空间为：free所占长度+len所占长度+ buf数组的长度=4+4+free+len+1=free+len+9。**
+
 ### SDS与C字符串的区别
+
 C语言使用长度为N+1的字符数组来表示长度为N的字符串，字符数组的最后一个元素为空字符'\0'，但是这种简单的字符串表示方法并不能满足Redis对于字符串在安全性、效率以及功能方面的要求，
 
 那么使用SDS，会有哪些好处呢
@@ -447,6 +450,34 @@ typedef struct intset {
 - `encoding`：节点的encoding保存的是节点的content的内容类型
 - `content`：content区域用于保存节点的内容，节点内容类型和长度由encoding决定
 
+# Redis数据存储的细节
+
+下图是执行set hello world时，所涉及到的数据模型。
+
+![](/assets/images/posts/redis-object/redis-object-25.png)
+
+- **dictEntry：**Redis是Key-Value数据库，因此对每个键值对都会有一个dictEntry，里面存储了指向Key和Value的指针；next指向下一个dictEntry，与本Key-Value无关。
+
+- **Key：**图中右上角可见，Key（“hello”）并不是直接以字符串存储，而是存储在SDS结构中。
+
+- **redisObject：**Value(“world”)既不是直接以字符串存储，也不是像Key一样直接存储在SDS中，而是存储在redisObject中。实际上，不论Value是5种类型的哪一种，都是通过RedisObject来存储的；而RedisObject中的type字段指明了Value对象的类型，ptr字段则指向对象所在的地址。不过可以看出，字符串对象虽然经过了RedisObject的包装，但仍然需要通过SDS存储。
+
+  实际上，RedisObject除了type和ptr字段以外，还有其它字段图中没有给出，如用于指定对象内部编码的字段
+
+  **jemalloc：**无论是DictEntry对象，还是RedisObject、SDS对象，都需要内存分配器（如jemalloc）分配内存进行存储。以DictEntry对象为例，有3个指针组成，在64位机器下占24个字节，jemalloc会为它分配32字节大小的内存单元。
+
+## jemalloc
+
+Redis在编译时便会指定内存分配器；内存分配器可以是 libc 、jemalloc或者tcmalloc，默认是jemalloc。
+
+jemalloc作为Redis的默认内存分配器，在减小内存碎片方面做的相对比较好。jemalloc在64位系统中，将内存空间划分为小、大、巨大三个范围；每个范围内又划分了许多小的内存块单位；当Redis存储数据时，会选择大小最合适的内存块进行存储。
+
+jemalloc划分的内存单元如下图所示：
+
+![](/assets/images/posts/redis-object/redis-object-26.jpg)
+
+例如，如果需要存储大小为130字节的对象，jemalloc会将其放入160字节的内存单元中。
+
 ## 对象
 
 上面介绍了Redis的主要底层数据结构，包括简单动态字符串（SDS）、链表、字典、跳跃表、整数集合、压缩列表。但是Redis并没有直接使用这些数据结构来构建键值对数据库，而是基于这些数据结构创建了一个对象系统，也就是我们所熟知的可API操作的Redis那些数据类型，如字符串(String)、列表(List)、散列(Hash)、集合(Set)、有序集合(Sorted Set)
@@ -492,6 +523,8 @@ encoding是指对象使用的数据结构，全集如下
 如果一个字符串对象保存的是一个字符串值，并且长度大于32字节，那么该字符串对象将使用 SDS 进行保存，并将对象的编码设置为 raw，如图的上半部分所示。
 如果字符串的长度小于32字节，那么字符串对象将使用embstr 编码方式来保存。
 
+如果符串值是整型时，这个值使用long整型（8字节）表示
+
 embstr 编码是专门用于保存短字符串的一种优化编码方式，这个编码的组成和 raw 编码一致，都使用 redisObject 结构和 sdshdr 结构来保存字符串，如上图的下半部所示。
 
 但是 raw 编码会调用两次内存分配来分别创建上述两个结构，而 embstr 则通过一次内存分配来分配一块连续的空间，空间中一次包含两个结构。
@@ -511,6 +544,11 @@ embstr 只需一次内存分配，而且在同一块连续的内存中，更好�
 
 不能满足这两个条件的列表对象需要使用 linkedlist 编码或者转换为 linkedlist 编码。
 
+```
+list-max-ziplist-entries 512
+list-max-ziplist-value 64
+```
+
 ### 哈希对象
 
 哈希对象的编码可以使用 ziplist 或 dict。
@@ -525,6 +563,11 @@ embstr 只需一次内存分配，而且在同一块连续的内存中，更好�
 - 哈希对象保存的键值对数量小于512个。
 
 不能满足这两个条件的哈希对象需要使用 dict 编码或者转换为 dict 编码。
+
+```
+hash-max-zipmap-entries 64
+hash-max-zipmap-value 512
+```
 
 ### 集合对象
 
@@ -542,6 +585,7 @@ intset 编码的集合对象使用整数集合最为底层实现，所有元素�
 - 集合对象保存的元素数量不超过512个。
 
 否则使用 dict 进行编码。
+
 
 ### 有序集合对象
 
@@ -578,6 +622,33 @@ Redis 服务器都有多个 Redis 数据库，每个Redis 数据都有自己独�
 
 通过过期字典，Redis 可以直接判断一个键是否过期，首先查看该键是否存在于过期字典，如果存在，则比较该键的过期时间和当前服务器时间戳，如果大于，则该键过期，否则未过期。
 
+### refcount与共享对象
+refcount记录的是该对象被引用的次数，类型为整型。refcount的作用，主要在于对象的引用计数和内存回收：
+
+
+- 当创建新对象时，refcount初始化为1；
+- 当有新程序使用该对象时，refcount加1；
+- 当对象不再被一个新程序使用时，refcount减1；
+- 当refcount变为0时，对象占用的内存会被释放。
+
+Redis中被多次使用的对象(refcount>1)称为共享对象。Redis为了节省内存，当有一些对象重复出现时，新的程序不会创建新的对象，而是仍然使用原来的对象。这个被重复使用的对象，就是共享对象。目前共享对象仅支持整数值的字符串对象。
+
+**共享对象的具体实现**
+
+Redis的共享对象目前只支持整数值的字符串对象。之所以如此，实际上是对内存和CPU（时间）的平衡：共享对象虽然会降低内存消耗，但是判断两个对象是否相等却需要消耗额外的时间。
+
+- 对于整数值，判断操作复杂度为O(1)；
+- 对于普通字符串，判断复杂度为O(n)；
+- 而对于哈希、列表、集合和有序集合，判断的复杂度为O(n^2)。
+
+虽然共享对象只能是整数值的字符串对象，但是5种类型都可能使用共享对象（如哈希、列表等的元素可以使用）。
+
+
+就目前的实现来说，Redis服务器在初始化时，会创建10000个字符串对象，值分别是0~9999的整数值；当Redis需要使用值为0~9999的字符串对象时，可以直接使用这些共享对象。这样在系统存储了大量数值下，也能一定程度上节省内存并且提高性能，这个参数值 n 的设置需要修改源代码中的一行宏定义 REDIS_SHARED_INTEGERS，该值 默认是 10000，可以根据自己的需要进行修改，修改后重新编译就可以了。
+
+共享对象的引用次数可以通过object refcount命令查看，
+
+
 # 参考资料
 
 https://juejin.im/post/5d71d3bee51d453b5f1a04f1
@@ -587,3 +658,5 @@ https://cloud.tencent.com/developer/article/1056182
 https://cloud.tencent.com/developer/article/1056184
 
 https://mp.weixin.qq.com/s/fO0yoHGqtFH5lpu6688h2w
+
+https://mp.weixin.qq.com/s/4wpsg8BDwGVADWb3WpSzpA
