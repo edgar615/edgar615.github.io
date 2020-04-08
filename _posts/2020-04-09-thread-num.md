@@ -3,7 +3,7 @@ layout: post
 title: 到底该设置多少个线程
 date: 2020-04-09
 categories:
-    - java,多线程
+    - 多线程
 comments: true
 permalink: thread-num.html
 ---
