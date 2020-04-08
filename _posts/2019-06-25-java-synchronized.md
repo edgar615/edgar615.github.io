@@ -3,7 +3,7 @@ layout: post
 title: synchronized原理
 date: 2019-06-25
 categories:
-    - java, 多线程
+    - java,多线程
 comments: true
 permalink: java-concurrency-synchronized.html
 ---
