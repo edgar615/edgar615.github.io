@@ -3,7 +3,7 @@ layout: post
 title: 线程
 date: 2019-06-25
 categories:
-    - java,多线程
+    - 多线程
 comments: true
 permalink: java-concurrency-thread.html
 ---
