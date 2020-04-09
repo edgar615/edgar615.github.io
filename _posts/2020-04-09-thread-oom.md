@@ -69,7 +69,7 @@ Wed Apr 08 15:03:14 CST 2020Thread[Thread-1,5,main]==
 
 观察堆和线程
 
-![](/assets/images/posts/thread-oom/thread-oom-2.png)
+![](/assets/images/posts/thread-oom/thread-oom-1.png)
 
 ![](/assets/images/posts/thread-oom/thread-oom-2.png)
 
