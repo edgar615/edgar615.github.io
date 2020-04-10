@@ -12,7 +12,7 @@ synchronized有以下三种使用方式:
 
 - 同步普通方法，锁的是当前对象。
 - 同步静态方法，锁的是当前 Class 对象。
-- 同步块，锁的是 {} 中的对象。
+- 同步块，锁的是()中的对象。
 
 **实现原理：**
 
@@ -139,6 +139,16 @@ synchronized 的语义底层是通过一个 Monitor 的对象来完成，任何�
 
 > wait/notify等方法也依赖于monitor对象，这就是为什么只有在同步的块或者方法中才能调用wait/notify等方法，否则会抛出java.lang.IllegalMonitorStateException的异常的原因
 
+## Monitor 的工作机理
+
+![](/assets/images/posts/synchronized/synchronized-7.jpg)
+
+- 线程进入同步方法中。
+- 为了继续执行临界区代码，线程必须获取 Monitor 锁。如果获取锁成功，将成为该监视者对象的拥有者。任一时刻内，监视者对象只属于一个活动线程（The Owner）
+- 拥有监视者对象的线程可以调用 wait() 进入等待集合（Wait Set），同时释放监视锁，进入等待状态。
+- 其他线程调用 notify() / notifyAll() 接口唤醒等待集合中的线程，这些等待的线程需要重新获取监视锁后才能执行 wait() 之后的代码。
+- 同步方法执行完毕了，线程退出临界区，并释放监视锁。
+
 ## Monitor
 什么是Monitor？我们可以把它理解为一个同步工具，也可以描述为一种同步机制，它通常被描述为一个对象。 与一切皆对象一样，所有的Java对象是天生的Monitor，每一个Java对象都有成为Monitor的潜质，因为在Java的设计中 ，每一个Java对象都带了一把看不见的锁，它叫做内部锁或者Monitor锁。
 
@@ -159,7 +169,13 @@ Monitor 是线程私有的数据结构，每一个线程都有一个可用monito
 
 > https://edgar615.github.io/java-object-memory.html
 
-# 锁的状态
+Mark Word在不同的锁状态下存储的内容不同，在32位JVM中是这么存的：
+
+![](/assets/images/posts/object-memory/object-memory-4.png)
+
+# Java 内部锁优化
+JDK6为了减少获得锁和释放锁带来的性能消耗，引入了“偏向锁”和“轻量级锁”。
+
 锁主要存在四种状态，依次是：无锁状态、偏向锁状态、轻量级锁状态、重量级锁状态，锁可以从偏向锁升级到轻量级锁，再升级的重量级锁。但是锁的升级是单向的，也就是说只能从低到高升级，不会出现锁的降级。
 
 > 在 JDK 1.6 中默认是开启偏向锁和轻量级锁的，可以通过-XX:-UseBiasedLocking来禁用偏向锁。
@@ -242,14 +258,68 @@ JVM一般是这样使用锁和Mark Word的：
 
 ![](/assets/images/posts/synchronized/synchronized-3.jpg)
 
+## 锁消除（Lock Elimination）
+锁削除是指虚拟机即时编译器在运行时，对一些代码上要求同步，但是被检测到不可能存在共享数据竞争的锁进行削除。
+
+Java JIT 会通过逃逸分析的方式，去分析加锁的代码段/共享资源，他们是否被一个或者多个线程使用，或者等待被使用。如果通过分析证实，只被一个线程访问，在编译这个代码段的时候就不生成 Synchronized 关键字，仅仅生成代码对应的机器码。
+
+换句话说，即便开发人员对代码段/共享资源加上了 Synchronized（锁），只要 JIT 发现这个代码段/共享资源只被一个线程访问，也会把这个 Synchronized（锁）去掉。从而避免竞态，提高访问资源的效率。
+
+![](/assets/images/posts/synchronized/synchronized-8.jpg)
+
 ## 锁粗化（Lock Coarsening）
 锁粗化是指减少不必要的紧连在一起的unlock，lock操作，将多个连续的锁扩展成一个范围更大的锁。
 
-## 锁消除（Lock Elimination）
-锁削除是指虚拟机即时编译器在运行时，对一些代码上要求同步，但是被检测到不可能存在共享数据竞争的锁进行削除。
+假设有几个在程序上相邻的同步块（代码段/共享资源）上，每个同步块使用的是同一个锁实例。那么 JIT 会在编译的时候将这些同步块合并成一个大同步块，并且使用同一个锁实例。这样避免一个线程反复申请/释放锁。
+
+![](/assets/images/posts/synchronized/synchronized-9.jpg)
+
+锁粗化默认是开启的。如果要关闭这个特性可以在 Java 程序的启动命令行中添加虚拟机参数`-XX:-EliminateLocks`。
+
+# Java 代码中进行锁优化
+
+锁的开销主要是在争用锁上，当多线程对共享资源进行访问时，会出现线程等待。即便是使用内存屏障，也会导致冲刷写缓冲器，清空无效化队列等开销。
+
+为了降低这种开销，通常可以从几个方面入手，例如：减少线程申请锁的频率（减少临界区）和减少线程持有锁的时间长度（减小锁颗粒）以及多线程的设计模式。
+
+## 减少临界区的范围
+
+当共享资源需要被多线程访问时，会将共享资源或者代码段放到临界区中。
+
+如果在代码书写中减少临界区的长度，就可以减少锁被持有的时间，从而降低锁被征用的概率，达到减少锁开销的目的。
+
+![](/assets/images/posts/synchronized/synchronized-10.jpg)
+
+如上图，尽量避免对一个方法进行加锁同步，可以只针对方法中的需要同步资源/变量进行同步。其他的代码段不放到 Synchronzied 中，减少临界区的范围。
+
+## 减小锁的颗粒度
+减小锁的颗粒度可以降低锁的申请频率，从而减小锁被争用的概率。其中一种常见的方法就是将一个颗粒度较粗的锁拆分成颗粒度较细的锁。
+
+![](/assets/images/posts/synchronized/synchronized-11.jpg)
+
+JDK 内置的 ConcurrentHashMap 与 SynchronizedMap 就使用了类似的设计。
+
+## 读写锁
+也叫做线程的读写模式（Read-Write Lock），其本质是一种多线程设计模式。
+
+将读取操作和写入操作分开考虑，在执行读取操作之前，线程必须获取读取的锁。在执行写操作之前，必须获取写锁。当线程执行读取操作时，共享资源的状态不会发生变化，其他的线程也可以读取。但是在读取时，不可以写入。‘
+
+其实，读写模式就是将原来共享资源的锁，转化成为读和写两把锁，将其分两种情况考虑。
+
+如果都是读操作可以支持多线程同时进行，只有在写时其他线程才会进入等待。
+
+![](/assets/images/posts/synchronized/synchronized-12.jpg)
+
+Reader 线程正在读取，Writer 线程正在等待
+
+![](/assets/images/posts/synchronized/synchronized-13.jpg)
+
+Writer 线程正在写入，Reader 线程正在等待
 
 # 参考资料
 
 https://www.jianshu.com/p/2ba154f275ea
 
 https://www.jianshu.com/p/e62fa839aa41
+
+https://mp.weixin.qq.com/s/tV48ZCwZUAUO-1xL7uESUA
