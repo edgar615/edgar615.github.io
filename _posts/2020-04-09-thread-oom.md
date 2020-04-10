@@ -8,7 +8,7 @@ comments: true
 permalink: thread-oom.html
 ---
 
-个美团面试题：“一个线程OOM后，其他线程还能运行吗？”
+一个美团面试题：“一个线程OOM后，其他线程还能运行吗？”
 
 > OOM又分很多类型；比如：
 >
