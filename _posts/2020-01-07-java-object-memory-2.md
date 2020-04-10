@@ -21,19 +21,18 @@ Java对象的内存布局包括：对象头(Header)，实例数据(Instance Data
 ## 实例类型
 实例类型的内存占用如下：
 
-| 类型      | 大小                                                         |
-| --------- | ------------------------------------------------------------ |
-| boolean   | [在数组中占1个字节，单独使用时占4个字节](https://edgar615.github.io/java-boolean.html) |
-| byte      | 1                                                            |
-| short     | 2                                                            |
-| char      | 2                                                            |
-| int       | 2                                                            |
-| float     | 4                                                            |
-| float     | 4                                                            |
-| long      | 8                                                            |
-| double    | 8                                                            |
-| reference | 32位4字节，64位8字节                                         |
-| String    | length * 2 + 4                                               |
+| 类型      | 大小                                              |
+| --------- | ------------------------------------------------- |
+| boolean   | [1](https://edgar615.github.io/java-boolean.html) |
+| byte      | 1                                                 |
+| short     | 2                                                 |
+| char      | 2                                                 |
+| int       | 4                                                 |
+| float     | 4                                                 |
+| long      | 8                                                 |
+| double    | 8                                                 |
+| reference | 32位4字节，64位8字节                              |
+| String    | length * 2 + 4                                    |
 
 Java对象占用空间是8字节对齐的，即所有Java对象占用bytes数必须是8的倍数。例如，一个包含两个属性的对象：int和byte，并不是占用17bytes(12+4+1)，而是占用24bytes（对17bytes进行8字节对齐）
 
