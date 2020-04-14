@@ -3,7 +3,7 @@ layout: post
 title: ID生成方式
 date: 2019-05-21
 categories:
-    - 设计
+    - 分布式
 comments: true
 permalink: id-generate.html
 ---
@@ -77,7 +77,7 @@ ID还可能有一些其他有用的属性：
 
 # flickr的方案
 
-![](/assets/images/posts/id/id_flickr.jpg)
+![](/assets/images/posts/id/id-flickr.jpg)
 
 flickr这一方案的整体思想是：建立两台以上的数据库ID生成服务器，每个服务器都有一张记录各表当前ID的Sequence表，但是Sequence中ID增长的步长是服务器的数量，起始值依次错开，这样相当于把ID的生成散列到了每个服务器节点上。
 
@@ -117,6 +117,28 @@ REPLACE INTO和INSERT的功能一样，但是当使用REPLACE INTO插入新数�
 
 缺点：ID只是一个ID，没有带入时间，shardingId等信息。
 
+# 基于数据库的号段模式
+
+号段模式是当下分布式ID生成器的主流实现方式之一，号段模式可以理解为从数据库批量的获取自增ID，每次从数据库取出一个号段范围，例如(1,1000]代表1000个ID，具体的业务服务将本号段，生成1~1000的自增ID并加载到内存。表结构如下：
+
+```sql
+CREATE TABLE id_generator (
+id INT ( 10 ) NOT NULL,
+max_id BIGINT ( 20 ) NOT NULL COMMENT '当前最大id',
+step INT ( 20 ) NOT NULL COMMENT '号段的布长',
+biz_type INT ( 20 ) NOT NULL COMMENT '业务类型',
+version INT ( 20 ) NOT NULL COMMENT '版本号',
+PRIMARY KEY ( `id` ) 
+);
+```
+
+号段ID用完后，再次向数据库申请新号段，对maxid字段做一次update操作，`update maxid= maxid + step`，update成功则说明新号段获取成功，新的号段范围是`(maxid ,max_id +step]`。
+
+```sql
+UPDATE id_generator 
+SET max_id = #{max_id+step}, version = version + 1 where version = # {version} and biz_type = XXX
+```
+
 # snowflake
 Twitter-Snowflake算法产生的背景相当简单，为了满足Twitter每秒上万条消息的请求，每条消息都必须分配一条唯一的id，这些id还需要一些大致的顺序（方便客户端排序），并且在分布式系统中不同机器产生的id必须不同。
 
@@ -144,6 +166,10 @@ Twitter-Snowflake算法产生的背景相当简单，为了满足Twitter每秒�
 工作进程级可以使用IP+Path来标识工作进程
 
 如果工作机器比较少，也可以使用配置文件来设置这个id，需要注意如果机器过多，维护配置文件将是一个灾难性的事情。
+
+这部分可以通过zookeeper，也可以通过数据库实现
+
+> 百度uid-generator：需要新增一个WORKER_NODE表。当应用启动时会向数据库表中去插入一条数据，插入成功后返回的自增ID就是该机器的workId数据由host，port组成。
 
 ## 自增序列
 序列号就是一系列的自增id（多线程建议使用atomic），为了处理在同一毫秒内需要给多条消息分配id，若同一毫秒把序列号用完了，则“等待至下一毫秒”。
@@ -473,6 +499,71 @@ id |= (5001 % 1024)
 
 # 美团的leaf方案
 
+Leaf同时支持号段模式和snowflake算法模式，可以切换使用
+
+```sql
+DROP TABLE
+IF
+	EXISTS `leaf_alloc`;
+CREATE TABLE `leaf_alloc` (
+`biz_tag` VARCHAR ( 128 ) NOT NULL DEFAULT '' COMMENT '业务key',
+`max_id` BIGINT ( 20 ) NOT NULL DEFAULT '1' COMMENT '当前已经分配了的最大id',
+`step` INT ( 11 ) NOT NULL COMMENT '初始步长，也是动态调整的最小步长',
+`description` VARCHAR ( 256 ) DEFAULT NULL COMMENT '业务key的描述',
+`update_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '数据库维护的更新时间',
+PRIMARY KEY ( `biz_tag` ) 
+) ENGINE = INNODB;
+```
+
+具体参考 https://tech.meituan.com/2017/04/21/mt-leaf.html
+
+源码：https://github.com/Meituan-Dianping/Leaf
+
+# 滴滴Tinyid
+
+GitHub地址：https://github.com/didi/tinyid。
+
+Tinyid是基于号段模式原理实现的与Leaf如出一辙，每个服务获取一个号段（1000,2000]、（2000,3000]、（3000,4000]。
+
+![](/assets/images/posts/id/id-tinyid.jpg)
+
+```sql
+CREATE TABLE `tiny_id_info` (
+`id` BIGINT ( 20 ) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+`biz_type` VARCHAR ( 63 ) NOT NULL DEFAULT '' COMMENT '业务类型，唯一',
+`begin_id` BIGINT ( 20 ) NOT NULL DEFAULT '0' COMMENT '开始id，仅记录初始值，无其他含义。初始化时begin_id和max_id应相同',
+`max_id` BIGINT ( 20 ) NOT NULL DEFAULT '0' COMMENT '当前最大id',
+`step` INT ( 11 ) DEFAULT '0' COMMENT '步长',
+`delta` INT ( 11 ) NOT NULL DEFAULT '1' COMMENT '每次id增量',
+`remainder` INT ( 11 ) NOT NULL DEFAULT '0' COMMENT '余数',
+`create_time` TIMESTAMP NOT NULL DEFAULT '2010-01-01 00:00:00' COMMENT '创建时间',
+`update_time` TIMESTAMP NOT NULL DEFAULT '2010-01-01 00:00:00' COMMENT '更新时间',
+`version` BIGINT ( 20 ) NOT NULL DEFAULT '0' COMMENT '版本号',
+PRIMARY KEY ( `id` ),
+UNIQUE KEY `uniq_biz_type` ( `biz_type` ) 
+) ENGINE = INNODB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8 COMMENT 'id信息表';
+CREATE TABLE `tiny_id_token` (
+`id` INT ( 11 ) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增id',
+`token` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT 'token',
+`biz_type` VARCHAR ( 63 ) NOT NULL DEFAULT '' COMMENT '此token可访问的业务类型标识',
+`remark` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT '备注',
+`create_time` TIMESTAMP NOT NULL DEFAULT '2010-01-01 00:00:00' COMMENT '创建时间',
+`update_time` TIMESTAMP NOT NULL DEFAULT '2010-01-01 00:00:00' COMMENT '更新时间',
+PRIMARY KEY ( `id` ) 
+) ENGINE = INNODB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8 COMMENT 'token信息表';
+INSERT INTO `tiny_id_info` ( `id`, `biz_type`, `begin_id`, `max_id`, `step`, `delta`, `remainder`, `create_time`, `update_time`, `version` )
+VALUES
+	( 1, 'test', 1, 1, 100000, 1, 0, '2018-07-21 23:52:58', '2018-07-22 23:19:27', 1 );
+INSERT INTO `tiny_id_info` ( `id`, `biz_type`, `begin_id`, `max_id`, `step`, `delta`, `remainder`, `create_time`, `update_time`, `version` )
+VALUES
+	( 2, 'test_odd', 1, 1, 100000, 2, 1, '2018-07-21 23:52:58', '2018-07-23 00:39:24', 3 );
+INSERT INTO `tiny_id_token` ( `id`, `token`, `biz_type`, `remark`, `create_time`, `update_time` )
+VALUES
+	( 1, '0f673adf80504e2eaa552f5d791b644c', 'test', '1', '2017-12-14 16:36:46', '2017-12-14 16:36:48' );
+INSERT INTO `tiny_id_token` ( `id`, `token`, `biz_type`, `remark`, `create_time`, `update_time` )
+VALUES
+	( 2, '0f673adf80504e2eaa552f5d791b644c', 'test_odd', '1', '2017-12-14 16:36:46', '2017-12-14 16:36:48' );
+```
 参考资料
 
 https://mp.weixin.qq.com/s/6J7n3udEyQvUHRHwvALNYw

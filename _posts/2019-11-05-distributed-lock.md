@@ -3,7 +3,7 @@ layout: post
 title: 分布式锁实现
 date: 2019-11-05
 categories:
-    - 设计
+    - 分布式
 comments: true
 permalink: distributed-lock.html
 ---
@@ -330,6 +330,8 @@ zookeeper的分布式锁主要是通过临时节点实现
 每个客户端都与ZooKeeper的某台服务器维护着一个Session，这个Session依赖定期的心跳(heartbeat)来维持。如果ZooKeeper长时间收不到客户端的心跳（这个时间称为Sesion的过期时间），那么它就认为Session过期了，通过这个Session所创建的所有的ephemeral类型的znode节点都会被自动删除。
 
 但是，如果客户端发生GC卡顿，也会导致session过期，引起锁冲突
+
+更多内容参考[zookeeper相关文章](https://edgar615.github.io/zookeeper.html)
 
 # 哪些地方可以用的分布式锁
 
