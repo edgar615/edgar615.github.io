@@ -160,16 +160,17 @@ Twitter-Snowflake算法产生的背景相当简单，为了满足Twitter每秒�
 ## 时间戳
 时间戳的细度是毫秒级
 
+因为NTP的存在，snowflake存在时钟漂移问题
+
 ## 数据中心ID和节点标记
 机器级可以使用MAC地址来唯一标识工作机器
 
 工作进程级可以使用IP+Path来标识工作进程
 
-如果工作机器比较少，也可以使用配置文件来设置这个id，需要注意如果机器过多，维护配置文件将是一个灾难性的事情。
+如果工作机器比较少，也可以使用配置文件来设置这个id，需要注意如果机器过多，维护配置文件将是一个灾难性的事情。考虑到自动部署、运维等等问题，机器编码最好由系统自动维护，有以下两个方案可供选择:
 
-这部分可以通过zookeeper，也可以通过数据库实现
-
-> 百度uid-generator：需要新增一个WORKER_NODE表。当应用启动时会向数据库表中去插入一条数据，插入成功后返回的自增ID就是该机器的workId数据由host，port组成。
+- 使用mysql自增ID特性，用数据表，存储机器的mac地址或者ip来维护。
+- 使用ZooKeeper持久顺序节点的特性。
 
 ## 自增序列
 序列号就是一系列的自增id（多线程建议使用atomic），为了处理在同一毫秒内需要给多条消息分配id，若同一毫秒把序列号用完了，则“等待至下一毫秒”。
@@ -499,6 +500,9 @@ id |= (5001 % 1024)
 
 # 美团的leaf方案
 
+> 具体参考 https://tech.meituan.com/2017/04/21/mt-leaf.html
+> 源码：https://github.com/Meituan-Dianping/Leaf
+
 Leaf同时支持号段模式和snowflake算法模式，可以切换使用
 
 ```sql
@@ -515,55 +519,88 @@ PRIMARY KEY ( `biz_tag` )
 ) ENGINE = INNODB;
 ```
 
-具体参考 https://tech.meituan.com/2017/04/21/mt-leaf.html
+1. id表示为主键，无业务含义
+2. biz_tag为了表示业务，因为整体系统中会有很多业务需要生成ID，这样可以共用一张表维护
+3. max_id表示现在整体系统中已经分配的最大ID
+4. desc描述
+5. update_time表示每次取的ID时间
 
-源码：https://github.com/Meituan-Dianping/Leaf
+**整体流程**
 
-# 滴滴Tinyid
+![](/assets/images/posts/id/id-leaf-1.png)
 
-GitHub地址：https://github.com/didi/tinyid。
+1. 【用户服务】在注册一个用户时，需要一个用户ID；会请求【生成ID服务(是独立的应用)】的接口
 
-Tinyid是基于号段模式原理实现的与Leaf如出一辙，每个服务获取一个号段（1000,2000]、（2000,3000]、（3000,4000]。
+2. 【生成ID服务】会去查询数据库，找到user_tag的id，现在的max_id为0，step=1000
 
-![](/assets/images/posts/id/id-tinyid.jpg)
+3. 【生成ID服务】把max_id和step返回给【用户服务】；并且把max_id更新为max_id = max_id + step，即更新为1000
 
-```sql
-CREATE TABLE `tiny_id_info` (
-`id` BIGINT ( 20 ) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-`biz_type` VARCHAR ( 63 ) NOT NULL DEFAULT '' COMMENT '业务类型，唯一',
-`begin_id` BIGINT ( 20 ) NOT NULL DEFAULT '0' COMMENT '开始id，仅记录初始值，无其他含义。初始化时begin_id和max_id应相同',
-`max_id` BIGINT ( 20 ) NOT NULL DEFAULT '0' COMMENT '当前最大id',
-`step` INT ( 11 ) DEFAULT '0' COMMENT '步长',
-`delta` INT ( 11 ) NOT NULL DEFAULT '1' COMMENT '每次id增量',
-`remainder` INT ( 11 ) NOT NULL DEFAULT '0' COMMENT '余数',
-`create_time` TIMESTAMP NOT NULL DEFAULT '2010-01-01 00:00:00' COMMENT '创建时间',
-`update_time` TIMESTAMP NOT NULL DEFAULT '2010-01-01 00:00:00' COMMENT '更新时间',
-`version` BIGINT ( 20 ) NOT NULL DEFAULT '0' COMMENT '版本号',
-PRIMARY KEY ( `id` ),
-UNIQUE KEY `uniq_biz_type` ( `biz_type` ) 
-) ENGINE = INNODB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8 COMMENT 'id信息表';
-CREATE TABLE `tiny_id_token` (
-`id` INT ( 11 ) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增id',
-`token` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT 'token',
-`biz_type` VARCHAR ( 63 ) NOT NULL DEFAULT '' COMMENT '此token可访问的业务类型标识',
-`remark` VARCHAR ( 255 ) NOT NULL DEFAULT '' COMMENT '备注',
-`create_time` TIMESTAMP NOT NULL DEFAULT '2010-01-01 00:00:00' COMMENT '创建时间',
-`update_time` TIMESTAMP NOT NULL DEFAULT '2010-01-01 00:00:00' COMMENT '更新时间',
-PRIMARY KEY ( `id` ) 
-) ENGINE = INNODB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8 COMMENT 'token信息表';
-INSERT INTO `tiny_id_info` ( `id`, `biz_type`, `begin_id`, `max_id`, `step`, `delta`, `remainder`, `create_time`, `update_time`, `version` )
-VALUES
-	( 1, 'test', 1, 1, 100000, 1, 0, '2018-07-21 23:52:58', '2018-07-22 23:19:27', 1 );
-INSERT INTO `tiny_id_info` ( `id`, `biz_type`, `begin_id`, `max_id`, `step`, `delta`, `remainder`, `create_time`, `update_time`, `version` )
-VALUES
-	( 2, 'test_odd', 1, 1, 100000, 2, 1, '2018-07-21 23:52:58', '2018-07-23 00:39:24', 3 );
-INSERT INTO `tiny_id_token` ( `id`, `token`, `biz_type`, `remark`, `create_time`, `update_time` )
-VALUES
-	( 1, '0f673adf80504e2eaa552f5d791b644c', 'test', '1', '2017-12-14 16:36:46', '2017-12-14 16:36:48' );
-INSERT INTO `tiny_id_token` ( `id`, `token`, `biz_type`, `remark`, `create_time`, `update_time` )
-VALUES
-	( 2, '0f673adf80504e2eaa552f5d791b644c', 'test_odd', '1', '2017-12-14 16:36:46', '2017-12-14 16:36:48' );
+4. 【用户服务】获得max_id=0，step=1000；
+
+5.  这个用户服务可以用ID=【max_id + 1，max_id+step】区间的ID，即为【1，1000】
+6. 【用户服务】会把这个区间保存到jvm中
+7. 【用户服务】需要用到ID的时候，在区间【1，1000】中依次获取id，可采用AtomicLong中的getAndIncrement方法。
+8. 如果把区间的值用完了，再去请求【生产ID服务】接口，获取到max_id为1000，即可以用【max_id + 1，max_id+step】区间的ID，即为【1001，2000】
+
+上述方案解决了数据库压力的问题，因为在一段区间内，是在jvm内存中获取的，而不需要每次请求数据库。即使数据库宕机了，系统也不受影响，ID还能维持一段时间。
+
+## 竞争问题
+以上方案中，如果是多个用户服务，同时获取ID，同时去请求【ID服务】，在获取max_id的时候会存在并发问题。
+
+如用户服务A，取到的max_id=1000 ;用户服务B取到的也是max_id=1000，那就出现了问题，Id重复了。那怎么解决？
+
+使用数据库行锁解决
+
+## 突发阻塞问题
+
+![](/assets/images/posts/id/id-leaf-2.png)
+
+上图中，多个用户服务获取到了各自的ID区间，在高并发场景下，ID用的很快，如果3个用户服务在某一时刻都用完了，同时去请求【ID服务】。因为上面提到的竞争问题，所有只有一个用户服务去操作数据库，其他二个会被阻塞。系统出现的现象就是一会儿突然系统耗时变长，一会儿好了。
+
+美团采用双buffer方案解决这个问题
+
+![](/assets/images/posts/id/id-leaf-3.png)
+
+1. 当前获取ID在buffer1中，每次获取ID在buffer1中获取
+2. 当buffer1中的Id已经使用到了100，也就是达到区间的10%
+3. 达到了10%，先判断buffer2中有没有去获取过，如果没有就立即发起请求获取ID线程，此线程把获取到的ID，设置到buffer2中
+4. 如果buffer1用完了，会自动切换到buffer2
+5. buffer2用到10%了，也会启动线程再次获取，设置到buffer1中
+6. 依次往返
+
+此外leaf还监控ID使用频率，自动设置步长step，从而达到对ID节省使用。
+
+# snowflake的时钟回拨问题
+
+snowflake方案依赖系统时钟，如果机器时钟回拨，就有可能生成重复ID，为了保证ID唯一性，必须解决时钟回拨问题。可以采取以下几种方案解决时钟问题：
+
+- 关闭系统NTP同步，这样就不会产生时钟调整
+- 系统做出判断，在时钟回拨这段时间，不生成ID，直接返回ERROR_CODE，直到时钟追上，恢复服务。
+
+```java
+if (time < lastTime) {//当前时间小于上次时间，说明时钟不对
+    throw new IllegalStateException("Clock moved backwards.");
+}
 ```
+
+- 系统做出判断，如果遇到超过容忍限度的回拨，上报报警系统，并把自身从集群节点中摘除
+
+![](/assets/images/posts/id/id-11.png)
+
+- 系统做兼容处理，由于nfp网络回拨都是几十毫秒到几百毫秒，极少数到秒级别，这种回拨会产生以下几种结果：系统中缓存最近几秒内最后的发号序号(具体范围请根据实际需要确定)，存储格式为：时间秒-序号。
+	- 当前秒数不变：当前是8:30秒100毫秒，ntp回拨50毫秒，当前时间变成8:30秒50毫秒，这个时候秒数没变，我们算法的时间戳部分不会产生重复，就不影响系统继续发号
+	- 当前秒数向前：当前是8:30秒800毫秒，ntp 向前调整300毫秒，当前时间变成8:31秒100毫秒，由于这个时间还没发过号，不会生成重复的ID
+	- 当前秒数向后：当前是8:30秒100毫秒，ntp回拨150毫秒，当前时间变成8:29秒950毫秒，这个时候秒发生回退，就可能产生重复ID。产生重复的原因在于秒回退后，算法的时间戳部分使用了已经用过的时间戳，但是算法的序号部分，并没有回退到29秒那个时间对应的序号，依然使用当前的序号，如果序号也同时回退到29秒时间戳所对应的最后序号，就不会重复发号。解决方案如下：
+
+![](/assets/images/posts/id/id-12.png)
+
+
+> 类似的实现还有
+> https://github.com/didi/tinyid
+> https://github.com/baidu/uid-generator
+> uid-generator的时间递增没有通过System.currentTimeMillis()来获取时间并与上一次时间进行比较(这样的实现严重依赖服务器的时间)，而是通过AtomicLong的incrementAndGet()方法获取下一次的时间，从而脱离了对服务器时间的依赖，也就不会有时钟回拨的问题
+
+
 参考资料
 
 https://mp.weixin.qq.com/s/6J7n3udEyQvUHRHwvALNYw
@@ -589,3 +626,7 @@ https://github.com/intenthq/icicle/blob/master/icicle-core/src/main/resources/id
 https://www.lanindex.com/twitter-snowflake%EF%BC%8C64%E4%BD%8D%E8%87%AA%E5%A2%9Eid%E7%AE%97%E6%B3%95%E8%AF%A6%E8%A7%A3/
 
 https://mp.weixin.qq.com/s/HRJb8iBsXJTdsUhfhOxHlw
+
+https://mp.weixin.qq.com/s/8ZWUmlhmP2PR1XGGqjEUQQ
+
+https://mp.weixin.qq.com/s/hz7TntFDurwkAaSGODbF-Q
