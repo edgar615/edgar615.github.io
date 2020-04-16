@@ -5,7 +5,7 @@ date: 2020-04-16
 categories:
     - 分布式
 comments: true
-permalink: circuit-breaker222.html
+permalink: circuit-breaker.html
 ---
 
 今天稍微复杂点的互联网应用，服务端基本都是分布式的，大量的服务支撑起整个系统，服务之间也难免有大量的依赖关系，依赖都是通过网络连接起来。
@@ -41,8 +41,6 @@ permalink: circuit-breaker222.html
 
 # 熔断（断路器）
 
-https://en.wikipedia.org/wiki/Circuit_breaker_design_pattern
-
 假设有个应用程序每秒会与数据库沟通数百次，此时数据库突然发生了错误，程序员并不会希望在错误时还不断地访问数据库。因此会在等待TCP连线逾时之前直接处理这个错误，并进入正常的结束程序（而非直接结束程式）。简单来说，断路器会侦测错误并且“预防”应用程序不断地呼叫一个近乎毫无回应的服务（除非该服务已经安全到可重试连线了）。
 
 断路器有分简单与较进阶的版本，简单的断路器只需要知道服务是否可用。而较进阶的版本比起前者更有效率。进阶的断路器带有至少三个状态：
@@ -50,6 +48,22 @@ https://en.wikipedia.org/wiki/Circuit_breaker_design_pattern
 - 关闭：断路器在预设的情形下是呈现关闭的状态，而断路器本身“带有”计数功能，每当错误发生一次，计数器也就会进行“累加”的动作，到了一定的错误发生次数断路器就会被“开启”，这个时候亦会在内部启用一个计时器，一但时间到了就会切换成半开启的状态。
 - 开启：在开启的状态下任何请求都会“直接”被拒绝并且抛出异常讯息。
 - 半开启：在此状态下断路器会允许部分的请求，如果这些请求都能成功通过，那么就意味着错误已经不存在，则会被“切换回”关闭状态并“重置”计数。倘若请求中有“任一”的错误发生，则会回复到“开启”状态，并且重新计时，给予系统一段休息时间。
+
+> 摘自https://en.wikipedia.org/wiki/Circuit_breaker_design_pattern
+ 
+![](/assets/images/posts/circuit-breaker/circuit-breaker-1.png)
+
+断路器的状态切换
+
+![](/assets/images/posts/circuit-breaker/circuit-breaker-2.png)
+
+- State is in CLOSED test, everything is normal
+- The maximum consecutive allowed errors (cb_max_errors) is reached, the system changes to OPEN. No more connections to backend sent
+- System stays in OPEN state for N seconds (cb_timeout)
+- System changes to HALF-OPEN and allows 1 connection to pass.
+- If the connection succeeded change to CLOSED, everything back to normal. If it failed switch to OPEN again.
+
+> 上面的两张图来源于krakend
 
 # 降级
 
