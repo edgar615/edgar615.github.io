@@ -1,16 +1,16 @@
 ---
 layout: post
 title: 熔断降级
-date: 2020-04-12
+date: 2020-04-16
 categories:
     - 分布式
 comments: true
-permalink: circuit-breaker.html
+permalink: circuit-breaker222.html
 ---
 
 今天稍微复杂点的互联网应用，服务端基本都是分布式的，大量的服务支撑起整个系统，服务之间也难免有大量的依赖关系，依赖都是通过网络连接起来。
 
-![](/assets/images/posts/circuit-breaker/circuit-breaker-1.png)
+![](/assets/images/posts/circuit-breaker/circuit-breaker-3.png)
 
 然而任何一个服务的可用性都不是 100% 的，网络亦是脆弱的。当我依赖的某个服务不可用的时候，我自身是否会被拖死？当网络不稳定的时候，我自身是否会被拖死？这些在单机环境下不太需要考虑的问题，在分布式环境下就不得不考虑了。假设我有5个依赖的服务，他们的可用性都是99.95%，即一年不可用时间约为4个多小时，那么是否意味着我的可用性最多就是 99.95% 的5次方，99.75%（近乎一天），再加上网络不稳定因素、依赖服务可能更多，可用性会更低。
 
