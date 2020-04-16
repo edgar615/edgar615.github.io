@@ -7,6 +7,7 @@ categories:
 comments: true
 permalink: vertx-service-discovery.html
 ---
+
 **前部分内容基本来自于官方文档**
 
 Vert.x提供了服务发现组件，每个服务都被封装为一个Record对象
