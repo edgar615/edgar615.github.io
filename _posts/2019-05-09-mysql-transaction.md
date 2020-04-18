@@ -40,10 +40,10 @@ permalink: mysql-transaction.html
 
 简单总结一下
 
-**Serializable** 可避免脏读、不可重复读、幻读的发生
-**Repeatable read** 可避免脏读、不可重复读的发生
-**Read committed**  可避免脏读的发生
-**Read uncommitted** 最低级别，任何情况都无法保证。
+- **Serializable** 可避免脏读、不可重复读、幻读的发生
+- **Repeatable read** 可避免脏读、不可重复读的发生
+- **Read committed**  可避免脏读的发生
+- **Read uncommitted** 最低级别，任何情况都无法保证。
 
 不可重复读和幻读容易搞混，确实这两者有些相似。但不可重复读重点在于update和delete，而幻读的重点在于insert。
 
@@ -402,6 +402,102 @@ sessionB返回
 <pre class="line-numbers"><code class="language-sql">
 1205 - Lock wait timeout exceeded; try restarting transaction
 </code></pre>
+# 幻读
+
+不可重复读和幻读容易搞混，确实这两者有些相似。但不可重复读重点在于update和delete，而幻读的重点在于insert。
+
+**幻读错误的理解：**很多地方说幻读是 事务A 执行两次 select 操作得到不同的数据集，即 select 1 得到 10 条记录，select 2 得到 11 条记录。这其实并不是幻读，这是不可重复读的一种，在read uncommitted和read committed下会出现。但在repeatable read下不会出现
+
+mysql 的幻读并不是说两次读取获取的结果集不同，幻读侧重的方面是某一次的 select 操作得到的结果所表征的数据状态无法支撑后续的业务操作。具体来说而是事务在插入事先检测不存在的记录时，惊奇的发现这些数据已经存在了，之前的检测读获取到的数据如同鬼影一般。
+
+>  select 某记录是否存在，不存在，准备插入此记录，但执行 insert 时发现此记录已存在，无法插入，此时就发生了幻读。
+
+> 知乎上的列子
+>
+> https://www.zhihu.com/question/47007926
+
+users： id 主键
+
+1. T1：select * from users where id = 1;
+
+2. T2：insert into `users`(`id`, `name`) values (1, 'big cat');
+
+3. T1：insert into `users`(`id`, `name`) values (1, 'big cat');
+
+T1 ：主事务，检测表中是否有 id 为 1 的记录，没有则插入，这是我们期望的正常业务逻辑。
+
+T2 ：干扰事务，目的在于扰乱 T1 的正常的事务执行。
+
+在repeatable read下1、2 是会正常执行的，3 则会报错主键冲突，对于 T1 的业务来说是执行失败的，这里 T1 就是发生了幻读，因为T1读取的数据状态并不能支持他的下一步的业务，见鬼了一样：“我刚才读到的结果应该可以支持我这样操作才对啊，为什么现在不可以”。
+
+如果T1不相信又执行一次`select * from users where id = 1;`依然查询不到id=1的数据，此时，幻读无疑已经发生，T1 无论读取多少次，都查不到 id = 1 的记录，但它的确无法插入这条他通过读取来认定不存在的记录（此数据已被T2插入），对于 T1 来说，它幻读了。
+
+# 为什么mysql选可重复读作为默认的隔离级别
+
+这是历史原因造成的。binlog有三种格式
+
+- statement:记录的是修改SQL语句
+- row：记录的是每行实际数据的变更
+- mixed：statement和row模式的混合 
+
+那Mysql在5.0这个版本以前，binlog只支持`STATEMENT`这种格式！而这种格式在**读已提交(Read Committed)**这个隔离级别下主从复制是有bug的，因此Mysql将**可重复读(Repeatable Read)**作为默认的隔离级别！
+
+举个例子主从模式下：
+
+```
+mysql> select * from user where id = 1;
++----+-------+
+| id | name  |
++----+-------+
+|  1 | edgar |
++----+-------+
+1 row in set (0.59 sec)
+```
+在read committed下执行下列语句
+
+1. T1：`begin;`
+2. T1：`delete from user where id < 10;`
+3. T2：`begin;`
+4. T2：`insert user values(5,'Edgar');`
+4. T2：`commit;`
+5. T1：`commit;`
+
+就会出现主从不一致性的问题！原因其实很简单，就是在master上执行的顺序为先删后插！而此时binlog为STATEMENT格式，它记录的顺序为先插后删！从(slave)同步的是binglog，因此从机执行的顺序和主机不一致！就会出现主从不一致！
+
+如果使用repeated read隔离级别，`delete from user where id < 10;`会加上临界锁（行锁+间隙锁）,`insert user values(5,'Edgar');`会被阻塞。
+
+如果将binglog的格式修改为row格式，此时是基于行的复制，自然就不会出现sql执行顺序不一样的问题。但是这个格式在mysql5.1版本开始才引入。因此由于历史原因，mysql将默认的隔离级别设为可重复读(Repeatable Read)，保证主从复制不出问题！
+
+**互联网项目为什么选read committed隔离级别**
+
+> 网上看的，没有考证
+
+- 在RR隔离级别下，存在间隙锁，导致出现死锁的几率比RC大的多
+- 在RR隔离级别下，条件列未命中索引会锁表！而在RC隔离级别下，只锁行。
+
+> 在RC隔离级别下，其先走聚簇索引，进行全部扫描。但在实际中，MySQL做了优化，在MySQL Server过滤条件，发现不满足后，会调用unlock_row方法，把不满足条件的记录释放锁。在RR隔离级别下，会使用间隙锁将表都锁上
+
+- 在RC隔离级别下，半一致性读(semi-consistent)特性增加了update操作的并发性！
+
+在5.1.15的时候，innodb引入了一个概念叫做“semi-consistent”，减少了更新同一行记录时的冲突，减少锁等待。
+所谓半一致性读就是，一个update语句，如果读到一行已经加锁的记录，此时InnoDB返回记录最近提交的版本，由MySQL上层判断此版本是否满足update的where条件。若满足(需要更新)，则MySQL会重新发起一次读操作，此时会读取行的最新版本(并加锁)！
+具体表现如下:
+此时有两个Session，Session1和Session2！
+Session1执行
+
+```
+update test set color = 'blue' where color = 'red'; 
+```
+
+先不Commit事务！
+与此同时Ssession2执行
+
+```
+update test set color = 'blue' where color = 'white'; 
+```
+
+session  2尝试加锁的时候，发现行上已经存在锁，InnoDB会开启semi-consistent  read，返回最新的committed版本(1,red),(2，white),(5,red),(7,white)。MySQL会重新发起一次读操作，此时会读取行的最新版本(并加锁)!
+而在RR隔离级别下，Session2只能等待！
 
 
 # 参考资料
