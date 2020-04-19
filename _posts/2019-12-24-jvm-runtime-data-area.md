@@ -16,7 +16,7 @@ JDK1.7：
 
 JDK1.8:
 
-![](/assets/images/posts/jvm-runtime-data-area/jvm-runtime-data-area-1.png)
+![](/assets/images/posts/jvm-runtime-data-area/jvm-runtime-data-area-2.png)
 
 其中线程私有的是：
 
