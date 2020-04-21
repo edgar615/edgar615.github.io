@@ -207,6 +207,10 @@ Constant pool:
 
 当一个String实例调用`intern()`方法时，首先会去常量池中查找是否有该字符串对应的引用, 如果有就直接返回该字符串; 如果没有, 就会在常量池中注册该字符串的引用, 然后返回该字符串。
 
+> JDK 1.7后，intern方法还是会先去查询常量池中是否有已经存在，如果存在，则返回常量池中的引用，这一点与之前没有区别，区别在于，如果在常量池找不到对应的字符串，则不会再将字符串拷贝到常量池，而只是在常量池中生成一个对原字符串的引用。简单的说，就是往常量池放的东西变了：原来在常量池中找不到时，复制一个副本放到常量池，1.7后则是将在堆上的地址引用复制到常量池。
+>
+> ![](/assets/images/posts/string-pool/string-pool-6.png)
+
 通过上面的分析，我们知道下面的代码返回false
 
 ```
@@ -216,7 +220,7 @@ String s2 = "hello";
 System.out.println(s == s2);
 ```
 
-这一段代码也返回false
+下面的代码也返回false
 
 ```
 String s = new String("hello");
@@ -225,16 +229,15 @@ String s2 = "hello";
 System.out.println(s == s2);
 ```
 
-这一段代码也返回false
+`String s = newString("hello")`，生成了常量池中的“hello” 和堆空间中的字符串对象。
 
-```
-String s3 = new String("he") + new String("llo");
-String s4 = "hello";
-s3.intern();//String是不可变对象
-System.out.println(s3 == s4);
-```
+`s.intern()`，这一行的作用是s对象去常量池中寻找后发现"hello"已经存在于常量池中了。
 
-**这一段代码返回true，因为s4和s3指向了同一个地址**
+`String s2 = "hello"`，这行代码是生成一个s2的引用指向常量池中的“hello”对象。
+
+结果就是 s 和 s2 的引用地址明显不同。因此返回了false。
+
+**下面的代码返回true，因为s4和s3指向了同一个地址**
 
 ```
 String s3 = new String("he") + new String("llo");
@@ -243,7 +246,23 @@ String s4 = "hello";
 System.out.println(s3 == s4);
 ```
 
-**这一段代码也返回true，它会把字符串对象的引用直接返回给定义的对象。这个过程是不会在Java堆中再创建一个String对象的。**
+在JDK 1.7下，当执行s3.intern();时，因为常量池中没有“hello”这个字符串，所以会在常量池中生成一个对堆中的“hello”的**引用**(**注意这里是引用 ，就是这个区别于JDK 1.6的地方。在JDK1.6下是生成原字符串的拷贝**)，而在进行String s4= “hello”;字面量赋值的时候，常量池中已经存在一个引用，所以直接返回了该引用，因此s3和s4都指向堆中的同一个字符串，返回true。
+
+> `String s3 = new String("he") + new String("llo")`，这行代码在字符串常量池中生成“he” 和"llo"，并在堆空间中生成s3引用指向的对象（内容为"hello"）。注意此时常量池中是没有 “hello”对象的。
+
+
+下面的代码也返回false
+
+```
+String s3 = new String("he") + new String("llo");
+String s4 = "hello";
+s3.intern();//String是不可变对象
+System.out.println(s3 == s4);
+```
+
+将中间两行调换位置以后，因为在进行字面量赋值（String s4 = “hello″）的时候，常量池中不存在，所以s4指向的常量池中的位置，而s3指向的是堆中的对象，再进行intern方法时，对s3和s4已经没有影响了，所以返回false。
+
+下面的代码也返回true，它会把字符串对象的引用直接返回给定义的对象。这个过程是不会在Java堆中再创建一个String对象的。
 
 ```
 String s = new String("hello").intern();
