@@ -337,18 +337,18 @@ G1 的正常处理流程中没有 Full GC，只有在垃圾回收处理不过来
 
 ## 参数列表
 
-| 选项和默认值                         | 描述                                                         |
-| ------------------------------------ | ------------------------------------------------------------ |
-| -XX:+UseG1GC                         | 使用垃圾优先(G1,Garbage First)收集器                         |
-| -XX:MaxGCPauseMillis=n               | 设置垃圾收集暂停时间最大值指标。这是一个软目标，Java虚拟机将尽最大努力实现它 |
-| -XX:InitiatingHeapOccupancyPercent=n | 触发并发垃圾收集周期的整个堆空间的占用比例。它被垃圾收集使用，用来触发并发垃圾收集周期，基于整个堆的占用情况，不只是一个代上(比如：G1)。0值 表示’do constant GC cycles’。默认是45 |
-| -XX:NewRatio=n                       | 年轻代与年老代的大小比例，默认值是2                          |
-| -XX:SurvivorRatio=n                  | eden与survivor空间的大小比例，默认值8                        |
-| -XX:MaxTenuringThreshold=n           | 最大晋升阈值，默认值15                                       |
-| -XX:ParallerGCThreads=n              | 设置垃圾收集器并行阶段的线程数量。默认值根据Java虚拟机运行的平台有所变化 |
-| -XX:ConcGCThreads=n                  | 并发垃圾收集器使用的线程数量，默认值根据Java虚拟机运行的平台有所变化 |
-| -XX:G1ReservePercent=n               | 为了降低晋升失败机率设置一个假的堆的储备空间的上限大小，默认值是10 |
-| -XX:G1HeapRegionSize=n               | 使用G1收集器，Java堆被细分成一致大小的区域。这设置个体的细分的大小。这个参数的默认值由工学意义上的基于堆的大小决定 |
+- -XX:+UseG1GC   使用垃圾优先(G1,Garbage First)收集器 
+- -XX:MaxGCPauseMillis=n  设置垃圾收集暂停时间最大值指标。这是一个软目标，Java虚拟机将尽最大努力实现它 
+- -XX:InitiatingHeapOccupancyPercent=n  触发并发垃圾收集周期的整个堆空间的占用比例。它被垃圾收集使用，用来触发并发垃圾收集周期，基于整个堆的占用情况，不只是一个代上(比如：G1)。0值 表示’do constant GC cycles’。默认是45 
+- -XX:NewRatio=n 年轻代与年老代的大小比例，默认值是2 
+- -XX:SurvivorRatio=n eden与survivor空间的大小比例，默认值8 
+- -XX:MaxTenuringThreshold=n  最大晋升阈值，默认值15
+- -XX:ParallerGCThreads=n  设置垃圾收集器并行阶段的线程数量。默认值根据Java虚拟机运行的平台有所变化
+- -XX:ConcGCThreads=n  并发垃圾收集器使用的线程数量，默认值根据Java虚拟机运行的平台有所变化
+- -XX:G1ReservePercent=n  为了降低晋升失败机率设置一个假的堆的储备空间的上限大小，默认值是10
+- -XX:G1HeapRegionSize=n  使用G1收集器，Java堆被细分成一致大小的区域。这设置个体的细分的大小。这个参数的默认值由工学意义上的基于堆的大小决定
+
+
 # 参考资料
 
 https://www.cnblogs.com/cxxjohnson/p/8625713.html
