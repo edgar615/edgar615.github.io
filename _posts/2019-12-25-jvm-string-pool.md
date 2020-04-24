@@ -393,6 +393,16 @@ Std. dev. of bucket size:     0.173
 Maximum bucket size     :         2
 ```
 
+# 字符串常量池导致的YGC变长
+
+> 简单记录一下，更多内容阅读你假笨的[文章](https://mp.weixin.qq.com/s/RtIZd4zaa-UkxoxtUsXd8Q)
+
+从前面对intern的分析我们可以知道在StringTable上可能会存在堆内存中的对象，所以ygc过程需要对StringTable做扫描，**以保证处于新生代的String代码不会被回收掉**
+
+如果放进String Pool的String非常多，就会造成Hash冲突严重，从而导致链表会很长，而链表长了后直接会造成的影响就是当调用`String.intern`时性能会大幅下降，如果链表变长，YGC过程扫描的时间也会变长
+
+> Full GC或者CMS GC过程也会对StringTable做清
+
 # 参考资料
 
 https://tech.meituan.com/2014/03/06/in-depth-understanding-string-intern.html

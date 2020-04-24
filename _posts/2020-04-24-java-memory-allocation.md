@@ -8,6 +8,8 @@ comments: true
 permalink: java-memory-allocation.html
 ---
 
+# Java内存分配策略
+
 Java 提供的自动内存管理，可以归结为解决了对象的内存分配和回收的问题。下面介绍几条最普遍的内存分配策略：
 
 - **对象优先在 Eden 区分配**

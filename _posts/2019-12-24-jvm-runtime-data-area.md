@@ -99,6 +99,8 @@ Java 内存可以粗糙的区分为堆内存（Heap）和栈内存(Stack),其中
 ## 栈帧
 栈帧（Frame）是用来存储数据和部分过程结果的数据结构，同时也被用来处理动态链接 （Dynamic Linking）、方法返回值和异常分派（Dispatch Exception）。
 
+局部变量表和操作数栈的大小要视对应的方法而定，他们是按字长计算的。但调用一个方法时，它从类型信息中得到此方法局部变量区和操作数栈大小，并据此分配栈内存，然后压入Java栈 
+
 **局部变量表**
 
 局部变量表主要存放了编译器可知的各种数据类型（boolean、byte、char、short、int、float、long、double）、对象引用（reference类型，它不同于对象本身，可能是一个指向对象起始地址的引用指针，也可能是指向一个代表对象的句柄或其他与此对象相关的位置）。对于基本数据类型的变量，则直接存储它的值，对于引用类型的变量，则存的是指向对象的引用。
@@ -111,9 +113,35 @@ Java 内存可以粗糙的区分为堆内存（Heap）和栈内存(Stack),其中
 
 需要注意的是，局部变量表所需要的内存空间在编译期完成分配，当进入一个方法时，这个方法在栈中需要分配多大的局部变量空间是完全确定的，在方法运行期间不会改变局部变量表大小。
 
+局部变量表被组织为以一个字长为单位、从0开始计数的数组，类型为short、byte和char的值在存入数组前要被转换成int值，而long和double在数组中占据连续的两项，在访问局部变量中的long或double时，只需取出连续两项的第一项的索引值即可,如某个long值在局部变量区中占据的索引时3、4项，取值时，指令只需取索引为3的long值即可。
+
+```java
+public static int runClassMethod(int i,long l,float f,double d,Object o,byte b) { 
+   return 0;   
+}
+
+public int runInstanceMethod(char c,double d,short s,boolean b) { 
+       return 0;   
+}
+```
+
+![](/assets/images/posts/jvm-runtime-data-area/stack3.png)
+
 **操作数栈**
 
 栈最典型的一个应用就是用来对表达式求值。想想一个线程执行方法的过程中，实际上就是不断执行语句的过程，而归根到底就是进行计算的过程。因此可以这么说，程序中的所有计算过程都是在借助于操作数栈来完成的。
+
+和局部变量表一样，操作数栈也被组织成一个以字长为单位的数组。但和前者不同的是，它不是通过索引来访问的，而是通过**入栈和出栈**来访问的。可把操作数栈理解为存储计算时，临时数据的存储区域。下面我们通过一段简短的程序片段外加一幅图片来了解下操作数栈的作用。
+
+```java
+int a = 100;
+int b = 98;
+int c = a+b;
+```
+
+![](/assets/images/posts/jvm-runtime-data-area/stack4.png)
+
+从图中可以得出：操作数栈其实就是个临时数据存储区域，它是通过入栈和出栈来进行操作的。
 
 **指向运行时常量池的引用**
 
@@ -132,6 +160,28 @@ Java方法有两种返回方式：
 
 不管哪种返回方式都会导致栈帧被弹出。
 
+**栈的整个结构**
+在前面就描述过：栈是由栈帧组成，每当线程调用一个java方法时，JVM就会在该线程对应的栈中压入一个帧，而帧是由局部变量区、操作数栈和帧数据区组成。那在一个代码块中，栈到底是什么形式呢？下面是我从《深入JVM》中摘抄的一个例子:
+
+```java
+public class Main{    
+	public static void addAndPrint(){      
+    	double result = addTwoTypes(1,88.88);    
+        System.out.println(result);    
+    }   
+         
+    public static double addTwoTypes(int i,double d){  
+    	return i + d;  
+    }
+}
+```
+
+![](/assets/images/posts/jvm-runtime-data-area/stack5.png)
+
+上面所给的图，只想说明两件事情：
+
+1. 只有在调用一个方法时，才为当前栈分配一个帧，然后将该帧压入栈
+2. 帧中存储了对应方法的局部数据，方法执行完，对应的帧则从栈中弹出，并把返回结果存储在**调用 方法的帧的操作数栈中**
 
 Java 虚拟机栈会出现两种异常：StackOverFlowError 和 OutOfMemoryError。
 

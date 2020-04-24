@@ -250,24 +250,36 @@ G1（Garbage-First）是一款面向服务器的垃圾收集器，支持新生�
 
 **巨型对象**
 
-当对象大小超过 Region 的一半，则认为是巨型对象（Humongous Object），直接被分配到老年代的巨型对象区（Humongous Regions）。这些巨型区域是一个连续的区域集，每一个 Region 中最多有一个巨型对象，巨型对象可以占多个 Region。
+当对象大小超过 Region 的一半，则认为是巨型对象（Humongous Object），直接被分配到老年代的巨型对象区（Humongous Regions）。这些巨型区域是一个连续的区域集，每一个 Region 中最多有一个巨型对象，对于那些超过了整个Region容量的超级大对象，将会被存放在N个连续的Humongous Region之中。
 
 G1 把堆内存划分成一个个 Region 的意义在于：
 
 - 每次 GC 不必都去处理整个堆空间，而是每次只处理一部分 Region，实现大容量内存的 GC。
 - 通过计算每个 Region 的回收价值，包括回收所需时间、可回收空间，在有限时间内尽可能回收更多的垃圾对象，把垃圾回收造成的停顿时间控制在预期配置的时间范围内，这也是 G1 名称的由来：Garbage-First。
 
+## 记忆集Remembered Set
+
+一个对象和它内部所引用的对象可能不在同一个 Region 中，那么当垃圾回收时，是否需要扫描整个堆内存才能完整地进行一次可达性分析？
+
+答案是不需要。每个 Region 都有一个 Remembered Set （记忆集），用于记录本区域中所有对象引用的对象所在的区域，进行可达性分析时，只要在 GC Roots 中再加上 Remembered Set 即可防止对整个堆内存进行遍历。
+
+> Collection Set ：简称 CSet，记录了等待回收的 Region 集合，GC 时这些 Region 中的对象会被回收（copied or moved）。
+
 ## G1工作模式
+
+G1所有的垃圾回收，都是基于 region 的。G1根据各个Region回收所获得的空间大小以及回收所需时间等指标在后台维护一个优先列表，每次根据允许的收集时间，优先回收价值最大（垃圾）的Region，从而可以有计划地避免在整个Java堆中进行全区域的垃圾收集。这也是 "Garbage First" 得名的由来。
+
+G1从整体来看是基于“标记-整理”算法实现的收集器，但从局部（两个Region之间）上看又是基于“标记-复制”算法实现，无论如何，这两种算法都意味着G1运作期间不会产生内存空间碎片，垃圾收集完成之后能提供规整的可用内存。这种特性有利于程序长时间运行，在程序为大对象分配内存时不容易因无法找到连续内存空间而提前触发下一次GC。
 
 针对新生代和老年代，G1 提供 2 种 GC 模式，Young GC 和 Mixed GC，两种会导致 Stop The World。
 
 **Young GC**：当新生代的空间不足时，G1 触发 Young GC 回收新生代空间。
 
-Young GC 主要是对 Eden 区进行 GC，它在 Eden 空间耗尽时触发，基于分代回收思想和复制算法，每次 Young GC 都会选定所有新生代的 Region。
+Young GC 主要是对 Eden 区进行 GC，它在 Eden 空间耗尽时触发，基于分代回收思想和复制算法，**每次 Young GC 都会选定所有新生代的 Region**。
 
 同时计算下次 Young GC 所需的 Eden 区和 Survivor 区的空间，动态调整新生代所占 Region 个数来控制 Young GC 开销。
 
-**Mixed GC**：当老年代空间达到阈值会触发 Mixed GC，选定所有新生代里的 Region，根据全局并发标记阶段(下面介绍到)统计得出收集收益高的若干老年代 Region。
+**Mixed GC**：当老年代空间达到阈值会触发 Mixed GC，**选定所有新生代里的 Region**，根据全局并发标记阶段(下面介绍到)统计得出收集收益高的**若干老年代 Region，注意是一部分老年代，不是全部**。
 
 在用户指定的开销目标范围内，尽可能选择收益高的老年代 Region 进行 GC，通过选择哪些老年代 Region 和选择多少 Region 来控制 Mixed GC 开销。
 
