@@ -339,6 +339,53 @@ Java有一个痛处，就是修改一个类，必须要重启一遍，才会重�
 
 JSP就是这么做的，一旦JSP页面被修改，我们就可以热加载对应生成的servlet实例，这个实例是单例的，并且是无状态的，没有引用指向它，利用这个原理，很多热部署的方案也出现了。
 
+# 一个特别的问题
+
+> 这个章节的内容抄自你假笨大神的[文章](https://mp.weixin.qq.com/s/uyj9UDxR3DfWD3ZCzJrJLQ) 
+
+同一个类加载器对象是否可以加载同一个类文件多次并且得到多个Class对象而都可以被java层使用吗？
+
+## 正常的类加载
+
+从JVM实现角度来说一下。在JVM里有一个数据结构叫做SystemDictonary，这个结构主要就是用来检索我们常说的类信息，这些类信息对应的结构是klass，对SystemDictonary的理解，可以认为就是一个Hashtable，key是类加载器对象+类的名字，value是指向klass的地址。这样当我们任意一个类加载器去正常加载类的时候，就会到这个SystemDictonary中去查找，看是否有这么一个klass可以返回，如果有就返回它，否则就会去创建一个新的并放到结构里。因此在正常情况下不可能出现同一个类加载器加载同一个类多次的情况。
+
+## 特例
+
+```java
+    public static void main(String args[]) throws Throwable {
+        Field f = Unsafe.class.getDeclaredField("theUnsafe");
+        f.setAccessible(true);
+        Unsafe unsafe = (Unsafe) f.get(null);
+        String filePath = "Test.class";
+        byte[] buffer = getFileContent(filePath);
+        Class<?> c1 = unsafe.defineAnonymousClass(ClassTest.class, buffer, null);
+        Class<?> c2 = unsafe.defineAnonymousClass(ClassTest.class, buffer, null);
+        System.out.println(c1 == c2);
+    }
+```
+
+输出为
+
+```
+false
+class com.github.edgar615.nef.user.launcher.Test/500977346
+class com.github.edgar615.nef.user.launcher.Test/20132171
+```
+
+这也就是说c1和c2其实是两个不同的对象，因为我们的类文件都是一样的，也就是字节码里的类名也是完全一样的，因此在jvm里的类对象的名字其实也都是一样的，但是hashCode不同
+
+另外你无法通过java层面的其他api，比如Class.forName来获取到这种class，所以你要保存好这个得到的Class对象才能后面继续使用它。
+
+## defineAnonymousClass
+
+defineAnonymousClass这个方法比较特别，从名字上也看得出，是创建了一个匿名的类，不过这种匿名的概念和我们理解的匿名是不太一样的。这种类的创建通常会有一个宿主类，也就是第一个参数指定的类，这样一来，这个创建的类会使用这个宿主类的定义类加载器来加载这个类，**最关键的一点是这个类被创建之后并不会丢到上述的SystemDictonary里，也就是说我们通过正常的类查找，比如Class.forName等api是无法去查到这个类是否被定义过的**。因此过度使用这种api来创建这种类在一定程度上会带来一定的内存泄露。
+
+那有人就要问了，看不到啥好处，为啥要提供这种api，这么做有什么意义，大家可以去了解下JSR292。jvm通过InvokeDynamic可以支持动态类型语言，这样一来其实我们可以提供一个类模板，在运行的时候加载一个类的时候先动态替换掉常量池中的某些内容，这样一来，同一个类文件，我们通过加载多次，并且传入不同的一些cpPatches，也就是defineAnonymousClass的第三个参数，  这样就能做到运行时产生不同的效果。
+
+主要是因为原来的JVM类加载机制是不允许这种情况发生的，因为我们对同一个名字的类只能被同一个类加载器加载一次，因而为了能支持动态语言的特性，提供类似的api来达到这种效果。
+
 # 参考资料
 
 https://blog.csdn.net/a724888/article/details/81456439
+
+https://mp.weixin.qq.com/s/uyj9UDxR3DfWD3ZCzJrJLQ

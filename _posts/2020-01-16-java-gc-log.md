@@ -78,7 +78,7 @@ public class GcTest {
 ```
 
 1. GC 表示是一次YGC（Young GC），Full GC很直观了，就是一次Full GC
-2. Allocation Failure 表示是GC的原因，可以看到我们手动触发的显示为`System.gc()`
+2. Allocation Failure 表示是GC的原因，可以看到我们手动触发的显示为`System.gc()`,`Allocation Failure`的GC Cause，其实是正常的，因为大部分GC，尤其是YGC，都是因为分配内存失败才触发的
 3. 25175K->1272K 表示年轻代从25175K降为1272K，如果是FullGC，则是整个堆的使用大小（没有验证）
 4. 98304K表示整个堆的大小
 5. 0.2483711 secs表示这次GC总计所用的时间
