@@ -114,6 +114,10 @@ public static ScheduledExecutorService newScheduledThreadPool(int corePoolSize) 
 - 工作线程会从DelayQueue取已经到期的任务去执行；
 - 执行结束后重新设置任务的到期时间，再次放回DelayQueue
 
+所有线程池的工作方式本质是一样的：
+
+**有一个队列，任务被提交到这个队列中。一定数量的线程会从该队列中取任务，然后执行。**
+
 # 实现
 
 ## UML
