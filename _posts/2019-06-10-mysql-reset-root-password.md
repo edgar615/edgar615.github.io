@@ -64,4 +64,19 @@ flush privileges;
 ```
 
 
+**最新版的MySQL已经删除了password函数**
+在`skip-grant-tables`模式下执行
 
+```sql
+update user set authentication_string = ''  where user='root' ;   
+```
+
+关闭`skip-grant-tables`模式
+
+重新登录root（密码为空）
+
+执行sql
+
+```sql
+ALTER USER 'root'@'localhost' IDENTIFIED BY '新密码';
+```
