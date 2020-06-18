@@ -1,8 +1,7 @@
 ---
 layout: post
 title: NIO的Buffer
-description: nio
-date: 2019-06-10
+date: 2020-6-11
 categories:
     - netty
 comments: true
