@@ -18,6 +18,7 @@ Metadata 的生命周期则是一次 RPC 调用。
 
 Interceptor 有点类似于我们平时常用的 HTTP Middleware，不同的是它可以用在 Client 端和 Server 端。比如在收到请求之后输出日志，在请求出现错误的时候输出错误信息，比如获取请求中设置的 Request ID。
 
+# 2. 实现
 我们通过传递RequestId的例子学习一下
 
 ```java
