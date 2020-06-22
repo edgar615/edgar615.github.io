@@ -42,7 +42,7 @@ public class TraceIdServerInterceptor implements ServerInterceptor {
     return Contexts.interceptCall(ctx, serverCall, metadata, serverCallHandler);
   }
 }
-···
+```
 
 server的实现类
 
