@@ -32,7 +32,7 @@ permalink: spring-kaptcha.html
 public class KaptchaConfig {
 	@Bean
 	public DefaultKaptcha getDefaultKaptcha() {
-		com.google.code.kaptcha.impl.DefaultKaptcha defaultKaptcha = new com.google.code.kaptcha.impl.DefaultKaptcha();
+		DefaultKaptcha defaultKaptcha = new DefaultKaptcha();
 		Properties properties = new Properties();
 		// 图片边框
 		properties.setProperty("kaptcha.border", "yes");
@@ -85,7 +85,7 @@ public class KaptchaController {
         try {
             // 生产验证码字符串并保存到session中
             String createText = defaultKaptcha.createText();
-            request.getSession().setAttribute(com.google.code.kaptcha.Constants.KAPTCHA_SESSION_KEY, createText);
+            request.getSession().setAttribute(Constants.KAPTCHA_SESSION_KEY, createText);
             BufferedImage challenge = defaultKaptcha.createImage(createText);
             ImageIO.write(challenge, "jpg", jpegOutputStream);
         } catch (IllegalArgumentException e) {
@@ -114,7 +114,7 @@ public class KaptchaController {
 public Result verifyKaptcha(@RequestParam("code") String code, HttpServletRequest request)
         throws Exception {
     //从session中读取验证码
-    String scode = (String) request.getSession().getAttribute(com.google.code.kaptcha.Constants.KAPTCHA_SESSION_KEY);
+    String scode = (String) request.getSession().getAttribute(KAPTCHA_SESSION_KEY);
     boolean flag = false;
     if(code.equalsIgnoreCase(scode)){
       return Result.success();
