@@ -119,7 +119,7 @@ public Result verifyKaptcha(@RequestParam("code") String code, HttpServletReques
     if(code.equalsIgnoreCase(scode)){
       return Result.success();
     } else {
-      
+      return Result.failed("验证码不正确")
     }
 }
 ```
