@@ -111,15 +111,15 @@ public class KaptchaController {
 
 ```java
 @RequestMapping("/verify")
+@ResponseBody
 public Result verifyKaptcha(@RequestParam("code") String code, HttpServletRequest request)
         throws Exception {
     //从session中读取验证码
     String scode = (String) request.getSession().getAttribute(KAPTCHA_SESSION_KEY);
-    boolean flag = false;
-    if(code.equalsIgnoreCase(scode)){
-      return Result.success();
+    if(Strings.isNullOrEmpty(scode) || !scode.equalsIgnoreCase(code)){
+      throw IncorrectKaptchaException();
     } else {
-      return Result.failed("验证码不正确")
+      return Result.success();
     }
 }
 ```
