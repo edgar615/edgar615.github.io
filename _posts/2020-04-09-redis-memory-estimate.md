@@ -12,6 +12,28 @@ permalink: redis-memory-estimate.html
 
 > 参考[这篇文章](https://edgar615.github.io/redis-object.html)
 
+# 1. debug命令
+通过redis的debug命令，可以查看某个key序列化后的长度。
+
+```
+debug object myhash
+Value at:0x7f005c6920a0 refcount:1 encoding:ziplist serializedlength:36 lru:3341677 lru_seconds_idle:2
+```
+
+输出项
+
+- Value at：key的内存地址
+- refcount：引用次数
+- encoding：编码类型
+- serializedlength：序列化长度
+- lru_seconds_idle：空闲时间
+
+serializedlength是key序列化后的长度(redis在将key保存为rdb文件时使用了该算法)，并不是key在内存中的真正长度。这就像一个数组在json_encode后的长度与其在内存中的真正长度并不相同。不过，它侧面反应了一个key的长度，可以用于比较两个key的大小。
+
+serializedlength会对字串做一些可能的压缩。如果有些字串的压缩比特别高，那么在比较时会出现问题。
+
+> 更多内容参考 https://www.jianshu.com/p/c885af575f97
+
 > 时间关系，这篇文章的内容没有验证，后续验证
 
 假设有90000个键值对，每个key的长度是7个字节，每个value的长度也是7个字节（且key和value都不是整数）。
