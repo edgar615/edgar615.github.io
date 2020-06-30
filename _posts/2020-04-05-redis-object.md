@@ -509,6 +509,34 @@ jemalloc划分的内存单元如下图所示：
 
 例如，如果需要存储大小为130字节的对象，jemalloc会将其放入160字节的内存单元中。
 
+下面是jemalloc size class categories,左边是用户申请内存范围,右边是实际申请的内存大小
+```
+1 – 4 size class:4 　　
+5 – 8 size class:8 　　
+9 – 16 size class:16 　　
+17 – 32 size class:32 　　
+33 – 48 size class:48 　　
+49 – 64 size class:64 　　
+65 – 80 size class:80 　　
+81 – 96 size class:96 　　
+97 – 112 size class:112 　　
+113 – 128 size class:128 　　
+129 – 192 size class:192 　　
+193 – 256 size class:256 　　
+257 – 320 size class:320 　　
+321 – 384 size class:384 　　
+385 – 448 size class:448 　　
+449 – 512 size class:512 　　
+513 – 768 size class:768 　　
+769 – 1024 size class:1024 　　
+1025 – 1280 size class:1280 　　
+1281 – 1536 size class:1536 　　
+1537 – 1792 size class:1792 　　
+1793 – 2048 size class:2048 　　
+2049 – 2304 size class:2304 　　
+2305 – 2560 size class:2560
+```
+
 ## 对象
 
 上面介绍了Redis的主要底层数据结构，包括简单动态字符串（SDS）、链表、字典、跳跃表、整数集合、压缩列表。但是Redis并没有直接使用这些数据结构来构建键值对数据库，而是基于这些数据结构创建了一个对象系统，也就是我们所熟知的可API操作的Redis那些数据类型，如字符串(String)、列表(List)、散列(Hash)、集合(Set)、有序集合(Sorted Set)
