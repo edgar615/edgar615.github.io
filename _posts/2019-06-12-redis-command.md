@@ -8,7 +8,7 @@ comments: true
 permalink: redis-command.html
 ---
 
-# redis-server
+# 1. redis-server
 
 ```
 Usage: 
@@ -35,7 +35,7 @@ Sentinel mode:
 	redis-server --test-memory 1024 检测能否提供1G内存
 ```
 
-# redis-cli
+# 2. redis-cli
 
 - -r 重复执行命令
 - -i 每隔几秒执行一次命令，单位是秒，如果需要按毫秒，使用小数如0.01表示10毫秒
@@ -94,21 +94,46 @@ used_memory_human:808.66K
 used_memory_human:808.66K
 ```
 
-# redis-benchmark
+# 3. redis-benchmark
 redis的基准测试
 
+- -h Server hostname (default 127.0.0.1)
+- -p Server port (default 6379)
+- -s Server socket (overrides host and port)
 - -c 客户端的并发数量，默认50
 - -n <requests> 客户端的请求总量 默认100000
 - -q 仅显示requests per second信息
+- -d Data size of SET/GET value in bytes (default 2)
 - -r 插入随机键，默认之后插入三个键 `counter:__rand__int__`,`mylist`,`key:__rand_int__`  -r会在key，counter键上加上一个12位的后缀，-r 10000表示只对后四位数做随机处理
 - -P 每个请求pipeline的数据量，默认1
 - -k <boolean> 客户端是否使用keepalive，1使用，0不使用，默认1
 - -t 对指定的命令进行基准测试 如 -t get,set -q
 - --csv 将结果按照csv格式输出
 
+```
+redis-benchmark -h 192.168.1.201 -p 6379 -c 100 -n 100000
+```
+
+100个并发连接，100000个请求，检测 host 为 localhost 端口为6379的 redis 服务器性能。
+
+```
+redis-benchmark -h 192.168.1.201 -p 6379 -q -d 100
+```
+
+测试存取大小为100字节的数据包的性能。
+
+```
+redis-benchmark -t set,lpush -n 100000 -q
+```
+
+只测试某些操作的性能。
+
+```
+redis-benchmark -n 100000 -q script load "redis.call(‘set’,’foo’,’bar’)"
+```
+
+只测试某些数值存取的性能。
+
 # 参考资料
 
 《Redis开发与运维》
-
-
-
