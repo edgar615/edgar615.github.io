@@ -10,6 +10,7 @@ permalink: jdk-dynamic-proxy.html
 
 最近为了准备公司内部的知识分享，重新整理了一下java动态代理的知识
 
+# 1. 介绍
 首先我们定义了一个接口`IMyService`和实现
 
 <pre class="line-numbers "><code class="language-java">
@@ -53,7 +54,7 @@ public class MyServiceProxy implements IMyService {
 - 代理类和被代理类实现了相同的接口，导致代码的重复，如果接口增加一个方法，那么除了被代理类需要实现这个方法外，代理类也要实现这个方法，增加了代码维护的难度。
 - 代理对象只服务于一种类型的对象，如果要服务多类型的对象。势必要为每一种对象都进行代理，静态代理在程序规模稍大时就无法胜任了。
 
-# 动态代理
+# 2. 动态代理
 **动态代理**：在程序运行期间根据需要动态创建代理类及其实例来完成具体的功能。动态代理主要分为JDK动态代理和cglib动态代理两大类，对应cglib我只是粗略了解，这里仅介绍JDK动态代理
 
 1.实现InvocationHandler接口，在invoke方法中实现代理逻辑
@@ -76,7 +77,7 @@ public class MyServiceHandler implements InvocationHandler {
 }
 </code></pre>
 
-2. 创建一个代理对象
+2.创建一个代理对象
 
 通过Proxy的静态方法`newProxyInstance( ClassLoaderloader, Class[] interfaces, InvocationHandler h)`创建一个代理对象
 
@@ -89,16 +90,16 @@ IMyService myService = new MyServiceImpl();
 myService.say("Hello");
 
 IMyService myServiceProxy = (IMyService) Proxy.newProxyInstance(
-​		myService.getClass().getClassLoader(), myService.getClass().getInterfaces(),
-​		new MyServiceHandler(myService));
+		myService.getClass().getClassLoader(), myService.getClass().getInterfaces(),
+		new MyServiceHandler(myService));
 </code></pre>
 
-3. 测试
+3.测试
 <pre class="line-numbers "><code class="language-java">
 myServiceProxy.say("proxy");
 </code></pre>
 
-# 原理
+# 3. 原理
 我们先看一下`Proxy.newProxyInstance(...)`方法
 
 <pre class="line-numbers "><code class="language-java">
@@ -253,7 +254,7 @@ public final class $Proxy0 extends Proxy implements IMyService {
   private static Method m0;
 
   public $Proxy0(InvocationHandler var1) throws  {
-​    super(var1);
+     super(var1);
   }
 
   public final boolean equals(Object var1) throws  {
