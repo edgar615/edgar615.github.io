@@ -8,6 +8,7 @@ comments: true
 permalink: java-concurrency-wait-notify.html
 ---
 
+# 1. 轮询
 多线程之间的通信可以通过轮询的方式实现
 
 > 循环执行某个逻辑判断，直到判断条件为true才执行判断体中的逻辑，叫做轮询(Polling)，也可以叫做忙等待。轮询是会浪费一定的CPU资源的。
@@ -31,7 +32,7 @@ public class BusyWaitRunnable implements Runnable {
 ```
 忙等待没有对运行等待线程的CPU进行有效的利用，除非平均等待时间非常短。否则，让等待线程进入睡眠或者非运行状态更为明智，直到它接收到它等待的信号。
 
-# wait(),notify()和notifyAll()
+# 2. wait(),notify()和notifyAll()
 Java有一个内建的等待机制来允许线程在等待信号的时候变为非运行状态。java.lang.Object 类定义了三个方法，`wait()`、`notify()`和`notifyAll()`来实现这个等待机制。
 
 一个线程一旦调用了任意对象的`wait()`方法，就会变为非运行状态，直到另一个线程调用了同一个对象的`notify()`方法。为了调用`wait()`或者`notify()`，线程必须先获得那个对象的锁。也就是说，线程必须在同步块里调用`wait()`或者`notify()`
@@ -64,7 +65,7 @@ public class MyWaitNotify {
 
 一旦一个线程被唤醒，不能立刻就退出wait()的方法调用，直到调用notify()的线程退出了它自己的同步块。换句话说：被唤醒的线程必须重新获得监视器对象的锁，才可以退出wait()的方法调用，因为wait方法调用运行在同步块里面。如果多个线程被notifyAll()唤醒，那么在同一时刻将只有一个线程可以退出wait()方法，因为每个线程在退出wait()前必须获得监视器对象的锁。
 
-## 丢失的信号
+# 3. 丢失的信号
 但是上面的代码有一个问题：
 
 > notify()和notifyAll()方法不会保存调用它们的方法，因为当这两个方法被调用时，有可能没有线程处于等待状态。通知信号过后便丢弃了。因此，如果一个线程先于被通知线程调用wait()前调用了notify()，等待的线程将错过这个信号。这可能是也可能不是个问题。不过，在某些情况下，这可能使等待线程永远在等待，不再醒来，因为线程错过了唤醒信号。
@@ -99,7 +100,7 @@ public class MyWaitNotify {
 ```
 为了避免信号丢失， 用一个变量来保存是否被通知过。在notify前，设置自己已经被通知过。在wait后，设置自己没有被通知过，需要等待通知。
 
-## 假唤醒
+# 4. 假唤醒
 由于莫名其妙的原因，线程有可能在没有调用过notify()和notifyAll()的情况下醒来。这就是所谓的假唤醒（spurious wakeups）。无端端地醒过来了。
 
 如果在MyWaitNotify的doWait()方法里发生了假唤醒，等待线程即使没有收到正确的信号，也能够执行后续的操作。这可能导致你的应用程序出现严重问题。
@@ -134,7 +135,7 @@ public class MyWaitNotify {
 }
 ```
 
-## 为什么wait，notify要在同步块代码中使用
+# 5. 为什么wait，notify要在同步块代码中使用
 
 我们先看下面的代码
 
@@ -162,7 +163,13 @@ public class MyWaitNotify {
 
 假设当前`count=0`，`doWait`方法检查到`count <= 0`，进入循环执行`wait`方法之前发生了线程上下文切换，此时`doNotify方法`执行`notifyAll`方法，由于`myMonitorObject`尚未调用`wait`，此时发出的notify就丢失了。这就是所谓的lost wake up问题。所以需要将wait、notify放在同步块中使用
 
-## 小结
+# 6. 为什么 wait/notify/notifyAll 被定义在 Object 类中，而 sleep 定义在 Thread 类中？
+
+因为 Java 中每个对象都有一把称之为 monitor 监视器的锁，由于每个对象都可以上锁，这就要求在对象头中有一个用来保存锁信息的位置。这个锁是对象级别的，而非线程级别的，wait/notify/notifyAll 也都是锁级别的操作，它们的锁属于对象，所以把它们定义在 Object 类中是最合适，因为 Object 类是所有对象的父类。
+
+因为如果把 wait/notify/notifyAll 方法定义在 Thread 类中，会带来很大的局限性，比如一个线程可能持有多把锁，以便实现相互配合的复杂逻辑，假设此时 wait 方法定义在 Thread 类中，如何实现让一个线程持有多把锁呢？又如何明确线程等待的是哪把锁呢？既然我们是让当前线程去等待某个对象的锁，自然应该通过操作对象来实现，而不是操作线程。
+
+# 7. 小结
 
 1. wait()、notify/notifyAll() 方法是Object的本地final方法，无法被重写。
 2. wait()使当前线程阻塞，前提是 必须先获得锁，一般配合synchronized 关键字使用，即，一般在synchronized 同步代码块里使用 wait()、notify/notifyAll() 方法。
@@ -174,6 +181,6 @@ public class MyWaitNotify {
 7. 在多线程中要测试某个条件的变化，使用if 还是while？要注意，notify唤醒沉睡的线程后，线程会接着上次的执行继续往下执行。所以在进行条件判断时候，可以先把 wait 语句忽略不计来进行考虑，显然，要确保程序一定要执行，并且要保证程序直到满足一定的条件再执行，要使用while来执行，以确保条件满足和一定执行。
 8. 在wait()/notify()机制中，不要使用全局对象，字符串常量等。应该使用对应唯一的对象
 
-# 参考资料
+# 7. 参考资料
 
 http://ifeve.com/thread-signaling/
