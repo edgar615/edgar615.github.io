@@ -26,7 +26,7 @@ permalink: thread-num.html
 
 我们的真实业务一般如下所示
 
-![](/assets/images/posts/thread-num/thread-num-1.jpg)
+![](/assets/images/posts/thread-num/thread-number-1.jpg)
 
 整个过程涉及到下列计算机处理流程
 
