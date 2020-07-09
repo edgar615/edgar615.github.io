@@ -87,25 +87,44 @@ public class SynchronizedDemo {
   }
 }
 ```
-执行`javap -c SynchronizedDemo.class`得到下面信息
+执行`javap -c -v SynchronizedDemo.class`得到下面信息
 ```
-Compiled from "SynchronizedDemo.java"
-public class thread.start.SynchronizedDemo {
-  public thread.start.SynchronizedDemo();
+// 省略部分内容
+{
+  public SynchronizedDemo();
+    descriptor: ()V
+    flags: ACC_PUBLIC
     Code:
-       0: aload_0
-       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
-       4: return
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: return
+      LineNumberTable:
+        line 1: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       5     0  this   LSynchronizedDemo;
 
   public synchronized void methodB();
+    descriptor: ()V
+    flags: ACC_PUBLIC, ACC_SYNCHRONIZED
     Code:
-       0: getstatic     #2                  // Field java/lang/System.out:Ljava/io/PrintStream;
-       3: ldc           #3                  // String synchronized
-       5: invokevirtual #4                  // Method java/io/PrintStream.println:(Ljava/lang/String;)V
-       8: return
+      stack=2, locals=1, args_size=1
+         0: getstatic     #2                  // Field java/lang/System.out:Ljava/io/PrintStream;
+         3: ldc           #3                  // String synchronized
+         5: invokevirtual #4                  // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+         8: return
+      LineNumberTable:
+        line 4: 0
+        line 5: 8
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       9     0  this   LSynchronizedDemo;
 }
 ```
 发现没有`monitorenter`和`monitorexit`，因为这里monitorenter 和 monitorexit 操作所对应的锁对象是隐式的
+
+被 synchronized 修饰的方法会有一个`ACC_SYNCHRONIZED`标志。当某个线程要访问某个方法的时候，会首先检查方法是否有`ACC_SYNCHRONIZED`标志，如果有则需要先获得 monitor 锁，然后才能开始执行方法，方法执行之后再释放 monitor 锁。
 
 # 重入机制
 
