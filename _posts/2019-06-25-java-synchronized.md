@@ -5,7 +5,7 @@ date: 2019-06-25
 categories:
     - 多线程
 comments: true
-permalink: java-concurrency-synchronized.html
+permalink: java-synchronized.html
 ---
 
 synchronized有以下三种使用方式:
