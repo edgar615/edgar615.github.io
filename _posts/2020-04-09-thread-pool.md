@@ -10,11 +10,14 @@ permalink: thread-pool.html
 
 > 本文大多数内容来自于美团的技术文章
 
-线程池（Thread Pool）是一种基于池化思想管理线程的工具，经常出现在多线程服务器中，如MySQL。
+# 1. 线程池
 
-线程过多会带来额外的开销，其中包括创建销毁线程的开销、调度线程的开销等等，同时也降低了计算机的整体性能。线程池维护多个线程，等待监督管理者分配可并发执行的任务。这种做法，一方面避免了处理任务时创建销毁线程开销的代价，另一方面避免了线程数量膨胀导致的过分调度问题，保证了对内核的充分利用。
+创建线程时会产生系统开销，并且每个线程还会占用一定的内存等资源，更重要的是我们创建如此多的线程也会给稳定性带来危害，因为每个系统中，可创建线程的数量是有一个上限的，不可能无限的创建。线程执行完需要被回收，大量的线程又会给垃圾回收带来压力。
 
-当然，使用线程池可以带来一系列好处：
+- 反复创建线程系统开销比较大，每个线程创建和销毁都需要时间，如果任务比较简单，那么就有可能导致创建和销毁线程消耗的资源比线程执行任务本身消耗的资源还要大。
+- 过多的线程会占用过多的内存等资源，还会带来过多的上下文切换，同时还会导致系统不稳定。
+
+线程池（Thread Pool）是一种基于池化思想管理线程的工具，经常出现在多线程服务器中，如MySQL。使用线程池可以带来一系列好处：
 
 - **降低资源消耗**：通过池化技术重复利用已创建的线程，降低线程创建和销毁造成的损耗。
 - **提高响应速度**：任务到达时，无需等待线程创建即可立即执行。
@@ -33,7 +36,7 @@ permalink: thread-pool.html
 
 > Pooling is the grouping together of resources (assets, equipment, personnel, effort, etc.) for the purposes of maximizing advantage or minimizing risk to the users. The term is used in finance, computing and equipment management.——wikipedia
 
-# 线程池核心设计与实现
+# 2. 线程池核心设计与实现
 
 JDK8提供了五种创建线程池的方法：
 
@@ -54,6 +57,7 @@ public static ExecutorService newFixedThreadPool(int nThreads) {
 - 由于阻塞队列是一个无界队列，因此永远不可能拒绝任务；
 - 由于采用了无界队列，实际线程数量将永远维持在nThreads，因此maximumPoolSize和keepAliveTime将无效。
 
+这里的重点是使用的队列是容量没有上限的 LinkedBlockingQueue，如果我们对任务的处理速度比较慢，那么随着请求的增多，队列中堆积的任务也会越来越多，最终大量堆积的任务会占用大量内存，并发生 OOM ，这几乎会影响到整个程序，会造成很严重的后果。
 
 2.(JDK8新增)会根据所需的并发数来动态创建和关闭线程。能够合理的使用CPU进行对任务进行并发操作，所以适合使用在很耗时的任务。
 
@@ -84,6 +88,8 @@ public static ExecutorService newCachedThreadPool() {
 - keepAliveTime为60S，意味着线程空闲时间超过60S就会被杀死；
 - 采用SynchronousQueue装等待的任务，这个阻塞队列没有存储空间，这意味着只要有请求到来，就必须要找到一条工作线程处理他，如果当前没有空闲的线程，那么就会再创建一条新的线程。
 
+CachedThreadPool和newFixedThreadPool不一样的地方在于任务队列使用的是 SynchronousQueue，SynchronousQueue 本身并不存储任务，而是对任务直接进行转发，这本身是没有问题的，但你会发现构造函数的第二个参数被设置成了 Integer.MAX_VALUE，这个参数的含义是最大线程数，所以由于 CachedThreadPool 并不限制线程的数量，当任务数量特别多的时候，就可能会导致创建非常多的线程，最终超过了操作系统的上限而无法创建新线程，或者导致内存不足。
+
 4.创建一个单线程的线程池。
 
 ```
@@ -98,6 +104,8 @@ public static ExecutorService newSingleThreadExecutor() {
 - 它只会创建一条工作线程处理任务；
 - 采用的阻塞队列为LinkedBlockingQueue；
 
+newSingleThreadExecutor 和 newFixedThreadPool 的原理是一样的，只不过把核心线程数和最大线程数都直接设置成了 1，但是任务队列仍是无界的 LinkedBlockingQueue，所以也会导致同样的问题，也就是当任务堆积时，可能会占用大量的内存并导致 OOM。
+
 5.创建一个定长线程池，支持定时及周期性任务执行。
 
 ```
@@ -107,20 +115,22 @@ public static ScheduledExecutorService newScheduledThreadPool(int corePoolSize) 
 ```
 
 - 它采用DelayQueue存储等待的任务，DelayQueue内部封装了一个PriorityQueue，它会根据time的先后时间排序，若time相同则根据sequenceNumber排序；
-- DelayQueue也是一个无界队列；
+- DelayQueue也是一个无界的延迟队列；
 
 工作线程的执行过程：
 
 - 工作线程会从DelayQueue取已经到期的任务去执行；
 - 执行结束后重新设置任务的到期时间，再次放回DelayQueue
 
+DelayedWorkQueue是一个延迟队列，同时也是一个无界队列，所以和 LinkedBlockingQueue 一样，如果队列中存放过的任务，就可能导致 OOM。
+
 所有线程池的工作方式本质是一样的：
 
 **有一个队列，任务被提交到这个队列中。一定数量的线程会从该队列中取任务，然后执行。**
 
-# 实现
+# 3. 实现
 
-## UML
+## 3.1. UML
 
 ![](/assets/images/posts/thread-pool/thread-pool-1.png)
 
@@ -134,7 +144,7 @@ ThreadPoolExecutor的运行机制如下图所示：
 
 线程池在内部实际上构建了一个生产者消费者模型，将线程和任务两者解耦，并不直接关联，从而良好的缓冲任务，复用线程。线程池的运行主要分成两部分：任务管理、线程管理。任务管理部分充当生产者的角色，当任务提交后，线程池会判断该任务后续的流转：（1）直接申请线程执行该任务；（2）缓冲到队列中等待线程执行；（3）拒绝该任务。线程管理部分是消费者，它们被统一维护在线程池内，根据任务请求进行线程的分配，当线程执行完任务后则会继续获取新的任务去执行，最终当线程获取不到任务的时候，线程就会被回收。
 
-## 构造函数
+## 3.2. 构造函数
 
 ```
 public ThreadPoolExecutor(int corePoolSize,
@@ -158,7 +168,7 @@ public ThreadPoolExecutor(int corePoolSize,
 
 corePoolSize，maximumPoolSize，workQueue之间关系，会在后面任务调度部分介绍。
 
-## 线程池的状态（生命周期）
+## 3.3. 线程池的状态（生命周期）
 
 线程池运行的状态，并不是用户显式设置的，而是伴随着线程池的运行，由内部来维护。线程池内部使用一个变量维护两个值：运行状态(runState)和线程数量 (workerCount)。在具体实现中，线程池将运行状态(runState)、线程数量 (workerCount)两个关键参数的维护放在了一起，如下代码所示：
 
@@ -194,7 +204,7 @@ ctl这个AtomicInteger类型，是对线程池的运行状态和线程池中有�
 
 ![](/assets/images/posts/thread-pool/thread-pool-3.jpg)
 
-## 任务调度
+## 3.5. 任务调度
 
 任务调度是线程池的主要入口，当用户提交了一个任务，接下来这个任务将如何执行都是由这个阶段决定的。了解这部分就相当于了解了线程池的核心运行机制。
 
@@ -371,7 +381,7 @@ private boolean addWorker(Runnable firstTask, boolean core) {
 
 ![](/assets/images/posts/thread-pool/thread-pool-5.png)
 
-## Worker线程
+## 3.6. Worker线程
 
 线程池为了掌握线程的状态并维护线程的生命周期，设计了线程池内的工作线程Worker
 
@@ -481,7 +491,7 @@ final void runWorker(Worker w) {
 
 ![](/assets/images/posts/thread-pool/thread-pool-6.jpg)
 
-### getTask
+### 3.6.1. getTask
 
 ```java
 private Runnable getTask() {
@@ -532,7 +542,7 @@ getTask这部分进行了多次判断，为的是控制线程的数量，使其�
 
 ![](/assets/images/posts/thread-pool/thread-pool-7.png)
 
-### 回收线程
+### 3.6.2. 回收线程
 
 线程池中线程的销毁依赖JVM自动的回收，线程池做的工作是根据当前线程池的状态维护一定数量的线程引用，防止这部分线程被JVM回收，当线程池决定哪些线程需要回收时，只需要将其引用消除即可。Worker被创建出来后，就会不断地进行轮询，然后获取任务去执行，核心线程可以无限等待获取任务，非核心线程要限时获取任务。当Worker无法获取到任务，也就是获取的任务为空时，循环会结束，Worker会主动消除自身在线程池内的引用。线程回收的工作是在processWorkerExit方法完成的。
 
@@ -583,7 +593,7 @@ Worker是通过继承AQS，使用AQS来实现独占锁这个功能。没有使�
 
 ![](/assets/images/posts/thread-pool/thread-pool-11.jpg)
 
-# 任务缓冲
+# 4. 任务缓冲
 
 任务缓冲模块是线程池能够管理任务的核心部分。线程池的本质是对任务和线程的管理，而做到这一点最关键的思想就是将任务和线程两者解耦，不让两者直接关联，才可以做后续的分配工作。线程池中是以生产者消费者模式，通过一个阻塞队列来实现的。阻塞队列缓存任务，工作线程从阻塞队列中获取任务。
 
@@ -597,7 +607,7 @@ Worker是通过继承AQS，使用AQS来实现独占锁这个功能。没有使�
 
 ![](/assets/images/posts/thread-pool/thread-pool-10.jpg)
 
-# 任务拒绝
+# 5. 任务拒绝
 
 任务拒绝模块是线程池的保护部分，线程池有一个最大的容量，当线程池的任务缓存队列已满，并且线程池中的线程数目达到maximumPoolSize时，就需要拒绝掉该任务，采取任务拒绝策略，保护线程池。
 
@@ -775,6 +785,8 @@ Java中的`BlockingQueue`主要有两种实现，分别是`ArrayBlockingQueue` �
 而`newFixedThreadPool`中创建`LinkedBlockingQueue`时，并未指定容量。此时，`LinkedBlockingQueue`就是一个无边界队列，对于一个无边界队列来说，是可以不断的向队列中加入任务的，这种情况下就有可能因为任务过多而导致内存溢出问题。
 
 上面提到的问题主要体现在`newFixedThreadPool`和`newSingleThreadExecutor`两个工厂方法上，并不是说`newCachedThreadPool`和`newScheduledThreadPool`这两个方法就安全了，这两种方式创建的最大线程数可能是`Integer.MAX_VALUE`，而创建这么多线程，必然就有可能导致OOM。
+
+**所以相比较而言，我们自己手动创建会更好，因为我们可以更加明确线程池的运行规则，不仅可以选择适合自己的线程数量，更可以在必要的时候拒绝新任务的提交，避免资源耗尽的风险。**
 
 # 参考资料
 
