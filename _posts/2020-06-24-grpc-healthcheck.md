@@ -78,6 +78,10 @@ logger.info("HealthCheck: " + response.getStatus());
 
 如果客户端传入了服务端没有定义的服务会抛出StatusRuntimeException
 
+```
+new StatusException(Status.NOT_FOUND.withDescription("unknown service " + request.getService()))
+```
+
 - Watch方法
 
 客户端可以调用Watch方法来执行流式运行状况检查。服务器将立即发回指示当前服务状态的消息。随后，每当服务的服务状态发生变化时，它将发送一条新消息。
