@@ -60,7 +60,7 @@ RPC 调用失败可以分为三种情况：
 ```
 ManagedChannel channel = ManagedChannelBuilder.forTarget(target)
         .defaultServiceConfig(getRetryingServiceConfig())
-        .enableRetry() // 重要
+        .enableRetry() // 重要，客户端是默认关闭了重试的
         .usePlaintext()
         .build();
         
