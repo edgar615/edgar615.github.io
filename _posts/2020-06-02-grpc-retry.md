@@ -119,5 +119,27 @@ protected static Map<String, ?> getRetryingServiceConfig() {
     - **nonFatalStatusCodes** 当对冲请求接收到 nonFatalStatusCodes后，会立即发送下一个对冲请求，不管 hedgingDelay。如果受到其他的状态码，则所有未完成的对冲请求都将被取消，并且将状态码返回给调用者
 本质上，对冲可以看做是受到 FatalStatusCodes 前对 RPC 调用的重试。**可选的字段，因为在上一个请求没有响应的时候也会发送对冲请求**
 
-**测试没有验证成功，后面有机会再检查问题**
-   
+**在本地测试时第一次不会使用对冲策略，第二次才会使用，后面有机会再检查问题，DEBUG后发现，第一次调用时认为GRC未初始化完成，不会使用我们自定义的对冲策略。所以这个特性暂时还用不了，等后面搞清楚再补充**
+
+# 3. 重试限流
+
+当客户端的失败和成功比超过某个阈值时，gRPC 会通过禁用这些重试策略来防止由于重试导致服务器过载
+
+```
+"retryThrottling": {
+    "maxTokens": 10,
+    "tokenRatio": 0.1
+}
+```
+
+重试限流是根据服务器来设置的，而不是针对方法或者服务。对于每个 server，gRPC 的客户端都维护了一个 token_count 变量，变量初始值为配置的 maxTokens 值，值的范围是 0 - maxToken，每次 RPC 请求都会影响这个 token_count 变量值：
+
+- 每次失败的 RPC 请求都会对 token_count 减 1
+- 每次成功的 RPC 请求都会对 token_count 增加 tokenRatio 值
+
+如果 `token_count <= (maxTokens / 2)`，那么后续发出的请求即使失败也不会进行重试了，但是正常的请求还是会发出去，直到这个 `token_count > (maxTokens / 2)` 才又恢复对失败请求的重试。这种策略可以有效的处理长时间故障。
+
+tokenRatio介于0~1之间，支持3位小数
+
+> 网上有篇文章说可以通过服务端返回头`grpc-retry-pushback-ms`让客户端发起重试，后续测试
+> 也说可以在请求头中获取到`grpc-previous-rpc-attempts`，未测试成功
