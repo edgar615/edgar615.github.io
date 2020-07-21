@@ -25,7 +25,7 @@ permalink: java-insert-large-data-mysql.html
 
 **一条条插入**
 
-- 1K: 2037ms
+- 1K: 2180ms
 - 1W: 15650ms
 - 10W: 155154ms
 - 50W: 752434ms
@@ -33,7 +33,7 @@ permalink: java-insert-large-data-mysql.html
 
 **使用batch**
 
-- 1K: 2816ms
+- 1K: 1930ms
 - 1W: 18404ms
 - 10W: 168810ms
 - 50W: 835741ms
@@ -43,7 +43,7 @@ permalink: java-insert-large-data-mysql.html
 
 **setAutoCommit(false)，一条条插入**
 
-- 1K: 285ms
+- 1K: 262ms
 - 1W: 4738ms
 - 10W: 24146ms
 - 50W: 118544ms
@@ -54,7 +54,7 @@ permalink: java-insert-large-data-mysql.html
 
 **setAutoCommit(false)，使用batch**
 
-- 1K: 522ms
+- 1K: 505ms
 - 1W: 4394ms
 - 10W: 42241ms
 - 50W: 208635ms
