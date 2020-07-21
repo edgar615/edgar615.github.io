@@ -13,9 +13,9 @@ permalink: java-insert-large-data-mysql.html
 测试了四张插入方式
 
 1. 一条一条插入
-2. 使用batch，一次插入10000条
+2. 使用batch
 3. setAutoCommit(false)，一条条插入
-4. setAutoCommit(false)，使用batch，一次插入10000条
+4. setAutoCommit(false)，使用batch
 
 分别插入1K，1W，10W，50W，100W，500W，1000W数据
 
@@ -31,12 +31,12 @@ permalink: java-insert-large-data-mysql.html
 - 50W: 752434ms
 - 100W:
 
-**使用batch，一次插入10000条**
+**使用batch**
 
-- 1K: 1770ms
-- 1W: 17287ms
-- 10W: 169440ms
-- 50W: 834172ms
+- 1K: 2816ms
+- 1W: 18404ms
+- 10W: 168810ms
+- 50W: 835741ms
 - 100W:
 - 500W:
 - 1000W: 
@@ -52,12 +52,12 @@ permalink: java-insert-large-data-mysql.html
 - 1000W: 
 
 
-**setAutoCommit(false)，使用batch，一次插入10000条**
+**setAutoCommit(false)，使用batch**
 
-- 1K: 621ms
-- 1W: 5317ms
-- 10W: 46911ms
-- 50W: 224009ms
+- 1K: 522ms
+- 1W: 4394ms
+- 10W: 42241ms
+- 50W: 208635ms
 - 100W:
 - 500W:
 - 1000W: 
