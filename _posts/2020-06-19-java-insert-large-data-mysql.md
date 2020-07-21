@@ -19,34 +19,34 @@ permalink: java-insert-large-data-mysql.html
 
 分别插入1K，1W，10W，50W，100W，500W，1000W数据
 
-BUFFER配置512M
+在Buffer比较小的时候，数据偏差较大，将Buffer设为5G，ChangeBuffer设为50%
 
 结果如下
 
 **一条条插入**
 
-- 1K: 1625ms
-- 1W: 4231ms
-- 10W: 92044ms
-- 50W: 464579ms
+- 1K: 2037ms
+- 1W: 15650ms
+- 10W: 155154ms
+- 50W: 752434ms
 - 100W:
 
 **使用batch，一次插入10000条**
 
-- 1K: 2562ms
-- 1W: 14433ms
-- 10W: 119421ms
-- 50W: 574060ms
+- 1K: 1770ms
+- 1W: 17287ms
+- 10W: 169440ms
+- 50W: ms
 - 100W:
 - 500W:
 - 1000W: 
 
 **setAutoCommit(false)，一条条插入**
 
-- 1K: 854ms
+- 1K: 285ms
 - 1W: 4738ms
-- 10W: 29980ms
-- 50W: 13852ms
+- 10W: 24146ms
+- 50W: ms
 - 100W:
 - 500W:
 - 1000W: 
@@ -54,10 +54,10 @@ BUFFER配置512M
 
 **setAutoCommit(false)，使用batch，一次插入10000条**
 
-- 1K: 1439ms
-- 1W: 7853ms
-- 10W: 52930ms
-- 50W: 251585ms
+- 1K: 621ms
+- 1W: 5317ms
+- 10W: 46911ms
+- 50W: ms
 - 100W:
 - 500W:
 - 1000W: 
