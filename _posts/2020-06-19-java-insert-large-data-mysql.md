@@ -36,7 +36,7 @@ permalink: java-insert-large-data-mysql.html
 - 1K: 1770ms
 - 1W: 17287ms
 - 10W: 169440ms
-- 50W: ms
+- 50W: 834172ms
 - 100W:
 - 500W:
 - 1000W: 
@@ -46,7 +46,7 @@ permalink: java-insert-large-data-mysql.html
 - 1K: 285ms
 - 1W: 4738ms
 - 10W: 24146ms
-- 50W: ms
+- 50W: 118544ms
 - 100W:
 - 500W:
 - 1000W: 
@@ -57,7 +57,7 @@ permalink: java-insert-large-data-mysql.html
 - 1K: 621ms
 - 1W: 5317ms
 - 10W: 46911ms
-- 50W: ms
+- 50W: 224009ms
 - 100W:
 - 500W:
 - 1000W: 
