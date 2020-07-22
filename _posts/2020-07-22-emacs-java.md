@@ -14,7 +14,7 @@ permalink: emacs-java.html
 
 安装emacs和Spacemacs很简单，不写了，首次运行emacs会安装插件并创建Spacemacs的配置文件`.spacemacs`
 
-1. 添加国内源
+# 1. 添加国内源
 
 默认源比较慢，可以使用清华大学的源
 
@@ -27,10 +27,10 @@ permalink: emacs-java.html
       ("gnu-cn"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")))
 ```
 
-2. 显示行号
+# 2. 显示行号
 在`defun dotspacemacs/init`中找到 `dotspacemacs-line-numbers nil`，将`nil`改为t
 
-3. 显示80字符的column
+# 3. 显示80字符的column
 
 官网 https://github.com/alpaker/Fill-Column-Indicator
 
@@ -45,5 +45,26 @@ fci-mode t
    fci-rule-column 120
 ```
 
-4. 增加Java的layer
+# 4. 增加Java的layer
 在`dotspacemacs-configuration-layers`中添加 `(java :variables java-backend 'meghanada)`
+
+# 5. 关闭自动更新
+每次启动都要更新，浪费时间
+
+`dotspacemacs-check-for-update nil`改为 `dotspacemacs-check-for-update t`
+
+没起作用
+
+# 6. 语法检查
+在`dotspacemacs-configuration-layers`中开启`syntax-checking`
+
+(setq-default dotspacemacs-configuration-layers
+  '((syntax-checking :variables syntax-checking-enable-tooltips nil)))
+
+# 快捷键
+
+- SPC 	space
+- C 	ctrl
+- M 	alt
+- S 	shift
+- DEL 	backspace
