@@ -59,7 +59,14 @@ fci-mode t
 在`dotspacemacs-configuration-layers`中开启`syntax-checking`
 
 (setq-default dotspacemacs-configuration-layers
-  '((syntax-checking :variables syntax-checking-enable-tooltips nil)))
+  '((syntax-checking :variables syntax-checking-enable-tooltips t)))
+
+# 7. 运行Java程序
+
+两种方式
+
+- 通过maven ` mvn exec:java -Dexec.mainClass=com.github.edgar615.HelloWorldServer`
+- 通过alt+x: meghanada-exec-main 运行main方法(两次SPC呼出)
 
 # 快捷键
 
