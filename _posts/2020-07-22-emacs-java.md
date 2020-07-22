@@ -1,0 +1,49 @@
+---
+layout: post
+title: 使用Spacemacs搭建Java开发环境
+date: 2020-07-22
+categories:
+    - linux
+comments: true
+permalink: emacs-java.html
+---
+
+因为特殊原因，需要在shell下写点Java项目，选择了Spacemacs搭建环境
+
+**emacs一定要装最新版本，我是26.3，在24，25,26.0版本上都出现了错误**
+
+安装emacs和Spacemacs很简单，不写了，首次运行emacs会安装插件并创建Spacemacs的配置文件`.spacemacs`
+
+1. 添加国内源
+
+默认源比较慢，可以使用清华大学的源
+
+在`dotspacemacs/user-init`中添加
+
+```
+(setq configuration-layer-elpa-archives
+    '(("melpa-cn" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
+      ("org-cn"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/org/")
+      ("gnu-cn"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")))
+```
+
+2. 显示行号
+在`defun dotspacemacs/init`中找到 `dotspacemacs-line-numbers nil`，将`nil`改为t
+
+3. 显示80字符的column
+
+官网 https://github.com/alpaker/Fill-Column-Indicator
+
+在`dotspacemacs-additional-packages`中添加 `(require 'fill-column-indicator)`
+
+对所有文件开启：在`dotspacemacs/user-init`中添加`(add-hook 'after-change-major-mode-hook 'fci-mode)`
+
+在`defun dotspacemacs/init`修改默认参数，将分隔符改为120
+
+```
+fci-mode t
+   fci-rule-column 120
+```
+
+4. 增加Java的layer
+在`dotspacemacs-configuration-layers`中添加 `(java :variables java-backend 'meghanada)`
