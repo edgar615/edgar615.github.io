@@ -22,9 +22,9 @@ RPC的负载均衡一般不会采用硬件负载均衡或者基于四层代理�
 ## 1.1. 代理模型
 客户端并不知道服务端的存在，它所有的请求都打到代理服务，由代理服务去分发到服务端，并且实现公平的负载算法。 客户机可能不可信，这种情况通过用户面向用户的服务，类似于我们的nginx将请求分发到后端机器。
 
-![](/assets/images/posts/rpg-loadbalance/rpc-loadbalance-1.png)
+![](/assets/images/posts/rpc-loadbalance/rpc-loadbalance-1.png)
 
-![](/assets/images/posts/rpg-loadbalance/rpc-loadbalance-2.png)
+![](/assets/images/posts/rpc-loadbalance/rpc-loadbalance-2.png)
 
 缺点： 客户端不知道后端的存在，且客户端不可信，此模型还好增加RPC的延迟，而且代理服务会影响服务本身的吞吐量
 
@@ -33,7 +33,7 @@ RPC的负载均衡一般不会采用硬件负载均衡或者基于四层代理�
 ## 1.2. 客户端负载均衡方式(进程内LB（Balancing-aware Client）)
 客户端知道有多个后端服务，由客户端去选择服务端，并且客户端可以从后端服务器中自己总结出一份负载的信息，实现负载均衡算法。例如，客户端可以包含许多用于从列表中选择服务器的负载均衡策略（循环，随机等）。在此模型中，服务器列表将在客户端中静态配置，由名称解析系统提供，外部负载均衡器等。在任何情况下，客户端都负责从列表中选择首选服务器。
 
-![](/assets/images/posts/rpg-loadbalance/rpc-loadbalance-3.png)
+![](/assets/images/posts/rpc-loadbalance/rpc-loadbalance-3.png)
 
 优点：高性能，因为消除了第三方的交互
 
@@ -65,7 +65,7 @@ L3/L4 级别的负载均衡按设计只做很少的处理，与L7级别的负载
 # 3.1. 进程内LB（Balancing-aware Client）
 这个较重的客户端将更多的负载均衡逻辑放在客户端中。例如，客户端可以包含许多用于从列表中选择服务端的负载均衡策略（循环，随机等）。客户端还负责跟踪可用的服务器。客户端通常需要集成其他基础设施（如服务发现、名称解析、配额管理）。
 
-![](/assets/images/posts/rpg-loadbalance/rpc-loadbalance-4.png)
+![](/assets/images/posts/rpc-loadbalance/rpc-loadbalance-4.png)
 
 这种方法的缺点之一是以多种语言和/或客户端版本编写和维护负载均衡策略。这些策略可能相当复杂。一些算法还需要客户端到服务器通信，因此除了为用户请求发送 RPC 之外，客户端还需要更重，以支持其他 RPC 来获取运行状况或负载信息。
 
@@ -75,9 +75,9 @@ L3/L4 级别的负载均衡按设计只做很少的处理，与L7级别的负载
 
 客户端负载均衡代码保持简单和可移植，实现用于服务端选择的众所周知的算法（例如，循环）。 复杂的负载均衡算法和功能再一个单独的负载均衡服务中实现。客户端只需要查下这个旁观式的负载均衡服务，这个服务就能给你最佳的服务器信息，然后客户端再拿着这个数据去请求相应的服务端。 负载均衡器可以与后端服务器通信以收集负载和健康信息。
 
-![](/assets/images/posts/rpg-loadbalance/rpc-loadbalance-5.png)
+![](/assets/images/posts/rpc-loadbalance/rpc-loadbalance-5.png)
 
-![](/assets/images/posts/rpg-loadbalance/rpc-loadbalance-6.png)
+![](/assets/images/posts/rpc-loadbalance/rpc-loadbalance-6.png)
 
 # 4. 负载均衡策略
 RPC 负载均衡策略一般包括随机、轮询、权重、Hash等方式。其中的轮询策略应该是我们最常用的一种了，通过随机算法，我们基本可以保证每个节点接收到的请求流量是均匀的；同时我们还可以通过控制节点权重的方式，来进行流量控制。比如我们默认每个节点的权重都是 100，但当我们把其中的一个节点的权重设置成 50 时，它接收到的流量就是其他节点的 1/2。
