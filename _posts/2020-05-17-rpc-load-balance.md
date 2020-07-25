@@ -58,7 +58,26 @@ L3/L4 级别的负载均衡按设计只做很少的处理，与L7级别的负载
 3. 设备资源少（缺钱）： 建议使用 L3/L4.
 4. 对延迟要求很严格（就是要快）： L3/L4.
 
+# 3. 客户端负载均衡的实现方式
 
+客户端负载均衡的实现有两种：进程内LB（Balancing-aware Client）和 独立 LB 进程（External Load Balancing Service）
+
+# 3.1. 进程内LB（Balancing-aware Client）
+这个较重的客户端将更多的负载均衡逻辑放在客户端中。例如，客户端可以包含许多用于从列表中选择服务器的负载均衡策略（循环，随机等）。客户端还负责跟踪可用的服务器。客户端通常需要集成其他基础设施（如服务发现、名称解析、配额管理）。
+
+![](/assets/images/posts/rpg-loadbalance/rpc-loadbalance-4.png)
+
+这种方法的缺点之一是以多种语言和/或客户端版本编写和维护负载均衡策略。这些策略可能相当复杂。一些算法还需要客户端到服务器通信，因此除了为用户请求发送 RPC 之外，客户端还需要更重，以支持其他 RPC 来获取运行状况或负载信息。
+
+# 3.2. 独立 LB 进程（External Load Balancing Service）
+
+也叫Lookaside 负载均衡（旁观式）
+
+客户端负载均衡代码保持简单和可移植，实现用于服务器选择的众所周知的算法（例如，循环）。 复杂的负载均衡算法和功能再一个单独的负载均衡服务中实现。客户端只需要查下这个旁观式的负载均衡服务，这个服务就能给你最佳的服务器信息，然后客户端再拿着这个数据去请求相应的服务端。 负载均衡器可以与后端服务器通信以收集负载和健康信息。
+
+![](/assets/images/posts/rpg-loadbalance/rpc-loadbalance-5.png)
+
+![](/assets/images/posts/rpg-loadbalance/rpc-loadbalance-6.png)
 
 # 参考资料
 
