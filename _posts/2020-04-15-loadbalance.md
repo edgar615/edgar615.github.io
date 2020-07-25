@@ -107,9 +107,36 @@ permalink: loadbalance.html
 
 七层负载均衡在时间和计算量方面比第四层更加昂贵，不过它可以提供更丰富的功能，从而带来更高的整体效率。比如七层负载均衡器可以确定客户端请求的数据类型，从而不必在所有的服务器上复制相同的数据。
 
+LVS(Linux虚拟服务)是工作在第四层的负载均衡软件，在各个主要用来构建高可用的网络服务，比如Web服务、电子邮件服务、媒体服务、语音服务等。
+
+> 再工作中没接触过LVS
+
 Nginx既可以作为四层负载均衡器使用，也可以作为七层负载均衡器使用。这里将主要介绍七层负载均衡的使用。
 
-本文主要介绍基于nginx实现的负载均衡
+Nginx最简单的负载均衡配置如下
+
+```
+# http协议块
+http {
+    # 上游配置
+    upstream myapp1 {
+        server 192.168.1.101;
+        server 192.168.1.102;
+        server 192.168.1.103;
+    }
+    # server块配置
+    server {
+        # 监听端口
+        listen 80;
+        # location配置
+        location / {
+            proxy_pass http://myapp1;
+        }
+    }
+}
+```
+
+Nginx的代理支持HTTP、HTTPS、FastCGI、uwsgi、SCGI、memcached和gRPC协议。
 
 # 负载均衡算法
 ## 随机(Random)
@@ -129,6 +156,8 @@ upstream my_service {
 }
 ```
 
+Nginx无法保证同一客户端每次都会请求到同一个服务器。
+
 ## 加权轮循(Weighted Round Robin)
 
 这种算法解决了简单轮循调度算法的缺点：传入的请求按顺序被分配到集群中服务器，但是会考虑提前为每台服务器分配的权重。管理员只是简单的通过服务器的处理能力来定义各台服务器的权重。例如，能力最强的服务器A给的权重是100，同时能力最低的服务器给的权重是50。这意味着在服务器B接收到第一个请求之前前，服务器A会连续的接受到2个请求，以此类推。
@@ -141,6 +170,9 @@ upstream my_service_weight {
 	  server 192.168.3.8:9001 weight=2;
 }
 ```
+
+Nginx无法保证同一客户端每次都会请求到同一个服务器。
+
 
 算法逻辑
 
@@ -196,6 +228,8 @@ upstream my_service_least_conn {
 	  server 192.168.3.8:9001;
 }
 ```
+
+Nginx无法保证同一客户端每次都会请求到同一个服务器。
 
 ## 加权最少连接(Weighted Least Connection)
 
@@ -291,3 +325,5 @@ upstream my_service_url_hash {
 # 参考资料
 
 https://mp.weixin.qq.com/s/4GuAT1TncctCdPIyK2bGWQ
+
+https://mp.weixin.qq.com/s/5K36wNsZjFnuQMfuFcNv8Q
