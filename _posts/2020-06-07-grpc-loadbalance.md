@@ -103,6 +103,7 @@ public class LocalNameResolver extends NameResolver {
     }
 }
 ```
+主要逻辑就是`List<EquivalentAddressGroup> equivalentAddressGroups`的维护，这个变量可以也可以防止start方法中再创建.
 
 两个start方法都可以，推荐使用`start(Listener2 listener)`方法，因为`start(final Listener listener)`实际上也是调用的这个方法
 
