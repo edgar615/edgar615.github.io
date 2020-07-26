@@ -32,3 +32,103 @@ gRPC 开源组件官方并未直接提供服务注册与发现的功能实现，
     - c. 负载均衡器将服务器列表返回给 gRPC 客户端的 grpclb 策略。然后，grpclb 策略将为列表中的每个服务器创建一个子通道。
 4. 对于发送的每个 RPC ，负载平衡策略决定应将 RPC 发送到哪个子通道（即哪个服务器）。
     - 对于 grpclb 策略，客户端将按负载均衡器返回的顺序向服务器发送请求。如果服务器列表为空，则调用将阻塞，直到收到非空的调用。
+
+创建3个服务端
+
+```java
+public class HelloWorldServer {
+    private static final Logger LOGGER = Logger.getLogger(HelloWorldServer.class.getSimpleName());
+    private static void startServer(String name, int port) throws IOException, InterruptedException {
+        Server server = ServerBuilder
+                .forPort(port)
+                .addService(new GreeterImpl(name))
+                .build();
+
+        server.start();
+        System.out.println(name + " server started, listening on port: " + server.getPort());
+        server.awaitTermination();
+    }
+
+    public static void main(String[] args) throws Exception {
+        final int nServers = 3;
+        ExecutorService executorService = Executors.newFixedThreadPool(nServers);
+        for (int i = 0; i < nServers; i++) {
+            String name = "Server_" + i;
+            int port = 50050 + i;
+            executorService.submit(() -> {
+                try {
+                    startServer(name, port);
+                } catch (IOException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+
+    }
+}
+```
+
+客户端
+
+首先我们需要实现名称解析，获取所有的IP地址，GRPC默认使用DNS名称解析，但如果我们想使用服务注册组件，如Eureka、Consul，我们需要实现自己的名称解析。
+
+```java
+public class LocalNameResolver extends NameResolver {
+    private final List<EquivalentAddressGroup> equivalentAddressGroups;
+
+    public LocalNameResolver(List<EquivalentAddressGroup> equivalentAddressGroups) {
+        this.equivalentAddressGroups = equivalentAddressGroups;
+    }
+
+
+    @Override
+    public String getServiceAuthority() {
+        return "fakeAuthority";
+    }
+
+
+//    @Override
+//    public void start(Listener2 listener) {
+//        listener.onResult(ResolutionResult.newBuilder()
+//                .setAddresses(equivalentAddressGroups)
+//                .setAttributes(Attributes.EMPTY)
+//                .build());
+//    }
+
+    @Override
+    public void start(Listener listener) {
+        listener.onAddresses(equivalentAddressGroups, Attributes.EMPTY);
+    }
+
+    @Override
+    public void shutdown() {
+
+    }
+}
+```
+
+两个start方法都可以，推荐使用`start(Listener2 listener)`方法，因为`start(final Listener listener)`实际上也是调用的这个方法
+
+```java
+  public void start(final Listener listener) {
+    if (listener instanceof Listener2) {
+      start((Listener2) listener);
+    } else {
+      start(new Listener2() {
+          @Override
+          public void onError(Status error) {
+            listener.onError(error);
+          }
+
+          @Override
+          public void onResult(ResolutionResult resolutionResult) {
+            listener.onAddresses(resolutionResult.getAddresses(), resolutionResult.getAttributes());
+          }
+      });
+    }
+  }
+```
+
+# 参考资料
+
+https://github.com/grpc/grpc/blob/master/doc/load-balancing.md
