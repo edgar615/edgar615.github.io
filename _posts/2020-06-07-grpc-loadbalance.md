@@ -89,17 +89,12 @@ public class LocalNameResolver extends NameResolver {
     }
 
 
-//    @Override
-//    public void start(Listener2 listener) {
-//        listener.onResult(ResolutionResult.newBuilder()
-//                .setAddresses(equivalentAddressGroups)
-//                .setAttributes(Attributes.EMPTY)
-//                .build());
-//    }
-
     @Override
-    public void start(Listener listener) {
-        listener.onAddresses(equivalentAddressGroups, Attributes.EMPTY);
+    public void start(Listener2 listener) {
+        listener.onResult(ResolutionResult.newBuilder()
+                .setAddresses(equivalentAddressGroups)
+                .setAttributes(Attributes.EMPTY)
+                .build());
     }
 
     @Override
