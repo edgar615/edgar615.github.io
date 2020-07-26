@@ -72,6 +72,8 @@ public class HelloWorldServer {
 
 首先我们需要实现名称解析，获取所有的IP地址，GRPC默认使用DNS名称解析，但如果我们想使用服务注册组件，如Eureka、Consul，我们需要实现自己的名称解析。
 
+实现自己的名称解析只需要集成`NameResolver`即可
+
 ```java
 public class LocalNameResolver extends NameResolver {
     private final List<EquivalentAddressGroup> equivalentAddressGroups;
@@ -127,6 +129,93 @@ public class LocalNameResolver extends NameResolver {
       });
     }
   }
+```
+
+`getServiceAuthority()`方法返回用于验证与服务器的连接的权限(authority)。 必须来自受信任的来源，因为如果权限被篡改，RPC可能被发送到攻击者，泄露敏感用户数据。
+实现必须以不阻塞的方式生成它，通常在一行中(in line)，必须保持不变。使用同样的参数从同一个的 factory 中创建出来的 NameResolver 必须返回相同的 authority 。
+
+继承`NameResolver.Factory`抽象类，实现`newNameResolver`方法
+
+```java
+public class LocalNameResolverFactory extends NameResolver.Factory {
+
+    private final List<EquivalentAddressGroup> equivalentAddressGroups;
+
+    public LocalNameResolverFactory(SocketAddress... addresses) {
+        this.equivalentAddressGroups = Arrays.stream(addresses)
+                .map(EquivalentAddressGroup::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 服务协议
+     * @return
+     */
+    @Override
+    public String getDefaultScheme() {
+        return "local";
+    }
+
+    @Override
+    public NameResolver newNameResolver(URI targetUri, NameResolver.Args args) {
+        return new LocalNameResolver(equivalentAddressGroups);
+    }
+}
+```
+
+`newNameResolver(URI targetUri, NameResolver.Args args)`方法创建 NameResolver 用于给定的目标URI，或者在给定URI无法被这个 factory 解析时返回 null。决定应该仅仅基于 URI 的 scheme。
+参数 targetUri 表示要解析的目标 URI，而这个 URI 的 scheme 必须不能为 null。它是在初始化Channel的时候传入，`ManagedChannelBuilder.forTarget(target)`
+
+`getDefaultScheme()` 返回默认的scheme， 当 ManagedChannelBuilder.forTarget(String) 方法传入的字符串而不是合法的URI时，会用这个返回值构建 URI 。
+
+```
+targetUri = new URI(nameResolverFactory.getDefaultScheme(), "", "/" + target, null);
+```
+
+也可以继承`NameResolverProvider`，它也继承自`NameResolver.Factory`，多了几个辅助方法
+
+客户端实现
+
+```
+List<SocketAddress> socketAddresses = new ArrayList<>();
+socketAddresses.add(new InetSocketAddress("localhost", 50052));
+socketAddresses.add(new InetSocketAddress("localhost", 50051));
+socketAddresses.add(new InetSocketAddress("localhost", 50050));
+
+NameResolver.Factory factory = new LocalNameResolverFactory(socketAddresses.toArray(new SocketAddress[0]));
+
+ManagedChannel channel = ManagedChannelBuilder.forTarget(target)
+		.nameResolverFactory(factory)
+		.defaultLoadBalancingPolicy("round_robin")
+		.usePlaintext()
+		.build();
+GreeterGrpc.GreeterBlockingStub stub = GreeterGrpc.newBlockingStub(channel);
+for (int i = 0; i < 10; i++) {
+	HelloRequest request = HelloRequest.newBuilder().setName("Edgar").build();
+	HelloReply response;
+	try {
+		response = stub.sayHello(request);
+	} catch (StatusRuntimeException e) {
+		logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+		return;
+	}
+	logger.info("Greeting: " + response.getMessage());
+}
+```
+
+输出如下
+
+```
+信息: Greeting: Server_0 say Hello Edgar
+信息: Greeting: Server_0 say Hello Edgar
+信息: Greeting: Server_1 say Hello Edgar
+信息: Greeting: Server_2 say Hello Edgar
+信息: Greeting: Server_0 say Hello Edgar
+信息: Greeting: Server_1 say Hello Edgar
+信息: Greeting: Server_2 say Hello Edgar
+信息: Greeting: Server_0 say Hello Edgar
+信息: Greeting: Server_1 say Hello Edgar
+信息: Greeting: Server_2 say Hello Edgar
 ```
 
 # 参考资料
