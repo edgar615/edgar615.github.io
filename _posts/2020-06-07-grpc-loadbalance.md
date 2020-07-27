@@ -12,7 +12,7 @@ GRPC 中负载均衡的主要机制是外部负载均衡，其中外部负载均
 
 GRPC 客户端确实支持内置负载均衡策略的 API。 但是，只有少数这些（其中一个是实现外部负载均衡的 grpclb 策略），并且不鼓励用户尝试通过添加更多来扩展 gRPC。 相反，应在外部负载均衡器中实施新的负载均衡策略
 
-工作流
+# 1. 工作流
 负载均衡策略适用于命名解析和与服务器的连接之间的 gRPC 客户端工作流。
 
 gRPC 开源组件官方并未直接提供服务注册与发现的功能实现，但其设计文档已提供实现的思路，并在不同语言的 gRPC 代码 API 中已提供了命名解析和负载均衡接口供扩展。
@@ -32,6 +32,8 @@ gRPC 开源组件官方并未直接提供服务注册与发现的功能实现，
     - c. 负载均衡器将服务器列表返回给 gRPC 客户端的 grpclb 策略。然后，grpclb 策略将为列表中的每个服务器创建一个子通道。
 4. 对于发送的每个 RPC ，负载平衡策略决定应将 RPC 发送到哪个子通道（即哪个服务器）。
     - 对于 grpclb 策略，客户端将按负载均衡器返回的顺序向服务器发送请求。如果服务器列表为空，则调用将阻塞，直到收到非空的调用。
+
+# 2. 服务端 
 
 创建3个服务端
 
@@ -68,7 +70,7 @@ public class HelloWorldServer {
 }
 ```
 
-客户端
+# 3. 客户端
 
 首先我们需要实现名称解析，获取所有的IP地址，GRPC默认使用DNS名称解析，但如果我们想使用服务注册组件，如Eureka、Consul，我们需要实现自己的名称解析。
 
@@ -103,7 +105,7 @@ public class LocalNameResolver extends NameResolver {
     }
 }
 ```
-主要逻辑就是`List<EquivalentAddressGroup> equivalentAddressGroups`的维护，这个变量可以也可以防止start方法中再创建.
+主要逻辑就是`List<EquivalentAddressGroup> equivalentAddressGroups`的维护，这个变量可以也可以放在start方法中再创建.
 
 两个start方法都可以，推荐使用`start(Listener2 listener)`方法，因为`start(final Listener listener)`实际上也是调用的这个方法
 
@@ -128,7 +130,7 @@ public class LocalNameResolver extends NameResolver {
 ```
 
 `getServiceAuthority()`方法返回用于验证与服务器的连接的权限(authority)。 必须来自受信任的来源，因为如果权限被篡改，RPC可能被发送到攻击者，泄露敏感用户数据。
-实现必须以不阻塞的方式生成它，通常在一行中(in line)，必须保持不变。使用同样的参数从同一个的 factory 中创建出来的 NameResolver 必须返回相同的 authority 。
+实现必须以不阻塞的方式生成它，必须保持不变。使用同样的参数从同一个的 factory 中创建出来的 NameResolver 必须返回相同的 authority 。
 
 继承`NameResolver.Factory`抽象类，实现`newNameResolver`方法
 
@@ -170,7 +172,7 @@ targetUri = new URI(nameResolverFactory.getDefaultScheme(), "", "/" + target, nu
 
 也可以继承`NameResolverProvider`，它也继承自`NameResolver.Factory`，多了几个辅助方法
 
-客户端实现
+测试
 
 ```
 List<SocketAddress> socketAddresses = new ArrayList<>();
@@ -213,6 +215,19 @@ for (int i = 0; i < 10; i++) {
 信息: Greeting: Server_1 say Hello Edgar
 信息: Greeting: Server_2 say Hello Edgar
 ```
+
+# 4. 自定义负载均衡策略
+GRPC提供了下列负载均衡策略
+
+1. pick_first: 第一次地址，每次都是尝试连接第一个地址，如果连接失败就会尝试下一个，直到连接成功为止，之后的RPC请求都会使用这个连接
+2. round_robin：轮询，会对每个地址建立连接，之后的RPC请求会依次通过这些连接发送到后端
+
+> 还有一些xds包里面的额外的负载均衡策略
+> 选择策略是在SubchannelPicker中实现
+
+round_robin不能满足因服务器配置不同而承担不同负载量,我们实现一个加权轮询策略可以根据服务器的处理能力而分配不同的权重，从而实现处理能力高的服务器可承担更多的请求，处理能力低的服务器少承担请求
+
+
 
 # 参考资料
 
