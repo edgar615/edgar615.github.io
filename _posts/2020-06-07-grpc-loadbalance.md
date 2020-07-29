@@ -225,7 +225,16 @@ GRPC提供了下列负载均衡策略
 > 还有一些xds包里面的额外的负载均衡策略
 > 选择策略是在SubchannelPicker中实现
 
-round_robin不能满足因服务器配置不同而承担不同负载量,我们实现一个加权轮询策略可以根据服务器的处理能力而分配不同的权重，从而实现处理能力高的服务器可承担更多的请求，处理能力低的服务器少承担请求
+round_robin不能满足因服务器配置不同而承担不同负载量,我们实现一个加权轮询策略可以根据服务器的处理能力而分配不同的权重，从而实现处理能力高的服务器可承担更多的请求，处理能力低的服务器少承担请求。
+可以模仿round_robin实现，比较复杂后面再实现（主要通过Picker实现）
+
+GRPC提供的DNS的名称解析，还有一个grpclb的名称解析，也是基于DNS，解析SRV，还有一个grpclb的负载均衡策略，通过GrpclbConfig来选择是使用pick_first还是round_robin，并不能扩展（网上示例较少，可能还没发现，等后面掌握K8S后再回来研究这一段）
+
+> https://github.com/grpc/proposal/blob/master/A5-grpclb-in-dns.md
+
+GRPC也提供了一个负载均衡器的接口定义：
+
+https://github.com/grpc/grpc/blob/master/src/proto/grpc/lb/v1/load_balancer.proto
 
 
 
