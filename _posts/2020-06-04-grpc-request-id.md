@@ -8,6 +8,10 @@ comments: true
 permalink: grpc-request-id.html
 ---
 
+在分布式系统中，一次请求的日志信息分布在不同的机器上或目录，如果不能很清晰的描述一个请求的生命周期，报错时也无法快速的定位问题。
+
+一个简单的做法是为每次请求分配一个流水号traceId，在日志打印处加上这个traceId，模块调用时亦将traceId往下传，直至整条消息处理完成，返回时清除traceId
+
 # 1. Metadata和Interceptor
 
 Metadata 可以理解为一个 HTTP 请求的 Header（它的底层实现就是 HTTP/2 的 Header），用户可以通过访问和修改每个 gRPC Call 的 Metadata 来传递额外的信息：比如认证信息，比如本文中提到的 Request ID。
