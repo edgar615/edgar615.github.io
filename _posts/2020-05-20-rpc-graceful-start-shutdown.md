@@ -5,7 +5,7 @@ date: 2020-05-20
 categories:
     - rpc
 comments: true
-permalink: rpc-graceful-start-shutdown.md.html
+permalink: rpc-graceful-start-shutdown.html
 ---
 
 微服务开发完成需要上线部署，在整个部署过程中怎么保证业务的连续性，怎么能让服务的客户端无感知，这是一个具有一定挑战性的问题。
