@@ -44,4 +44,11 @@ permalink: rpc-shutdown-hook.html
 > 58) SIGRTMAX-6	59) SIGRTMAX-5	60) SIGRTMAX-4	61) SIGRTMAX-3	62) SIGRTMAX-2
 > 63) SIGRTMAX-1	64) SIGRTMAX
 
+# 2. ShutdownHook
+Java 语言提供一种 ShutdownHook（钩子）进制，当 JVM 接受到系统的关闭通知之后，调用 ShutdownHook 内的方法，用以完成清理操作，从而平滑的退出应用。
 
+```java
+Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+	System.out.println("关闭应用，释放资源");
+}));
+```
