@@ -1,7 +1,7 @@
 ---
 layout: post
 title: show processlist命令
-date: 2019-06-04
+date: 2020-09-09
 categories:
     - MySQL
 comments: true
