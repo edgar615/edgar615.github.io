@@ -1,8 +1,8 @@
 ---
 layout: post
-title: 认证、授权、凭证
-description: Json web token（JWT）介绍.
-date: 2020-08-01
+title: 认证（1）-认证、授权、凭证
+description: 
+date: 2020-03-01
 categories:
     - 设计
 comments: true
