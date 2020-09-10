@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL索引-二叉树(part2)
-date: 2019-05-31
+title: MySQL索引(2)-二叉树
+date: 2019-04-02
 categories:
     - MySQL
 comments: true
