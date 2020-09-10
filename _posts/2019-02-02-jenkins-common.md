@@ -2,7 +2,7 @@
 layout: post
 title: Jenkins常见问题
 description: 
-date: 2019-03-02
+date: 2019-02-02
 categories:
     - Jenkins
 comments: true
