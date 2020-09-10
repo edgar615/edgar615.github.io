@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL索引-B+树(part3)
-date: 2019-06-01
+title: MySQL索引（3）-B+树
+date: 2019-04-03
 categories:
     - MySQL
 comments: true
