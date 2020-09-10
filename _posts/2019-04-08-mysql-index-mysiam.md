@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL索引-myisam索引结构(part8)
-date: 2019-09-27
+title: MySQL索引（8）-myisam索引结构
+date: 2019-04-08
 categories:
     - MySQL
 comments: true
