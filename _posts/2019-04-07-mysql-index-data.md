@@ -5,7 +5,7 @@ date: 2019-04-07
 categories:
     - MySQL
 comments: true
-permalink: mysql-index-btree-height.html
+permalink: mysql-index-btree-data.html
 ---
 
 一个面试题：InnoDB 一棵 B+ 树可以存放多少行数据
@@ -14,6 +14,8 @@ permalink: mysql-index-btree-height.html
 > 可以通过`innodb_page_size`调整
 
 要回答这个问题，我们需要详细看看B+树的结构
+
+# 1. B+树结构
 
 **ROOT**
 
@@ -33,7 +35,7 @@ InnoDB索引树中每个页都有一个level值，其中：叶子页level=0，�
 
 有了页目录后，我们就可以先用二分法从页目录中找到目标KEY所在的目录，然后通过页目录这个指针，找到目标KEY所在的只有4~8个记录的数组中。我们假设每个页目录平均指向5个记录，那么，1000个记录的非叶子页，需要200个页目录，二分法查找只需要8次（2^8=256），整个遍历过程少了20%的开销。
 
-# 叶子&非叶子页
+# 2. 叶子&非叶子页
 
 对于叶子页和非叶子页，每个记录都包含一个指向下一个记录的指针。它存储了下一个记录的offset值（相对当前页的offset）。一个索引页**以下确界（Infimum）开始，以KEY递增的方式连接所有记录，并以上确界（Supremum）结束**。
 
@@ -59,7 +61,7 @@ InnoDB索引树中每个页都有一个level值，其中：叶子页level=0，�
 
 ![](/assets/images/posts/mysql-index/B_Tree_Simplified_Level.png)
 
-# 剖析一个索引页
+# 3. 剖析一个索引页
 
 接下来让我们深入研究一个B+Tree索引页的内部，完全掌握一个默认16k大小的索引页里面都保存了一些什么数据，索引页的细节图如下所示：
 
@@ -78,7 +80,7 @@ InnoDB索引树中每个页都有一个level值，其中：叶子页level=0，�
 
 剩下的空间全部用来保存Record Header，Record Data和Page Directory。所以一个16k大小的索引页内容为：128（固定数据占用字节数）+ 39（数据） + 4（Page Directory） + 16213（Free空间，即还没填满） = 16384（每个索引页的大小）
 
-# InnoDB一棵B+树可以存放多少行数据？
+# 4. InnoDB一棵B+树可以存放多少行数据？
 
 这个问题的简单回答是：约2千万
 
@@ -100,7 +102,7 @@ InnoDB索引树中每个页都有一个level值，其中：叶子页level=0，�
 > 在查找数据时一次页的查找代表一次 IO，所以通过主键索引查询通常只需要 1-3 次 IO 操作即可查找到数据。
 
 
-# 怎么得到 InnoDB 主键索引 B+ 树的高度？
+# 5. 怎么得到 InnoDB 主键索引 B+ 树的高度？
 
 在 InnoDB 的表空间文件中，约定 page number 为 3 的代表主键索引的根页，而在根页偏移量为 64 的地方存放了该 B+ 树的 page level。
 
@@ -150,13 +152,13 @@ lineitem 表的数据行数为 600 多万，B+ 树高度为 3，customer 表数�
 
 那么如果有一张表行数是一千万，那么他的 B+ 树高度依旧是 3，查询效率仍然不会相差太大。region 表只有 5 行数据，当然他的 B+ 树高度为 1。
 
-# 为什么MySQL的索引要使用B+树而不是其它树形结构？比如B树？
+# 6. 为什么MySQL的索引要使用B+树而不是其它树形结构？比如B树？
 
 **他的简单版本回答是：**
 
 因为B树不管叶子节点还是非叶子节点，都会保存数据，这样导致在非叶子节点中能保存的指针数量变少（有些资料也称为扇出），指针少的情况下要保存大量数据，只能增加树的高度，导致IO操作变多，查询性能变低；
 
-# 参考资料
+# 7. 参考资料
 
 https://mp.weixin.qq.com/s/BWlkrHiB-uP6fDnsxtKU0Q
 
