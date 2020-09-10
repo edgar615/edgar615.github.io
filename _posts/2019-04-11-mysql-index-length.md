@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL索引-索引长度(part11)
-date: 2019-12-10
+title: MySQL索引（11）-索引长度
+date: 2019-04-11
 categories:
     - MySQL
 comments: true
