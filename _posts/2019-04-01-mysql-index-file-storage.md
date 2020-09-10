@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL索引-文件存储结构(part1)
-date: 2019-05-31
+title: MySQL索引（1）-文件存储结构
+date: 2019-04-01
 categories:
     - MySQL
 comments: true
