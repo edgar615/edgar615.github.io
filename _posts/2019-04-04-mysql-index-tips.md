@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL索引-索引使用(part4)
-date: 2019-06-04
+title: MySQL索引（4）-索引使用
+date: 2019-04-04
 categories:
     - MySQL
 comments: true
