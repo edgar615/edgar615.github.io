@@ -2,7 +2,7 @@
 layout: post
 title: Jenkins构建完成后自动部署使用参数将应用部署到不同的服务器
 description: 
-date: 2019-03-01
+date: 2019-02-01
 categories:
     - Jenkins
 comments: true
