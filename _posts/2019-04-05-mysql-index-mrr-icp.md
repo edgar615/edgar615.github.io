@@ -8,7 +8,7 @@ comments: true
 permalink: mysql-index-mrr-icp.html
 ---
 
-# MRR
+# 1. MRR
 
 **Multi-Range Read (MRR )**，是优化器将随机 IO 转化为顺序 IO 以降低查询过程中 IO 开销的一种手段
 
@@ -16,7 +16,7 @@ permalink: mysql-index-mrr-icp.html
 - 减少缓冲池中页被替换的次数
 - 批量处理对键值的查询操作
 
-## MRR 原理
+**MRR 原理**
 
 在不使用 MRR 时，优化器需要根据二级索引返回的记录来进行“回表”，这个过程一般会有较多的随机 IO, 使用 MRR 时，SQL 语句的执行过程是这样的：
 
@@ -52,7 +52,7 @@ extra会显示`Using MRR`
 
 我还没找到合适的数据测试
 
-# ICP
+# 2. ICP
 
 **Index Condition Pushdown (ICP)，索引条件下推**是MySQL提供的用**某一个索引**对**一个**特定的表从表中获取元组。注意：这样的索引优化不是用于多表连接而是用于单表扫描，确切地说，是单表利用索引进行扫描以获取数据的一种方式。
 
@@ -104,7 +104,7 @@ SELECT * FROM people
 
 如果使用了索引下推技术，则MYSQL首先会返回符合`zipcode='95054'`的索引，然后根据`lastname LIKE '%etrunia%'`和`address LIKE '%Main Street%'`来判断索引是否符合条件。如果符合条件，则根据该索引来定位对应的元祖，如果不符合，则直接reject掉。
 
-# 测试
+# 3. 测试
 准备数据
 <pre class="line-numbers "><code class="language-sql">
 create table emp(
@@ -174,7 +174,7 @@ mysql> explain select * from emp where deptno between 1 and 100 and ename ='jean
 - 如果表访问的类型为 `range` 如果不是`index tree only`（只读索引）”，则有机会使用ICP
 - 如果表访问的类型为`ALL`,`FT`,`INDEX_MERGE`,`INDEX_SCAN` 不可以使用ICP
 
-# 参考资料
+# 4. 参考资料
 
 https://www.cnblogs.com/ivictor/p/5197434.html
 
