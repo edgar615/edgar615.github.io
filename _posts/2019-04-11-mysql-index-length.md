@@ -18,7 +18,7 @@ INNODB会使用编码上限计算，即每个字符占用3字节空间。
 
 对于联合索引，总和不得超过 3072 ，否则失败，无法创建。
 
-# MySQL5.7
+# 1. MySQL5.7
 
 ```
 mysql> show variables like '%version%';
@@ -260,7 +260,7 @@ mysql> show warnings;
 1 row in set (0.06 sec)
 ```
 
-# MySQL8
+# 2. MySQL8
 
 本地找了台8.0的MySQL
 
@@ -321,7 +321,7 @@ innodb_file_format_max
 innodb_large_prefix
 ```
 
-# 为什么
+# 3. 为什么
 
 **为什么限制为767**
 网上搜了一下，资料较少不知道是否准确，对于单列索引限制为767是因为历史原因，
