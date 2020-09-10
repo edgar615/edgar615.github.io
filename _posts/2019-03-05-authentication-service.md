@@ -11,11 +11,11 @@ permalink: authentication-service.html
 
 当 Token 无状态之后，单点登录就变得容易了。前端拿到一个有效的 Token，它就可以在任何同一体系的服务上认证通过——只要它们使用同样的密钥和算法来认证 Token 的有效性。就样这样：
 
-![](https://img2018.cnblogs.com/i-beta/1734305/202002/1734305-20200227175946871-1411988278.png)
+![](/assets/images/posts/token/authentication-1.png)
 
  当然，如果 Token 过期了，前端仍然需要去认证服务更新 Token：
  
-![](https://img2018.cnblogs.com/i-beta/1734305/202002/1734305-20200227180011231-1003806559.png)
+![](/assets/images/posts/token/authentication-2.png)
 
 可见，虽然认证和业务分离了，实际即并没产生多大的差异。
 当然，这是建立在**认证服务器信任业务服务器**的前提下，因为认证服务器产生 Token 的密钥和业务服务器认证 Token 的密钥和算法相同。换句话说，业务服务器同样可以创建有效的 Token。
