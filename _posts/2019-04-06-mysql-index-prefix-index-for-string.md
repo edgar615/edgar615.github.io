@@ -8,6 +8,7 @@ comments: true
 permalink: mysql-index-prefix-index-for-string.html
 ---
 
+# 1. 前缀索引
 MySQL 前缀索引能有效减小索引文件的大小，提高索引的速度。
 
 但是前缀索引也有它的坏处：MySQL 不能在 ORDER BY 或 GROUP BY 中使用前缀索引，也不能把它们用作覆盖索引(Covering Index)。
@@ -40,7 +41,7 @@ select count(distinct left ([column], 4)) / count(*) as len4 ,
 ```
 当前缀的选择性越接近全列选择性的时候，索引效果越好。
 
-# 案例
+# 2. 案例
 > 下面基本全部摘自极客时间的《mysql实战45讲》
 
 系统的用户表支持邮箱登录
@@ -104,7 +105,7 @@ select id,name,email from SUser where email='zhangssxyz@xxx.com';
 如果使用 index1（即 email 整个字符串的索引结构）的话，可以利用覆盖索引，从 index1 查到结果后直接就返回了，不需要回到 ID 索引再去查一次。而如果使用 index2（即 email(6) 索引结构）的话，就不得不回到 ID 索引再去判断 email 字段的值。
 即使你将 index2 的定义修改为 email(18) 的前缀索引，这时候虽然 index2 已经包含了所有的信息，但 InnoDB 还是要回到 id 索引再查一下，因为系统并不确定前缀索引的定义是否截断了完整信息。
 
-# 前缀索引的优化
+# 3. 前缀索引的优化
 
 **倒序存储**
 
@@ -132,7 +133,7 @@ mysql> select field_list from t where id_card_crc=crc32('input_id_card_string') 
 3. CPU 消耗：倒序插入时需要额外调用 reverse 函数，hash 需要调用 crc32() 函数。reverse 函数消耗的 CPU 更小一些；
 4. hash 字段方式的查询效率更高，因为计算出来的 hash 值重复的可能性较小，扫描次数接近于 1
 
-# 参考资料
+# 4. 参考资料
 
 极客时间的《mysql实战45讲》
 
