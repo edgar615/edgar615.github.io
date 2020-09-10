@@ -8,7 +8,7 @@ comments: true
 permalink: mysql-index-adaptive-hash-index.html
 ---
 
-# 哈希索引
+# 1. 哈希索引
 
 哈希表是数组+链表的形式。通过哈希函数计算每个节点数据中键所对应的哈希桶位置，如果出现哈希冲突，就用拉链法来解决
 
@@ -29,7 +29,7 @@ permalink: mysql-index-adaptive-hash-index.html
 
 Mermory默认的索引是Hash索引。
 
-# 自适应哈希索引
+# 2. 自适应哈希索引
 看完前面文章介绍的索引，我们 可以知道innodb使用的索引结构是B+树，但其实它还支持另一种索引：自适应哈希索引
 
 哈希索引查找最优情况下是查找一次，而B+树最优情况下的查找次数根据层数决定，因此为了提高查询效率，InnoDB允许使用自适应哈希索引来提高性能
@@ -54,7 +54,7 @@ mysql> show variables like "innodb_adaptive_hash_index";
 1 row in set (0.05 sec)
 ```
 
-# 原理解析
+# 3. 原理解析
 
 > 这一章完全摘自https://mp.weixin.qq.com/s/oXezJr5jkbE-fD7THao6CQ
 
@@ -130,7 +130,7 @@ AHI是为某个索引树建立的（当该索引树层数过多时，AHI才能�
 
 从以上过程可以看出，如果命中了AHI，就可以跳过图2中查询索引树的4个步骤，一次到位找到数据页，提升性能。
 
-## 监控
+## 4. 监控
 
 可以通过`SHOW ENGINE INNODB STATUS` 命令查看，在`INSERT BUFFER AND ADAPTIVE HASH INDEX` 段中
 ```
@@ -184,7 +184,7 @@ Query OK, 0 rows affected (0.00 sec)
 该表搜集了 AHI 子系统诸如 AHI 查询次数，更新次数等信息，可以很好的监控其运行状态，在某些负载下，AHI 并不适合打开，关闭 AHI 可以避免额外的维护开销。
 
 
-# 参考资料
+# 5. 参考资料
 
 https://www.cnblogs.com/geaozhang/p/7252389.html
 
