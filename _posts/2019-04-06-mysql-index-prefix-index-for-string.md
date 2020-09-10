@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL索引-字符串前缀索引(part6)
-date: 2019-06-20
+title: MySQL索引（6）-字符串前缀索引
+date: 2019-04-06
 categories:
     - MySQL
 comments: true
