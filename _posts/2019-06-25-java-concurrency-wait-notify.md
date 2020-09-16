@@ -1,7 +1,7 @@
 ---
 layout: post
-title: wait notify
-date: 2019-06-24
+title:  多线程（1）-wait notify
+date: 2019-06-02
 categories:
     - 多线程
 comments: true
@@ -169,7 +169,20 @@ public class MyWaitNotify {
 
 因为如果把 wait/notify/notifyAll 方法定义在 Thread 类中，会带来很大的局限性，比如一个线程可能持有多把锁，以便实现相互配合的复杂逻辑，假设此时 wait 方法定义在 Thread 类中，如何实现让一个线程持有多把锁呢？又如何明确线程等待的是哪把锁呢？既然我们是让当前线程去等待某个对象的锁，自然应该通过操作对象来实现，而不是操作线程。
 
-# 7. 小结
+# 7. wait/notify 和 sleep 方法的异同？
+wait/notify 和 sleep 方法的异同，主要对比 wait 和 sleep 方法，我们先说相同点：
+
+- 它们都可以让线程阻塞。
+- 它们都可以响应 interrupt 中断：在等待的过程中如果收到中断信号，都可以进行响应，并抛出 InterruptedException 异常。
+
+但是它们也有很多的不同点：
+
+- wait 方法必须在 synchronized 保护的代码中使用，而 sleep 方法并没有这个要求。
+- 在同步代码中执行 sleep 方法时，并不会释放 monitor 锁，但执行 wait 方法时会主动释放 monitor 锁。
+- sleep 方法中会要求必须定义一个时间，时间到期后会主动恢复，而对于没有参数的 wait 方法而言，意味着永久等待，直到被中断或被唤醒才能恢复，它并不会主动恢复。
+- wait/notify 是 Object 类的方法，而 sleep 是 Thread 类的方法。
+
+# 8. 小结
 
 1. wait()、notify/notifyAll() 方法是Object的本地final方法，无法被重写。
 2. wait()使当前线程阻塞，前提是 必须先获得锁，一般配合synchronized 关键字使用，即，一般在synchronized 同步代码块里使用 wait()、notify/notifyAll() 方法。
@@ -181,6 +194,6 @@ public class MyWaitNotify {
 7. 在多线程中要测试某个条件的变化，使用if 还是while？要注意，notify唤醒沉睡的线程后，线程会接着上次的执行继续往下执行。所以在进行条件判断时候，可以先把 wait 语句忽略不计来进行考虑，显然，要确保程序一定要执行，并且要保证程序直到满足一定的条件再执行，要使用while来执行，以确保条件满足和一定执行。
 8. 在wait()/notify()机制中，不要使用全局对象，字符串常量等。应该使用对应唯一的对象
 
-# 7. 参考资料
+# 9. 参考资料
 
 http://ifeve.com/thread-signaling/
