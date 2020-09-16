@@ -1,7 +1,7 @@
 ---
 layout: post
-title: 线程
-date: 2019-06-25
+title: 多线程（1）-线程
+date: 2019-06-01
 categories:
     - 多线程
 comments: true
@@ -12,7 +12,7 @@ permalink: java-concurrency-thread.html
 
 > 大部分资料来源与:
 >
-> 《java并发变成实战》
+> 《java并发编程实战》
 >
 > http://tutorials.jenkov.com/java-concurrency/index.html
 >
