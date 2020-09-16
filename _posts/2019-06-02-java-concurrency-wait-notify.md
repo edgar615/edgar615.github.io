@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  多线程（1）-wait notify
+title:  多线程（2）-wait notify
 date: 2019-06-02
 categories:
     - 多线程
