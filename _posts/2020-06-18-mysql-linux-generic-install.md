@@ -8,7 +8,7 @@ comments: true
 permalink: mysql-linux-generic-install.html
 ---
 
-内网环境要用MySQL，网上学习了下周末安装Generic版MySQL
+内网环境要用MySQL，网上学习了下安装Generic版MySQL
 
 1.MySQL官网下载Linux Generic版本 `wget https://cdn.mysql.com//Downloads/MySQL-8.0/mysql-8.0.21-linux-glibc2.12-x86_64.tar.xz`
 
