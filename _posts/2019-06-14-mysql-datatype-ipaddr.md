@@ -31,5 +31,15 @@ create table ip_char(
 );
 ```
 
-查看磁盘空间占用
+四个表个30万数据，查看磁盘空间占用
+
+```
+~# ls -sish /usr/local/mysql/data/test/ip*
+2259863 20M /usr/local/mysql/data/test/ip_char.ibd  
+2259859 18M /usr/local/mysql/data/test/ip_int_unsigned.ibd
+2259861 18M /usr/local/mysql/data/test/ip_int.ibd   
+2259862 19M /usr/local/mysql/data/test/ip_long.ibd
+```
+
+可以看到char占用的空间更多
 
