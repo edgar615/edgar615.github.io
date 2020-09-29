@@ -37,7 +37,7 @@ permalink: mysql-datatype.html
 - **ENUM('value1','value2',...)** 可以总共有65535个不同的值 ，MySQL 后台存储以下标的方式，也就是 tinyint 或者 smallint 的方式，下标从 1 开始。
 - **SET('value1','value2',...)** 最多有64个成员 
 
-# 几种整数类型
+# 2. 几种整数类型
 
 **1、bigint**
 
@@ -67,11 +67,7 @@ permalink: mysql-datatype.html
 
 
 
-# Char和Varchar的区别
-
-
-
-# 日期类型
+# 3. 日期类型
 
 日期类型包含了 date,time,datetime,timestamp，以及 year。year 占 1 Byte，date 占 3 Byte。　
 
@@ -109,7 +105,7 @@ DATETIME使用8字节的存储空间，TIMESTAMP的存储空间为4字节（ 代
 
 4. 如果有保存毫秒类似的需求，最好是用时间类型自己的特性，不要直接用字符类型来代替。MySQL 内部的类型转换对资源额外的消耗也是需要考虑的。
 
-# 枚举
+# 4. 枚举
 
 枚举类型，也即 enum。适合提前规划好了所有已经知道的值，且未来最好不要加新值的情形。枚举类型有以下特性：
 
@@ -155,8 +151,4 @@ mysql> select * from t1 order by c1;
 4 rows in set (0.00 sec)
 
 ```
-
-
-
-# 参考资料
 
