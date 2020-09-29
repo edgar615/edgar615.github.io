@@ -1,0 +1,35 @@
+---
+layout: post
+title: MySQL数据类型（5）-IP地址的存储
+date: 2019-06-14
+categories:
+    - MySQL
+comments: true
+permalink: mysql-datatype-ipaddr.html
+---
+
+用 int32 来存放 IPv4 地址，比单纯用字符串节省空间。
+
+简单的对比占用磁盘空间大小，我定义了四张表来存储IPV4。
+
+```
+create table ip_int_unsigned( 
+	ipaddr int(11) unsigned
+);
+
+create table ip_int( 
+	ipaddr int(11)
+);
+
+create table ip_long( 
+	ipaddr bigint(20)
+);
+
+
+create table ip_char( 
+	ipaddr varchar(15)
+);
+```
+
+查看磁盘空间占用
+

@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL数据类型-JSON（part2）
-date: 2019-06-10
+title: MySQL数据类型（3）-JSON
+date: 2019-06-13
 categories:
     - MySQL
 comments: true
@@ -10,20 +10,21 @@ permalink: mysql-datatype-json.html
 
 JSON数组和对象可以包含标量值是字符串或数字，JSON null文本，或者JSON布尔真或假的文字。在JSON对象键必须是字符串。时间（日期，时间或日期）标值也是允许的
 
-# 创建JSON列
+# 1. 创建JSON列
 
 ```
 CREATE TABLE test ( id INT NOT NULL auto_increment, ext json, PRIMARY KEY ( id ) );
 ```
-# 插入
+# 2. 插入
 ```
 INSERT INTO test ( ext )
 VALUES
 	( '{"name":"Edgar","age":30}' ),
 	( '{"name":"Leona","age":30}' );
 ```
-# MySQL的JSON构造函数
+# 3. MySQL的JSON构造函数
 **JSON_ARRAY**
+
 ```
 INSERT INTO test ( ext )
 VALUES
@@ -46,6 +47,7 @@ VALUES
 {"id": 87, "name": "carrot"}
 
 **JSON_MERGE**
+
 ```
 INSERT INTO test ( ext )
 VALUES
@@ -64,7 +66,7 @@ VALUES
 SELECT JSON_EXTRACT(ext, '$[2].id') FROM test where id = 8
 ```
 
-# 提取JSON值
+# 4. 提取JSON值
 ```
 SELECT
 	id,
@@ -85,7 +87,7 @@ SELECT
 FROM
 	test;
 ```
-# 提取JSON的KEY
+# 5. 提取JSON的KEY
 ```
 SELECT
 	id,
@@ -94,7 +96,7 @@ FROM
 	test
 ```
 返回的json_keys是一个数组
-# JSON_INSERT
+# 6. JSON_INSERT
 增加了新的值，但不会取代现有的值
 ```
 UPDATE test 
@@ -106,7 +108,7 @@ WHERE
 ```
 {"age": 30, "name": "Edgar", "address": "wuhan"}
 ```
-# JSON_SET 更新K-V
+# 7. JSON_SET 更新K-V
 ```
 UPDATE test 
 SET ext = JSON_SET( ext, '$.name', "Brena", '$.address', 'wuhan' ) 
@@ -117,7 +119,7 @@ WHERE
 ```
 {"age": 30, "name": "Brena", "address": "wuhan"}
 ```
-# JSON_REMOVE 删除KEY
+# 8. JSON_REMOVE 删除KEY
 ```
 UPDATE test 
 SET ext = JSON_REMOVE( ext, '$.name', '$.address' ) 
@@ -138,7 +140,7 @@ WHERE
 ```
 [1, {}]
 
-# JSON_REPLACE
+# 9. JSON_REPLACE
 替换现有的值，并忽略新值：
 ```
 UPDATE test 
@@ -146,19 +148,19 @@ SET ext = JSON_REPLACE( ext, '$.age', 10, '$.name', 'Leona' )
 WHERE
 	id = 2;
 ```
-# JSON_TYPE
+# 10. JSON_TYPE
 返回JSON的类型
 ```
 SELECT json_type(ext) from test
 ```
 
 
-# 比较
+# 11. 比较
 JSON值可使用进行比较 =，<，<=，>，> =，<>，！=和 <=> 运算。 
 http://www.huzs.net/?p=2318
 
 
-# 查询条件
+# 12. 查询条件
 ```
 SELECT * from test where json_extract(ext,'$.age') > 10
 SELECT * from test where ext->'$.age' > 10
@@ -184,8 +186,4 @@ JSON_CONTAINS
 ```
 select * from commodity where json_contains(ext, JSON_ARRAY (1), '$.physique')
 ```
-
-
-
-# 参考资料
 

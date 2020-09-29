@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL数据类型-bit（part3）
-date: 2019-10-30
+title: MySQL数据类型（3）-bit
+date: 2019-06-12
 categories:
     - MySQL
 comments: true
@@ -11,6 +11,16 @@ permalink: mysql-datatype-bit.html
 最近有个业务想到可以用bit类型来存储，以前只知道MySQL有bit，却没用过，这里简单记录一下
 
 MySQL提供了允许您存储位值的BIT类型。BIT(m)可以存储多达m位的值，m的范围在1到64之间。
+
+bit 为 MySQL 里存储比特位的类型，最大支持 64 比特位， 直接以二进制方式存储，一般用来存储状态类的信息。比如，性别，真假等。具有以下特性：
+
+1. 对于 bit(8) 如果单纯存放 1 位，左边以 0 填充 00000001。
+
+2. 查询时可以直接十进制来过滤数据。
+
+3. 如果此字段加上索引，MySQL 不会自己做类型转换，只能用二进制来过滤。
+
+
 
 建了一个测试表
 ```

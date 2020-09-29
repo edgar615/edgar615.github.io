@@ -8,7 +8,7 @@ comments: true
 permalink: mysql-datatype.html
 ---
 
-# 各数据类型的取值范围 
+# 1. 各数据类型的取值范围 
 
 - **TINYINT** -128 - 127 
 - **TINYINT UNSIGNED** 0 - 255 
@@ -34,7 +34,7 @@ permalink: mysql-datatype.html
 - **BLOB 或 TEXT** 65535(2^16-1)个字符 
 - **MEDIUMBLOB 或 MEDIUMTEXT** 16777215 (2^24-1)个字符 
 - **LONGBLOB 或 LONGTEXT** 4294967295 (2^32-1)个字符 
-- **ENUM('value1','value2',...)** 可以总共有65535个不同的值 
+- **ENUM('value1','value2',...)** 可以总共有65535个不同的值 ，MySQL 后台存储以下标的方式，也就是 tinyint 或者 smallint 的方式，下标从 1 开始。
 - **SET('value1','value2',...)** 最多有64个成员 
 
 # 几种整数类型
@@ -67,21 +67,95 @@ permalink: mysql-datatype.html
 
 
 
-# timestamp与datetime的区别
+# Char和Varchar的区别
+
+
+
+# 日期类型
+
+日期类型包含了 date,time,datetime,timestamp，以及 year。year 占 1 Byte，date 占 3 Byte。　
+
+ time,timestamp,datetime 在不包含小数位时分别占用 3 Byte,4 Byte,8 Byte；小数位部分另外计算磁盘占用，
+
+| 小数位精度 | 占用字节 |
+| ---------- | -------- |
+| 0          | 0        |
+| 1,2        | 1        |
+| 3,4        | 2        |
+| 5,6        | 3        |
+
+**timestamp与datetime的区别**
 
 DATETIME的默认值为null；TIMESTAMP的字段默认不为空（not null）,默认值为当前时间（CURRENT_TIMESTAMP），如果不做特殊处理，并且update语句中没有指定该列的更新值，则默认更新为当前时间。
 
 >  如果我们用timestamp，我们可以不管这个字段就能自动更新了如果用datetime，不会有自动更新当前时间的机制，所以需要在上层手动更新该字段
 
-DATETIME使用8字节的存储空间，TIMESTAMP的存储空间为4字节。因此，TIMESTAMP比DATETIME的空间利用率更高。
+DATETIME使用8字节的存储空间，TIMESTAMP的存储空间为4字节（ 代表的时间戳是一个 int32 存储的整数）。因此，TIMESTAMP比DATETIME的空间利用率更高。
 
 两者的存储方式不一样 ，对于TIMESTAMP，它把客户端插入的时间从当前时区转化为UTC（世界标准时间）进行存储。查询时，将其又转化为客户端当前时区进行返回。而对于DATETIME，不做任何改变，基本上是原样输入和输出
 
 两者所能存储的时间范围不一样 
 
 - timestamp所能存储的时间范围为：’1970-01-01 00:00:01.000000’ 到 ‘2038-01-19 03:14:07.999999’；
-
 - datetime所能存储的时间范围为：’1000-01-01 00:00:00.000000’ 到 ‘9999-12-31 23:59:59.999999’。
+
+综上所述，日期这块类型的选择遵循以下原则：
+
+1. 如果时间有可能超过时间戳范围，优先选择 datetime。
+
+2. 如果需要单独获取年份值，比如按照年来分区，按照年来检索等，最好在表中添加一个 year 类型来参与。
+
+3. 如果需要单独获取日期或者时间，最好是单独存放，而不是简单的用 datetime 或者 timestamp。后面检索时，再加函数过滤，以免后期增加 SQL 编写带来额外消耗。
+
+4. 如果有保存毫秒类似的需求，最好是用时间类型自己的特性，不要直接用字符类型来代替。MySQL 内部的类型转换对资源额外的消耗也是需要考虑的。
+
+# 枚举
+
+枚举类型，也即 enum。适合提前规划好了所有已经知道的值，且未来最好不要加新值的情形。枚举类型有以下特性：
+
+1. 最大占用 2 Byte。
+
+2. 最大支持 65535 个不同元素。
+
+3. MySQL 后台存储以下标的方式，也就是 tinyint 或者 smallint 的方式，下标从 1 开始。
+
+4. 排序时按照下标排序，而不是按照里面元素的数据类型。所以这点要格外注意。
+
+```
+mysql> create table t1(
+    -> c1 enum('mysql','oracle','dble','postgresql','mongodb','redis','db2','sql server')
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+mysql>
+mysql> insert into t1 values (1);
+Query OK, 1 row affected (0.01 sec)
+
+mysql>
+mysql> insert into t1 values (2);
+Query OK, 1 row affected (0.00 sec)
+
+mysql>
+mysql> insert into t1 values ('mongodb');
+Query OK, 1 row affected (0.01 sec)
+
+mysql>
+mysql> insert into t1 values ('db2');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> select * from t1 order by c1;
++---------+
+| c1      |
++---------+
+| mysql   |
+| oracle  |
+| mongodb |
+| db2     |
++---------+
+4 rows in set (0.00 sec)
+
+```
+
 
 
 # 参考资料
