@@ -1,14 +1,14 @@
 ---
 layout: post
-title: InnoDB架构-缓冲池（part2）
-date: 2019-06-20
+title: InnoDB内存（1）- Buffer Pool
+date: 2019-06-21
 categories:
     - MySQL
 comments: true
 permalink: innodb-buffer-pool.html
 ---
 
-# 缓冲池buffer pool
+# 1. 缓冲池buffer pool
 
 InnoDB是基于磁盘存储的，并将其中的记录按照页的方式进行管理。
 
@@ -52,26 +52,11 @@ Buffer Pool中默认的缓存页大小和在磁盘上默认的页大小是一样
 
 每个缓存页对应的控制信息占用的内存大小是相同的，这部分被放在 Buffer Pool 的前边，缓存页被存放到 Buffer Pool 后边。
 
-> 缓冲池缓存的数据包括Page Cache、Change Buffer、Data Dictionary Cache等，通常 MySQL 服务器的 80% 的物理内存会分配给 Buffer Pool
+> 缓冲池缓存的数据包括Page Cache、Change Buffer、Data Dictionary Cache等，通常 MySQL 服务器的 **80%** 的物理内存会分配给 Buffer Pool
 >
 > InnoDB内存中的结构主要包括 Buffer Pool，Change Buffer、Adaptive Hash Index以及 Log Buffer 四部分。如果从内存上来看，Change Buffer 和 Adaptive Hash Index 占用的内存都属于 Buffer Pool，Log Buffer占用的内存与 Buffer Pool独立
 
-# LRU List、Free List和Flush List
-
-**Free链表**用于记录缓冲池中哪些缓存页是空闲的。
-
-**Flush链表**用来记录缓冲池中哪些缓存页是**脏页**
-
-**LRU链表** 缓冲池的大小毕竟有限，不可能无限增长，如果free链表中已经没有多余的空闲缓存页，就需要把某些旧的缓存页从缓冲池中移除，然后再加入新的页。当缓冲池中不再有空闲的缓存页时，就需要淘汰掉部分最近很少使用的缓存页。**LRU链表**就是用来按照最近最少使用的原则去淘汰缓存页的，当我们需要访问某个页时，就把该缓存页调整到LRU链表的头部，这样LRU链表尾部就是最近最少使用的缓存页
-
-
-> **空闲页** Free Page 缓存页未被使用
->
-> **干净页** Clean Page 缓存页已被使用但是页面未发生修改
->
-> **脏页**  如果我们修改了缓冲池中某个缓存页的数据，那它就和磁盘上的页不一致了，这样的缓存页也被称为脏页（dirty page）。如果发生一次修改就立即同步到磁盘上对应的页上会严重的影响程序的性能。所以需要一个链表来记录哪些缓存页需要被刷新到磁盘上
-
-# 预读
+# 2. 预读
 
 InnoDB在I/O的优化上有个比较重要的特性为预读，预读请求是一个i/o请求，它会异步地在缓冲池中预先回迁多个页面，预计很快就会需要这些页面，这些请求在一个范围内引入所有页面。
 
@@ -79,7 +64,7 @@ InnoDB在I/O的优化上有个比较重要的特性为预读，预读请求是�
 
 InnoDB使用两种预读算法来提高I/O性能：**线性预读（linear read-ahead）**和**随机预读（randomread-ahead）**，线性预读着眼于将下一个区提前读取到buffer pool中，而随机预读着眼于将当前区中的剩余的页提前读取到buffer pool中。
 
-## 线性预读
+## 2.1. 线性预读
 innodb通过参数`innodb_read_ahead_threshold`控制触发innodb执行预读操作的时间。如果一个区中的被顺序读取的页超过或者等于该参数变量时，Innodb将会异步的将下一个区读取到buffer pool中，`innodb_read_ahead_threshold`可以设置为0-64的任何值，默认值为56，值越高，访问模式检查越严格。
 
 ```
@@ -93,7 +78,7 @@ mysql> show variables like 'innodb_read_ahead_threshold';
 ```
 InnoDB只有在顺序访问当前区中的56个页时才触发线性预读请求，将下一个区读到内存中。在没有该变量之前，当访问到区的最后一个页的时候，InnoDB会决定是否将下一个区放入到buffer pool中。
 
-## 随机预读
+## 2.2. 随机预读
 同一个区中的一些页在buffer pool中发现时，InnoDB会将该区中的剩余页一并读到buffer pool中。InnoDB通过参数`innodb_random_read_ahead`控制随机预读的开启。
 
 > 由于随机预读方式带来了一些不必要的复杂性，同时在性能也存在不稳定性，所以默认是关闭状态
@@ -108,7 +93,7 @@ mysql> show variables like 'innodb_random_read_ahead';
 1 row in set (0.04 sec)
 ```
 
-## 监控InnoDB预读
+## 2.3. 监控InnoDB预读
 可以通过`show engine innodb status;`监控预读信息
 ```
 Pages read ahead 0.00/s, evicted without access 0.00/s, Random read ahead 0.00/s
@@ -130,19 +115,35 @@ mysql> show global status like '%read_ahead%';
 +---------------------------------------+--------+
 3 rows in set (0.07 sec)
 ```
-
-# MySQL缓冲池污染
+# 3. MySQL缓冲池污染
 
 当某一个SQL语句，要批量扫描大量数据时，可能导致把缓冲池的所有页都替换出去，导致大量热数据被换出，MySQL性能急剧下降，这种情况叫缓冲池污染。
 
 如果某个表中记录非常多的话，那该表会占用特别多的页，当对这个表执行全表扫描的时候会将大量的页加载到Buffer Pool中，这也就意味着需要把Buffer Pool中的所有页都替换一次，而这时其他查询语句在执行时又得执行一次从磁盘加载到Buffer Pool的操作。而这种全表扫描的语句执行的频率也不高，每次执行都要把Buffer Pool中的缓存页替换一次，这严重的影响到其他查询对 Buffer Pool的使用，从而大大降低了缓存命中率。
 
-# LRU链表
+# 4. LRU List、Free List和Flush List
+
+![](/assets/images/posts/mysql-buffer/innodb-buffer-pool-2.png)
+
+**Free链表**用于记录缓冲池中哪些缓存页是空闲的。
+
+**Flush链表**用来记录缓冲池中哪些缓存页是**脏页**
+
+**LRU链表** 缓冲池的大小毕竟有限，不可能无限增长，如果free链表中已经没有多余的空闲缓存页，就需要把某些旧的缓存页从缓冲池中移除，然后再加入新的页。当缓冲池中不再有空闲的缓存页时，就需要淘汰掉部分最近很少使用的缓存页。**LRU链表**就是用来按照最近最少使用的原则去淘汰缓存页的，当我们需要访问某个页时，就把该缓存页调整到LRU链表的头部，这样LRU链表尾部就是最近最少使用的缓存页
+
+> **空闲页** Free Page 缓存页未被使用
+>
+> **干净页** Clean Page 缓存页已被使用但是页面未发生修改
+>
+> **脏页**  如果我们修改了缓冲池中某个缓存页的数据，那它就和磁盘上的页不一致了，这样的缓存页也被称为脏页（dirty page）。如果发生一次修改就立即同步到磁盘上对应的页上会严重的影响程序的性能。所以需要一个链表来记录哪些缓存页需要被刷新到磁盘上
+
+## 4.1. LRU链表
+
 根据前面介绍可以知道某些SQL操作可能会使缓冲池中的页被刷新出，从而影响缓冲池的效率。例如作为索引或者数据的扫描操作，这类操作需要访问表中的许多页，甚至是全部的页，而这些页通常来说仅仅在这次查询操作中需要，并不是活跃的热点数据。如果页被放入LRU链表的首部，那么非常可能需要的热点数据页从LRU链表中移除，而在下一次需要读取该页时，InnoDB需要再次访问磁盘。
 
-所以InnoDB对缓冲池的LRU算法做了改进 **LRU列表中加入了一个midpoint位置。新读取到的页，虽然是最新访问的页，但并不是直接放入到LUR列表的首部，而是放入到LRU列表的midpoint位置。**
+所以InnoDB对缓冲池的LRU算法做了改进 **LRU列表中加入了一个midpoint位置。新读取到的页，虽然是最新访问的页，但并不是直接放入到LUR列表的首部，而是放入到LRU列表的midpoint位置。这就是所谓的中点插入策略**
 
-在innodb把midpoint之后的列表称为old列表，之前的列表称为new列表，可以简单的理解为new列表中的页都是最为活跃的热点数据。
+一般情况下list 头部存放都是最为活跃的热点数据，就是所谓的young page（最近经常访问的数据），list尾部存放的就是old page（最近不被访问的数据）。**这个算法就保证了**最近经常使用的page信息会被保存在最近访问的sublist，相反的不被经常访问的就会保存在old sublist。而old sublist当中的page信息都是在新数据写入时被驱逐的。
 
 ![](/assets/images/posts/mysql-buffer/innodb-buffer-pool-list.png)
 
@@ -163,7 +164,13 @@ Variable_name: innodb_old_blocks_pct
 - 频繁访问一个Buffer Pool的缓存页，会促使页面往Young链表的头部移动。如果一个Page在被读到Buffer Pool后很快就被访问，那么该Page会往Young List的头部移动，但是如果一个页面是通过预读的方式读到Buffer Pool，且之后短时间内没有被访问，那么很可能在下次访问之前就被移动到Old List的尾部，而被驱逐了。
 - 随着数据库的持续运行，新的页面被不断的插入到LRU链表的Mid Point，Old 链表里的页面会逐渐的被移动Old链表的尾部。同时，当经常被访问的页面移动到LRU链表头部的时候，那些没有被访问的页面会逐渐的被移动到链表的尾部。最终，位于Old 链表尾部的页面将被驱逐。
 
-全表扫描有一个特点，那就是它的执行频率非常低，而且在执行全表扫描的过程中，即使某个页面中有很多条记录，也就是去多次访问这个页面所花费的时间也是非常少的。
+一般情况下，页信息会被查询语句立马查询到而被移动到new sublist，这就意味着他们会在Buffer Pool里面保留很长一段时间。
+
+如果一个数据页已经处于Young 链表，当它再次被访问的时候，只有当其处于Young 链表长度的1/4(大约值)之后，才会被移动到Young 链表的头部。这样做的目的是减少对LRU 链表的修改，因为LRU 链表的目标是保证经常被访问的数据页不会被驱逐出去。
+
+表扫描（包括mysqldump或者没有where条件的select等操作）等操作将会刷入大量的数据进入Buffer Pool，同时也会将更多的Buffer Pool当中的信息刷出去，即使这个操作可能只会使用到一次而已。同样的如果 read-ahead后台进程读入大量数据的情况下也是会造成Buffer Pool大量高频的刷新数据页，但是这些操作是可控的。
+
+>  全表扫描有一个特点，那就是它的执行频率非常低，而且在执行全表扫描的过程中，即使某个页面中有很多条记录，也就是去多次访问这个页面所花费的时间也是非常少的。
 
 InnoDB通过`innodb_old_blocks_time`控制的Old 链表头部页面的转移策略。该Page需要在Old 链表停留超过`innodb_old_blocks_time` 时间，之后再次被访问，才会移动到Young 链表。这么操作是避免Young 链表被那些只在`innodb_old_blocks_time`时间间隔内频繁访问，之后就不被访问的页面塞满，从而有效的保护Young 链表。默认值1000毫秒
 
@@ -177,15 +184,15 @@ Variable_name: innodb_old_blocks_time
 
 LRU列表用了管理已经读取的页，但当数据库刚启动时，LRU列表是空的，即没有任何页，这时页都存放在Free列表中。当需要从缓冲池中分页时，首先从free列表中查找是否有可用的空闲页，若有则将该页从free列表中移除放入到LRU列表中，否则根据LRU算法，淘汰LRU列表尾部的页，将该内存空间分片给新的页。当页从LRU的old部分加入到new部分时，称此时发生的操作为page made young，而因为`innodb_old_blocks_time`的设置导致页每页从old部分移动到new部分的操作称为page not made young。
 
-在数据库的Buffer Pool里面，不管是new列表还是old列表的数据如果不会被访问到，最后都会被移动到list的尾部作为被淘汰的页。
+**在数据库的Buffer Pool里面，不管是new列表还是old列表的数据如果不会被访问到，最后都会被移动到list的尾部作为被淘汰的页。**
 
 调大`innodb_old_blocks_time`提高了从Old链表移动到Young链表的难度，会促使更多页面被移动到Old 链表，老化，从而被驱逐。
 
-> 当扫描的表很大，Buffer Pool都放不下时，可以将innodb_old_blocks_pct设置为较小的值，这样只读取一次的数据页就不会占据大部分的Buffer Pool。例如，设置innodb_old_blocks_pct = 5，会将仅读取一次的数据页在Buffer Pool的占用限制为5％。
-> 
-> 当经常扫描一些小表时，这些页面在Buffer Pool移动的开销较小，我们可以适当的调大innodb_old_blocks_pct，例如设置innodb_old_blocks_pct = 50。
+当扫描的表很大，Buffer Pool都放不下时，可以将innodb_old_blocks_pct设置为较小的值，这样只读取一次的数据页就不会占据大部分的Buffer Pool。例如，设置`innodb_old_blocks_pct = 5`，会将仅读取一次的数据页在Buffer Pool的占用限制为5％。
 
-# Flush 链表
+当经常扫描一些小表时，这些页面在Buffer Pool移动的开销较小，我们可以适当的调大innodb_old_blocks_pct，例如设置`innodb_old_blocks_pct = 50`。
+
+## 4.2. Flush 链表
 
 - Flush 链表里面保存的都是脏页，也会存在于LRU 链表
 - Flush 链表是按照oldest_modification排序，值大的在头部，值小的在尾部
@@ -193,25 +200,33 @@ LRU列表用了管理已经读取的页，但当数据库刚启动时，LRU列�
 - 如果当前页面已经是脏页，就不需要再次加入Flush list，否则是第一次修改，需要加入Flush 链表
 -  当Page Cleaner线程执行flush操作的时候，从尾部开始scan，将一定的脏页写入磁盘，推进检查点，减少recover的时间
 
-# Free 链表
+## 4.3. Free 链表
 
 - Free 链表 存放的是空闲页面，初始化的时候申请一定数量的页面
 - 在执行SQL的过程中，每次成功load 页面到内存后，会判断Free 链表的页面是否够用。如果不够用的话，就flush LRU 链表和Flush 链表来释放空闲页。如果够用，就从Free 链表里面删除对应的页面，在LRU 链表增加页面，保持总数不变。
 
-# LRU 链表和Flush链表的区别
+## 4.4. LRU 链表和Flush链表的区别
 
 - LRU 链表 flush，由用户线程触发(MySQL 5.6.2之前)；而Flush 链表 flush由MySQL数据库InnoDB存储引擎后台srv_master线程处理。(在MySQL 5.6.2之后，都被迁移到Page Cleaner线程中)
 - LRU 链表 flush，其目的是为了写出LRU 链表尾部的脏页，释放足够的空闲页，当Buffer Pool满的时候，用户可以立即获得空闲页面，而不需要长时间等待；Flush 链表 flush，其目的是推进Checkpoint LSN，使得InnoDB系统崩溃之后能够快速的恢复
-- LRU 链表 flush，其写出的脏页，需要从LRU链表中删除，移动到Free 链表。Flush List flush，不需要移动page在LRU链表中的位置
+- LRU 链表 flush，其写出的脏页，需要从LRU链表中删除，移动到Free 链表。Flush 链表 flush，不需要移动page在LRU链表中的位置
 - LRU 链表 flush，每次flush的脏页数量较少，基本固定，只要释放一定的空闲页即可；Flush 链表 flush，根据当前系统的更新繁忙程度，动态调整一次flush的脏页数量，量很大
 - 在Flush 链表上的页面一定在LRU 链表上，反之则不成立。
 
-# 触发刷脏页的条件
+## 4.5. 触发刷脏页的条件
 
 - REDO日志快用满的时候。由于MySQL更新是先写REDO日志，后面再将数据Flush到磁盘，如果REDO日志对应脏数据还没有刷新到磁盘就被覆盖的话，万一发生Crash，数据就无法恢复了。此时会从Flush 链表里面选取脏页，进行Flush。
 - 为了保证MySQL中的空闲页面的数量，Page Cleaner线程会从LRU 链表尾部淘汰一部分页面作为空闲页。如果对应的页面是脏页的话，就需要先将页面Flush到磁盘。
-- MySQL中脏页太多的时候。`innodb_max_dirty_pages_pct` 表示的是Buffer Pool最大的脏页比例，默认值是75%，当脏页比例大于这个值时会强制进行刷脏页，保证系统有足够可用的Free Page。`innodb_max_dirty_pages_pct_lwm`参数控制的是脏页比例的低水位，当达到该参数设定的时候，会进行preflush，避免比例达到`innodb_max_dirty_pages_pct`来强制Flush，对MySQL实例产生影响
+- MySQL中脏页太多的时候。`innodb_max_dirty_pages_pct` 表示的是Buffer Pool最大的脏页比例，默认值是75%，当脏页比例大于这个值时会强制进行刷脏页，保证系统有足够可用的Free Page。`innodb_max_dirty_pages_pct_lwm`参数控制的是脏页比例的低水位，当达到该参数设定的时候，会进行preflush，避免比例达到`innodb_max_dirty_pages_pct`来强制Flush，对MySQL实例产生影响。
 - MySQL实例正常关闭的时候，也会触发MySQL把内存里面的脏页全部刷新到磁盘。
+
+> 当Buffer Pool中的脏页占用比达到`innodb_max_dirty_pages_pct_lwm`的设定值的时候，就会自动将脏页清出Buffer Pool，这是为了保证Buffer Pool当中脏页的占有率，也是为了防止脏页占有率超过`innodb_max_dirty_pages_pct`的设定值，当脏页的占有率达到了`innodb_max_dirty_pages_pct`的设定值的时候，InnoDB就会强制刷新Buffer Pool Pages。
+
+**InnoDB采用一种基于redo log的最近生成量和最近刷新频率的算法来决定冲洗速度。**这样的算法可以保证数据库的冲洗不会影响到数据库的性能，也能保证数据库Buffer Pool中的数据的脏数据的占用比。这种自动调节的方式还能够防止突然的并发redo变大，但是flush的时候将不能进行普通的IO读写操作。
+
+我们知道InnoDB使用日志的方式是循环使用的，在重用前一个日志文件之前，InnoDB就会将这个日志这个日志记录相关的所有在Buffer Pool当中的数据刷新到磁盘，也就是所谓的sharp checkpoint，和sqlserver的checkpoint很像。当一个插入语句产生大量的redo信息，需要记录的日志当前redo  log文件不能够完全存储，也会写入到当前的redo 文件当中。当redo log当中的所有使用空间都被用完了的，就会触发 sharp  checkpoint，所以这个时候即使脏数据占有率没有达到innodb_max_dirty_pages_pct ，还是会进行刷新。**这种算法是经得住考验的，所以说千万不要随便设置，最好是默认值**。但是我们从中也就会知道为什么一个事物的redo信息只能记录在一个redo log文件当中了。
+
+因为有这么多的好处，所以 innodb_adaptive_flushing的值默认就是true的。
 
 Innodb 的策略是在运行过程中尽可能的多占用内存，因此未被使用的页面会很少。当我们读取的数据不在Buffer Pool里面时，就需要申请一个空闲页来存放。如果没有足够的空闲页时，就必须从LRU 链表的尾部淘汰页面。如果该页面是干净的，可以直接拿来用，如果是脏页，就需要进行刷脏操作，将内存数据Flush到磁盘。
 
@@ -223,7 +238,8 @@ Innodb 的策略是在运行过程中尽可能的多占用内存，因此未被�
 
 > 上面有部分都是抄的https://mp.weixin.qq.com/s/O29wR4qiYAPQzBjSwO8FZg
 
-# show engine innodb status
+## 4.6. 查看LRU使用情况
+
 可以用`show engine innodb status\G`命令来观察LRU列表和free列表的使用情况和运行状态
 
 ```
@@ -273,6 +289,8 @@ I/O sum[0]:cur[0], unzip sum[0]:cur[0]
 
 `Random read ahead 0.00/s`显示了每秒随机预读的次数。
 
+`LRU len: 7141, unzip_LRU len: 0` innodb存储引擎支持压缩页功能，即将原本16k的页压缩为1k、2k、4k、8k。所以对于非16k的页通过unzip_LRU
+
 Buffer pool size 共有 8191个页，共`8191*16K`的缓冲池空间，Free buffers表示当前Free列表的页的数量。Database pages 表示LRU列表中页的数量。可能Free buffers+Database pages 可能并不等于Buffer pool size ，因为缓冲池中的页还可能会被分配给insert buffer、自适应哈希索引、锁信息(lock info)，数据字典信息等
 
 **需要关注的值：**
@@ -282,7 +300,79 @@ Buffer pool size 共有 8191个页，共`8191*16K`的缓冲池空间，Free buff
 
 每隔1秒钟，Page Cleaner线程执行LRU List Flush的操作，来释放足够的Free Page。`innodb_lru_scan_depth` 变量控制每个Buffer Pool实例每次扫描LRU List的长度，来寻找对应的脏页，执行Flush操作。
 
-# buffer pool相关配置
+还可以通过查询`innodb_buffer_pool_stats`查看缓冲池的运行状态
+
+```
+
+mysql> show tables like '%buffer%';
++-----------------------------------------+
+| Tables_in_information_schema (%BUFFER%) |
++-----------------------------------------+
+| INNODB_BUFFER_PAGE                      |
+| INNODB_BUFFER_PAGE_LRU                  |
+| INNODB_BUFFER_POOL_STATS                |
++-----------------------------------------+
+3 rows in set (0.00 sec)
+
+```
+
+
+
+```
+mysql> select * from INNODB_BUFFER_POOL_STATS\G
+*************************** 1. row ***************************
+                         POOL_ID: 0
+                       POOL_SIZE: 8192
+                    FREE_BUFFERS: 3506
+                  DATABASE_PAGES: 4676
+              OLD_DATABASE_PAGES: 1716
+         MODIFIED_DATABASE_PAGES: 0
+              PENDING_DECOMPRESS: 0
+                   PENDING_READS: 0
+               PENDING_FLUSH_LRU: 0
+              PENDING_FLUSH_LIST: 0
+                PAGES_MADE_YOUNG: 2622
+            PAGES_NOT_MADE_YOUNG: 67161
+           PAGES_MADE_YOUNG_RATE: 0
+       PAGES_MADE_NOT_YOUNG_RATE: 0
+               NUMBER_PAGES_READ: 1054
+            NUMBER_PAGES_CREATED: 3744
+            NUMBER_PAGES_WRITTEN: 27805
+                 PAGES_READ_RATE: 0
+               PAGES_CREATE_RATE: 0
+              PAGES_WRITTEN_RATE: 0
+                NUMBER_PAGES_GET: 8941309
+                        HIT_RATE: 0
+    YOUNG_MAKE_PER_THOUSAND_GETS: 0
+NOT_YOUNG_MAKE_PER_THOUSAND_GETS: 0
+         NUMBER_PAGES_READ_AHEAD: 0
+       NUMBER_READ_AHEAD_EVICTED: 0
+                 READ_AHEAD_RATE: 0
+         READ_AHEAD_EVICTED_RATE: 0
+                    LRU_IO_TOTAL: 25
+                  LRU_IO_CURRENT: 0
+                UNCOMPRESS_TOTAL: 0
+              UNCOMPRESS_CURRENT: 0
+1 row in set (0.00 sec)
+```
+
+可以通过innodb_buffer_page_lru 观察每个LRU列表中每个页的具体信息。
+
+观察unzip_LRU 列表中的页
+
+```
+select * from INNODB_BUFFER_PAGE_LRU where compressed_size <> 0;
+```
+
+观察脏页
+
+```
+select * from INNODB_BUFFER_PAGE_LRU where oldest_modification > 0;
+```
+
+
+
+# 5. buffer pool相关配置
 - innodb_buffer_pool_size：这个值是设置InnoDB Buffer Pool的总大小；
 - innodb_buffer_pool_chunk_size：InnoDB Buffer Pool的执行单元 chunk size的大小。这里面有个关系要确定一下，最好按照这个设置 `innodb_buffer_pool_size=innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances*N（N>=1）`;
 - innodb_buffer_pool_instances：设置InnoDB Buffer Pool实例的个数，每一个实例都有自己独立的list管理Buffer Pool；
@@ -305,7 +395,7 @@ Buffer pool size 共有 8191个页，共`8191*16K`的缓冲池空间，Free buff
 - innodb_buffer_pool_load_abort：终止Buffer Pool恢复，可以指定负载运行。
 
 
-# 参考资料
+# 6. 参考资料
 
 《MySQL技术内幕  InnoDB存储引擎  第2版》
 
