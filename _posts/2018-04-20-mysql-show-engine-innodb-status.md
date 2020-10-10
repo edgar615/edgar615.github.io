@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL查看innodb状态
-date: 2019-06-20
+date: 2018-04-20
 categories:
     - MySQL
 comments: true
@@ -142,7 +142,7 @@ END OF INNODB MONITOR OUTPUT
 
 依次分析上面的输出
 
-# Header
+# 1. Header
 
 ```
 =====================================
@@ -152,7 +152,7 @@ Per second averages calculated from the last 23 seconds
 ```
 表示至少统计了 23 秒的样本数据。如果平均统计间隔是0或1秒那么结果就没什么意义了
 
-# BACKGROUND THREAD
+# 2. BACKGROUND THREAD
 显示后台线程信息
 
 ```
@@ -171,7 +171,7 @@ srv_master_thread log flush and writes: 22796915
 - 
 Background thread部分信息为统计信息，即mysql服务启动之后该部分值会一直递增，因为它显示的是自mysqld服务启动之后master线程所有的loop和log刷新操作。通过对比active和idle的值，可以获知系统整体负载情况。Active的值越大，证明服务越繁忙。
 
-# SEMAPHORES
+# 3. SEMAPHORES
 如果你有一个高并发的系统，你需要关注这一部分的输出。它由两部分组成，event counters, 和可选项输出,即当前等待的事件(current waits)。
 
 ```
@@ -199,7 +199,7 @@ Spin rounds per wait: 7147333.00 RW-shared, 66439309.00 RW-excl, 17.27 RW-sx
 
 Spin wait的消耗远小于OS waits。Spin wait利用cpu的空闲时间，检查锁的状态，OS Wait会有所谓上下文切换，从CPU内核中换出当前执行线程以供其它线程使用。你可以通过`innodb_sync_spin_loops`参数来平衡spin wait和os wait。
 
-# TRANSACTIONS
+# 4. TRANSACTIONS
 
 ```
 ------------
@@ -232,7 +232,7 @@ LIST OF TRANSACTIONS FOR EACH SESSION:
 
 后面的数据显示显示了thread id,这个值与是在show full processlist 命令显示的进程ID是一样的。当前事务执行的SQL语句，当前事务锁定的数据表和MVCC信息
 
-# FILE I/O
+# 5. FILE I/O
 FILE I/O部分显示了I/O Helper thread的状态，包括一些统计信息
 
 ```
@@ -264,7 +264,7 @@ Pending flushes (fsync) log: 0; buffer pool: 0
 
 `0.00 reads/s...`显示了每秒的统计信息
 
-# INSERT BUFFER AND ADAPTIVE HASH INDEX
+# 6. INSERT BUFFER AND ADAPTIVE HASH INDEX
 
 ```
 -------------------------------------
@@ -293,7 +293,7 @@ Hash table size 34679, node heap has 1 buffer(s)
 
 `0.00 hash searches/s, 0.00 non-hash searches/s`显示了每秒进行了多少次hash搜索，以及非hash搜索
 
-# LOG
+# 7. LOG
 这里记录了tansaction log子系统的信
 ```
 ---
@@ -315,7 +315,7 @@ Last checkpoint at  18141044153
 
 `0 pending log flushes...`显示了pending log 的统计信息
 
-# BUFFER POOL AND MEMORY
+# 8. BUFFER POOL AND MEMORY
 显示buffer pool的使用情况
 ```
 ----------------------
@@ -373,7 +373,7 @@ I/O sum[0]:cur[0], unzip sum[0]:cur[0]
 
 每隔1秒钟，Page Cleaner线程执行LRU List Flush的操作，来释放足够的Free Page。`innodb_lru_scan_depth` 变量控制每个Buffer Pool实例每次扫描LRU List的长度，来寻找对应的脏页，执行Flush操作。
 
-# ROW OPERATIONS
+# 9. ROW OPERATIONS
 这一部分显示了rowoperation及其它的一些统计信息
 
 ```
@@ -392,6 +392,6 @@ Number of rows inserted 19647251, updated 1741697, deleted 208288, read 65538324
 
 `0 read views open inside InnoDB`显示了有多少read view被打开了
 
-# 参考资料
+# 10. 参考资料
 
 https://blog.csdn.net/qq_38125183/article/details/80658822

@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL锁(4)-Lock wait timeout exceeded
-date: 2019-06-12
+title: MySQL锁（4）-Lock wait timeout exceeded
+date: 2018-04-28
 categories:
     - MySQL
 comments: true

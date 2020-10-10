@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL锁(1)-innodb锁
-date: 2019-06-09
+title: MySQL锁（1）-innodb锁
+date: 2018-04-25
 categories:
     - MySQL
 comments: true
@@ -1163,11 +1163,155 @@ mysql> select * from user where nickname = 'nickname2' for update;
 
 注：**如果update的是聚集索引，则对应的普通索引记录也会被隐式加锁，这是由InnoDB索引的实现机制决定的：普通索引存储PK的值，检索普通索引本质上要二次扫描聚集索引。**
 
+加锁逻辑
+
+1. 找到满足条件的记录，并且记录有效，则对记录加X锁，No Gap 锁(lock_mode X locks rec but not gap);
+
+2. 找到满足条件的记录，但是记录无效(标识为删除的记录)，则对记录加 next key 锁(同时锁住记录本身，以及记录之前的Gap：lock_mode X);
+
+3. 未找到满足条件的记录，则对第一个不满足条件的记录加 Gap 锁，保证没有满足条件的记录插入(locks gap before rec)
+
 ## 9.3. insert
 
 insert和update与delete不同，它会用排它锁封锁被插入的索引记录，同时，会在插入区间加插入意向锁，但这个并不会真正封锁区间，也不会阻止相同区间的不同KEY插入。
 
+在多事务并发写入不同数据记录至同一索引间隙的时候，并不需要等待其他事务完成，不会发生锁等待。假设有一个索引记录包含键值 4 和 7，不同的事务分别插入 5 和 6，每个事务都会产生一个加在 4-7 之间的插入意向锁，获取在插入行上的排它锁，但是不会被互相锁住，因为数据行并不冲突。
 
+> An insert intention lock is a type of gap lock set by INSERT operations  prior to row insertion. This lock signals the intent to insert in such a way that multiple transactions inserting into the same index gap need  not wait for each other if they are not inserting at the same position  within the gap. Suppose that there are index records with values of 4  and 7. Separate transactions that attempt to insert values of 5 and 6,  respectively, each lock the gap between 4 and 7 with insert intention  locks prior to obtaining the exclusive lock on the inserted row, but do  not block each other because the rows are nonconflicting.
+
+对于 insert 操作来说，若发生唯一约束冲突，则需要对冲突的唯一索引加上 S Next-key Lock。从这里会发现，即使是 RC 事务隔离级别，也同样会存在 Next-Key Lock 锁，从而阻塞并发。对于检测到冲突的唯一索引，等待线程在获得S Lock之后，还需要对下一个记录进行加锁。
+
+```
+CREATE TABLE t8 ( a INT AUTO_INCREMENT PRIMARY KEY, b INT, c INT, UNIQUE KEY ub ( b ) ) ENGINE = INNODB;
+insert into t8 values (NULL,1,2);
+```
+
+T1
+
+```
+mysql> delete from t8 where b = 1;
+Query OK, 1 row affected (0.00 sec)
+```
+
+查看锁
+
+```
+---TRANSACTION 1379266, ACTIVE 3 sec
+3 lock struct(s), heap size 1136, 2 row lock(s), undo log entries 1
+```
+
+```
+
+mysql> select * from data_locks;
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+---------------+-------------+-----------+
+| ENGINE | ENGINE_LOCK_ID                         | ENGINE_TRANSACTION_ID | THREAD_ID | EVENT_ID | OBJECT_SCHEMA | OBJECT_NAME | PARTITION_NAME | SUBPARTITION_NAME | INDEX_NAME | OBJECT_INSTANCE_BEGIN | LOCK_TYPE | LOCK_MODE     | LOCK_STATUS | LOCK_DATA |
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+---------------+-------------+-----------+
+| INNODB | 139920103509400:1110:139920035361616   |               1379266 |   1375327 |      102 | test          | t8          | NULL           | NULL              | NULL       |       139920035361616 | TABLE     | IX            | GRANTED     | NULL      |
+| INNODB | 139920103509400:51:5:2:139920035358512 |               1379266 |   1375327 |      102 | test          | t8          | NULL           | NULL              | ub         |       139920035358512 | RECORD    | X,REC_NOT_GAP | GRANTED     | 1, 1      |
+| INNODB | 139920103509400:51:4:2:139920035358856 |               1379266 |   1375327 |      102 | test          | t8          | NULL           | NULL              | PRIMARY    |       139920035358856 | RECORD    | X,REC_NOT_GAP | GRANTED     | 1         |
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+---------------+-------------+-----------+
+3 rows in set (0.00 sec)
+```
+
+我们可以看到 delete 语句获取了唯一索引 ub 和主键两个行级锁(lock_mode X locks rec but not gap) 。
+
+T2
+
+```
+mysql> insert into t8 values (NULL,1,2);
+// 等待锁
+```
+
+再次查看锁
+
+```
+LOCK WAIT 2 lock struct(s), heap size 1136, 1 row lock(s), undo log entries 1
+MySQL thread id 1375191, OS thread handle 139919972570880, query id 4126113 localhost root update
+insert into t8 values (NULL,1,2)
+------- TRX HAS BEEN WAITING 5 SEC FOR THIS LOCK TO BE GRANTED:
+RECORD LOCKS space id 51 page no 5 n bits 72 index ub of table `test`.`t8` trx id 1379271 lock mode S waiting
+Record lock, heap no 2 PHYSICAL RECORD: n_fields 2; compact format; info bits 32
+```
+
+```
+mysql> select * from data_locks;
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+---------------+-------------+-----------+
+| ENGINE | ENGINE_LOCK_ID                         | ENGINE_TRANSACTION_ID | THREAD_ID | EVENT_ID | OBJECT_SCHEMA | OBJECT_NAME | PARTITION_NAME | SUBPARTITION_NAME | INDEX_NAME | OBJECT_INSTANCE_BEGIN | LOCK_TYPE | LOCK_MODE     | LOCK_STATUS | LOCK_DATA |
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+---------------+-------------+-----------+
+| INNODB | 139920103510256:1110:139920035367776   |               1379271 |   1375328 |       88 | test          | t8          | NULL           | NULL              | NULL       |       139920035367776 | TABLE     | IX            | GRANTED     | NULL      |
+| INNODB | 139920103510256:51:5:2:139920035364672 |               1379271 |   1375328 |       88 | test          | t8          | NULL           | NULL              | ub         |       139920035364672 | RECORD    | S             | WAITING     | 1, 1      |
+| INNODB | 139920103509400:1110:139920035361616   |               1379266 |   1375327 |      102 | test          | t8          | NULL           | NULL              | NULL       |       139920035361616 | TABLE     | IX            | GRANTED     | NULL      |
+| INNODB | 139920103509400:51:5:2:139920035358512 |               1379266 |   1375327 |      102 | test          | t8          | NULL           | NULL              | ub         |       139920035358512 | RECORD    | X,REC_NOT_GAP | GRANTED     | 1, 1      |
+| INNODB | 139920103509400:51:4:2:139920035358856 |               1379266 |   1375327 |      102 | test          | t8          | NULL           | NULL              | PRIMARY    |       139920035358856 | RECORD    | X,REC_NOT_GAP | GRANTED     | 1         |
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+---------------+-------------+-----------+
+5 rows in set (0.00 sec)
+```
+
+`insert into t8 values (NULL,1,2);`在申请一把 S Next-key-Lock 显示 lock mode S waiting
+
+> Innodb 日志中如果提示 lock mode S/lock mode X ，其实都是 gap 锁，如果是行记录锁会提示 but not gap
+
+T1提交后，再次查看锁
+
+```
+---TRANSACTION 1379271, ACTIVE 181 sec
+3 lock struct(s), heap size 1136, 3 row lock(s), undo log entries 1
+```
+
+```
+mysql> select * from data_locks;
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+-----------+-------------+------------------------+
+| ENGINE | ENGINE_LOCK_ID                         | ENGINE_TRANSACTION_ID | THREAD_ID | EVENT_ID | OBJECT_SCHEMA | OBJECT_NAME | PARTITION_NAME | SUBPARTITION_NAME | INDEX_NAME | OBJECT_INSTANCE_BEGIN | LOCK_TYPE | LOCK_MODE | LOCK_STATUS | LOCK_DATA              |
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+-----------+-------------+------------------------+
+| INNODB | 139920103510256:1110:139920035367776   |               1379271 |   1375328 |       88 | test          | t8          | NULL           | NULL              | NULL       |       139920035367776 | TABLE     | IX        | GRANTED     | NULL                   |
+| INNODB | 139920103510256:51:5:1:139920035364672 |               1379271 |   1375328 |       88 | test          | t8          | NULL           | NULL              | ub         |       139920035364672 | RECORD    | S         | GRANTED     | supremum pseudo-record |
+| INNODB | 139920103510256:51:5:3:139920035365016 |               1379271 |   1375328 |       88 | test          | t8          | NULL           | NULL              | ub         |       139920035365016 | RECORD    | S,GAP     | GRANTED     | 1, 2                   |
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+-----------+-------------+------------------------+
+3 rows in set (0.00 sec)
+```
+
+从获取锁的状态上看 insert 获取一把 S Next-key Lock 锁和插入行之前的 S GAP 锁。
+
+> INSERT sets an exclusive lock on the inserted row. This lock is an  index-record lock, not a next-key lock (that is, there is no gap lock)  and does not prevent other sessions from inserting into the gap before  the inserted row.
+
+会对 insert 成功的记录加上一把X行锁，但是没看见
+
+T2
+
+```
+update t8 set c=13 where b=1;
+```
+
+查看锁
+
+```
+---TRANSACTION 1379271, ACTIVE 257 sec
+5 lock struct(s), heap size 1136, 5 row lock(s), undo log entries 2
+```
+
+```
+mysql> select * from data_locks;
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+---------------+-------------+------------------------+
+| ENGINE | ENGINE_LOCK_ID                         | ENGINE_TRANSACTION_ID | THREAD_ID | EVENT_ID | OBJECT_SCHEMA | OBJECT_NAME | PARTITION_NAME | SUBPARTITION_NAME | INDEX_NAME | OBJECT_INSTANCE_BEGIN | LOCK_TYPE | LOCK_MODE     | LOCK_STATUS | LOCK_DATA              |
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+---------------+-------------+------------------------+
+| INNODB | 139920103510256:1110:139920035367776   |               1379271 |   1375328 |       88 | test          | t8          | NULL           | NULL              | NULL       |       139920035367776 | TABLE     | IX            | GRANTED     | NULL                   |
+| INNODB | 139920103510256:51:5:1:139920035364672 |               1379271 |   1375328 |       88 | test          | t8          | NULL           | NULL              | ub         |       139920035364672 | RECORD    | S             | GRANTED     | supremum pseudo-record |
+| INNODB | 139920103510256:51:5:3:139920035365016 |               1379271 |   1375328 |       88 | test          | t8          | NULL           | NULL              | ub         |       139920035365016 | RECORD    | S,GAP         | GRANTED     | 1, 2                   |
+| INNODB | 139920103510256:51:5:3:139920035365360 |               1379271 |   1375328 |       89 | test          | t8          | NULL           | NULL              | ub         |       139920035365360 | RECORD    | X,REC_NOT_GAP | GRANTED     | 1, 2                   |
+| INNODB | 139920103510256:51:4:3:139920035365704 |               1379271 |   1375328 |       89 | test          | t8          | NULL           | NULL              | PRIMARY    |       139920035365704 | RECORD    | X,REC_NOT_GAP | GRANTED     | 2                      |
++--------+----------------------------------------+-----------------------+-----------+----------+---------------+-------------+----------------+-------------------+------------+-----------------------+-----------+---------------+-------------+------------------------+
+5 rows in set (0.00 sec)
+```
+
+可以看到T2持有的锁多了`X,REC_NOT_GAP`
+
+对于并发 insert 造成唯一键冲突的时候 insert 的加锁策略是:
+
+1. 第一阶段唯一性约束检查，先申请 LOCKINSERTINTENTION
+
+2. 第二接入获取阶段一的锁并且 insert 成功之后插入的位置有 Gap 锁：LOCKS + LOCKORDINARY，为了防止其他 insert 唯一键冲突。
+
+3. 插入成功的记录：LOCK_X + LOCK_REC_NOT_GAP
 
 
 # 10. 分析行锁定

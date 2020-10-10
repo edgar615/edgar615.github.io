@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL锁(3)-MyISAM锁
-date: 2019-06-11
+title: MySQL锁（3）-MyISAM锁
+date: 2018-04-27
 categories:
     - MySQL
 comments: true
