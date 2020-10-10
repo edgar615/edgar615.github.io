@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL数据类型（6）-大对象
-date: 2019-06-15
+date: 2018-06-15
 categories:
     - MySQL
 comments: true

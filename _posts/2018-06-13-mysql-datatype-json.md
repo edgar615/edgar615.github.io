@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL数据类型（3）-JSON
-date: 2019-06-13
+date: 2018-06-13
 categories:
     - MySQL
 comments: true

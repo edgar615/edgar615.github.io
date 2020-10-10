@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL数据类型（3）-bit
-date: 2019-06-12
+date: 2018-06-12
 categories:
     - MySQL
 comments: true
@@ -34,7 +34,7 @@ mysql> desc bit_test;
 2 rows in set (0.02 sec)
 ```
 
-# 插入
+# 1. 插入
 插入有两种方式，按字符串和按整数插入，如果将值插入到长度小于m位的BIT(m)列中，MySQL将在位值的左侧使用零填充。
 
 ```
@@ -72,7 +72,7 @@ mysql> insert into bit_test(province_bit) values(false);
 Query OK, 1 row affected (0.03 sec)
 ```
 
-# 查询
+# 2. 查询
 
 ```
 -- 默认显示

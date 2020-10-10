@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL索引（10）-普通索引和唯一索引
-date: 2019-04-10
+date: 2018-04-10
 categories:
     - MySQL
 comments: true

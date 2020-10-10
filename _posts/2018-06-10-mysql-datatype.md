@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL数据类型（1）- 基础
-date: 2019-06-10
+date: 2018-06-10
 categories:
     - MySQL
 comments: true

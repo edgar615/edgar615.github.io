@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL数据类型（5）-IP地址的存储
-date: 2019-06-14
+date: 2018-06-14
 categories:
     - MySQL
 comments: true
