@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL重置root密码
-date: 2019-06-10
+date: 2018-03-02
 categories:
     - MySQL
 comments: true

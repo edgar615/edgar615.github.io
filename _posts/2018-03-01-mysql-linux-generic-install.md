@@ -1,7 +1,7 @@
 ---
 layout: post
 title: 安装MySQL Linux Generic版本
-date: 2020-06-18
+date: 2018-03-01
 categories:
     - MySQL
 comments: true

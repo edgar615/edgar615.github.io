@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL caching-sha2-password
-date: 2019-06-10
+date: 2018-03-04
 categories:
     - MySQL
 comments: true
