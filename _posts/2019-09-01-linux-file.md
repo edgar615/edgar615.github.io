@@ -44,3 +44,7 @@ boot/  etc/  initrd.img@  lib/             lost+found/  mnt/    opt/  root/  sbi
 bin/   docs/     lib/     man/        mysqld.pid   mysql.sock.lock  share/
 data/  include/  LICENSE  mysqld.err  mysql.sock=  README           support-files/
 ```
+
+Socket 是网络插座，是客户端和服务器之间同步数据的接口。其实，Linux 不只把 Socket 抽象成了文件，设备基本也都被抽象成了文件。因为设备需要不断和操作系统交换数据。而交换方式只有两种——读和写。所以设备是可以抽象成文件的，因为文件也支持这两种操作。
+
+Linux 把所有的设备都抽象成了文件，比如说打印机、USB、显卡等。这让整体的系统设计变得高度统一。
