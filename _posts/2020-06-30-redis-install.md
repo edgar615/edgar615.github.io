@@ -31,3 +31,14 @@ yum install gcc
 ```
 make distclean  && make
 ```
+
+**3. 安装6.0出现 server.h:1072:5: error: expected specifier-qualifier-list before ‘_Atomic’**
+
+请先检查gcc的版本是否低于5，如果是请先升级，可以使用以下命令：
+
+```
+sudo yum install centos-release-scl
+yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++ devtoolset-9-binutils
+scl enable devtoolset-9 bash
+```
+

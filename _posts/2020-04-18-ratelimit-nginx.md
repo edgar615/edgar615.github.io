@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 限流（4）- Redis
+title: 限流（4）- Nginx
 date: 2020-04-18
 categories:
     - 分布式
