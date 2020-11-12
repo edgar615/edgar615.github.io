@@ -1,9 +1,9 @@
 ---
 layout: post
-title: Spring Cloud Gateway（2）-自定义断言
+title: Spring Cloud Gateway-  自定义断言
 date: 2020-08-02
 categories:
-    - Spring Cloud
+    - Spring
 comments: true
 permalink: spring-cloud-gateway-custom-predicate.html
 ---

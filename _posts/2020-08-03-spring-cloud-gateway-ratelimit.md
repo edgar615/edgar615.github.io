@@ -1,9 +1,9 @@
 ---
 layout: post
-title: Spring Cloud Gateway（4）- 限流
+title: Spring Cloud Gateway-  限流
 date: 2020-08-03
 categories:
-    - Spring Cloud
+    - Spring
 comments: true
 permalink: spring-cloud-gateway-ratelimit.html
 ---
