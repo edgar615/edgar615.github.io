@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Spring Cloud Gateway-  ×Ô¶¨Òå¶ÏÑÔ
+title: Spring Cloud Gateway -  è‡ªå®šä¹‰æ–­è¨€
 date: 2020-08-02
 categories:
     - Spring
@@ -8,11 +8,11 @@ comments: true
 permalink: spring-cloud-gateway-custom-predicate.html
 ---
 
-Spring Cloud GatewayËäÈ»ÄÚÖÃÁËÒ»Ğ©¶ÏÑÔ£¬µ«ÊÇÔÚÓĞĞ©Çé¿öÏÂ¿ÉÄÜ²¢²»¹»ÓÃ¡£Spring Cloud GatewayÄ£¿éÌá¹©ÁË×Ô¶¨Òå¶ÏÑÔµÄ·½·¨¡£
+Spring Cloud Gatewayè™½ç„¶å†…ç½®äº†ä¸€äº›æ–­è¨€ï¼Œä½†æ˜¯åœ¨æœ‰äº›æƒ…å†µä¸‹å¯èƒ½å¹¶ä¸å¤Ÿç”¨ã€‚Spring Cloud Gatewayæ¨¡å—æä¾›äº†è‡ªå®šä¹‰æ–­è¨€çš„æ–¹æ³•ã€‚
 
-# 1. ¹Ù·½¶ÏÑÔ
+# 1. å®˜æ–¹æ–­è¨€
 
-Spring Cloud GatewayÊ¹ÓÃ¹¤³§Ä£Ê½ÊµÏÖ¶ÏÑÔ£¬ÎÒÃÇ¿ÉÒÔ¿´Ò»¸ö¹Ù·½ÊµÏÖ£¬ËüÊµÏÖÁË`RoutePredicateFactory`½Ó¿Ú£¬
+Spring Cloud Gatewayä½¿ç”¨å·¥å‚æ¨¡å¼å®ç°æ–­è¨€ï¼Œæˆ‘ä»¬å¯ä»¥çœ‹ä¸€ä¸ªå®˜æ–¹å®ç°ï¼Œå®ƒå®ç°äº†`RoutePredicateFactory`æ¥å£ï¼Œ
 
 ```java
 public class AfterRoutePredicateFactory
@@ -59,7 +59,7 @@ public class AfterRoutePredicateFactory
 }
 ```
 
-`RoutePredicateFactory<C>`½Ó¿ÚÖ÷ÒªÓĞÈı¸ö·½·¨
+`RoutePredicateFactory<C>`æ¥å£ä¸»è¦æœ‰ä¸‰ä¸ªæ–¹æ³•
 
 ```java
 default List<String> shortcutFieldOrder() {
@@ -73,17 +73,17 @@ default ShortcutType shortcutType() {
 Predicate<ServerWebExchange> apply(C config);
 ```
 
-`shortcutType()`ºÍ`shortcutFieldOrder()`·½·¨ĞèÒªÅäºÏÊ¹ÓÃ£¬ÓÃÓÚ·µ»ØConfig¶ÔÓ¦µÄ×Ö¶Î,Ä¬ÈÏÇé¿öÏÂ·µ»ØConfigµÄËùÓĞ×Ö¶Î
+`shortcutType()`å’Œ`shortcutFieldOrder()`æ–¹æ³•éœ€è¦é…åˆä½¿ç”¨ï¼Œç”¨äºè¿”å›Configå¯¹åº”çš„å­—æ®µ,é»˜è®¤æƒ…å†µä¸‹è¿”å›Configçš„æ‰€æœ‰å­—æ®µ
 
-`apply(C config)`·½·¨Ö´ĞĞ¾ßÌåµÄ¶ÏÑÔÂß¼­
+`apply(C config)`æ–¹æ³•æ‰§è¡Œå…·ä½“çš„æ–­è¨€é€»è¾‘
 
-`AfterRoutePredicateFactory`¹¹Ôì·½·¨´«ÈëÓÃÀ´×°ÅäÖÃµÄÀà£¬Spring Cloud Gateway»á×Ô¶¯°ÑÅäÖÃÖĞµÄvalue´«ÈëapplyÖĞ×öÈë²Î¡£
+`AfterRoutePredicateFactory`æ„é€ æ–¹æ³•ä¼ å…¥ç”¨æ¥è£…é…ç½®çš„ç±»ï¼ŒSpring Cloud Gatewayä¼šè‡ªåŠ¨æŠŠé…ç½®ä¸­çš„valueä¼ å…¥applyä¸­åšå…¥å‚ã€‚
 
-# 2. ÊµÏÖ×Ô¶¨Òå¶ÏÑÔ
+# 2. å®ç°è‡ªå®šä¹‰æ–­è¨€
 
-ÎÒÃÇÊµÏÖÏÂÃæµÄ³¡¾°£ºÓĞÒ»²¿·ÖÔËÎ¬ÀàµÄAPIÖ»ÓĞÌØ¶¨µÄÓÃ»§£¨»òÕßÌØ¶¨µÄIP£©²ÅÄÜ·ÃÎÊ
+æˆ‘ä»¬å®ç°ä¸‹é¢çš„åœºæ™¯ï¼šæœ‰ä¸€éƒ¨åˆ†è¿ç»´ç±»çš„APIåªæœ‰ç‰¹å®šçš„ç”¨æˆ·ï¼ˆæˆ–è€…ç‰¹å®šçš„IPï¼‰æ‰èƒ½è®¿é—®
 
-## 2.1. ×Ô¶¨Òå¶ÏÑÔ¹¤³§
+## 2.1. è‡ªå®šä¹‰æ–­è¨€å·¥å‚
 
 ```java
 public class DevopsRoutePredicateFactory extends AbstractRoutePredicateFactory<DevopsRoutePredicateFactory.Config> {
@@ -136,7 +136,7 @@ public class DevopsRoutePredicateFactory extends AbstractRoutePredicateFactory<D
 
 
 
-## 2.2. ×¢²á¶ÏÑÔ¹¤³§
+## 2.2. æ³¨å†Œæ–­è¨€å·¥å‚
 
 ```java
 @Bean
@@ -145,7 +145,7 @@ DevopsRoutePredicateFactory devopsRoutePredicateFactory() {
 }
 ```
 
-## 2.3. Ê¹ÓÃFluent Api¶¨ÒåRoute
+## 2.3. ä½¿ç”¨Fluent Apiå®šä¹‰Route
 
 ```java
 @Bean
@@ -163,7 +163,7 @@ public RouteLocator routes(RouteLocatorBuilder builder, DevopsRoutePredicateFact
 }
 ```
 
-## 2.4. ²âÊÔ
+## 2.4. æµ‹è¯•
 
 ```sh
 $ curl -s --cookie "user=Edgar" http://localhost:8080/hello
@@ -171,13 +171,13 @@ $ curl -s --cookie "user=Edgar" http://localhost:8080/hello
 
 ```
 
-## 2.5. Ê¹ÓÃyaml¶¨ÒåRoute
+## 2.5. ä½¿ç”¨yamlå®šä¹‰Route
 
 ```yaml
 - id: devops_route
   uri: http://localhost:9001
   predicates:
-  - name: Devops #ÃüÃûRoutePredicateFactoryÊ±µÄÇ°Ãæ²¿·Ö
+  - name: Devops #å‘½åRoutePredicateFactoryæ—¶çš„å‰é¢éƒ¨åˆ†
 	args:
 	  name: user
 	  devopsUser:
@@ -185,7 +185,7 @@ $ curl -s --cookie "user=Edgar" http://localhost:8080/hello
 	  - Git
 ```
 
-`shortcutType()`ºÍ`shortcutFieldOrder()`·½·¨Ò»°ã²»ĞèÒªÖØĞ´£¬Èç¹ûÓĞĞèÒª¿ÉÒÔ¿´`PathRoutePredicateFactory`ºÍ`RemoteAddrRoutePredicateFactory`µÄÊµÏÖ
+`shortcutType()`å’Œ`shortcutFieldOrder()`æ–¹æ³•ä¸€èˆ¬ä¸éœ€è¦é‡å†™ï¼Œå¦‚æœæœ‰éœ€è¦å¯ä»¥çœ‹`PathRoutePredicateFactory`å’Œ`RemoteAddrRoutePredicateFactory`çš„å®ç°
 
 
 
