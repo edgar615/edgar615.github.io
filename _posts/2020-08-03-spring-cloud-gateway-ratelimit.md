@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Spring Cloud Gateway-  ÏŞÁ÷
+title: Spring Cloud Gateway -  é™æµ
 date: 2020-08-03
 categories:
     - Spring
@@ -8,9 +8,9 @@ comments: true
 permalink: spring-cloud-gateway-ratelimit.html
 ---
 
-Spring Cloud Gateway ÒÑ¾­ÄÚÖÃÁËÒ»¸öRequestRateLimiterGatewayFilterFactory£¬ÎÒÃÇ¿ÉÒÔÖ±½ÓÊ¹ÓÃ¡£
+Spring Cloud Gateway å·²ç»å†…ç½®äº†ä¸€ä¸ªRequestRateLimiterGatewayFilterFactoryï¼Œæˆ‘ä»¬å¯ä»¥ç›´æ¥ä½¿ç”¨ã€‚
 
-Ä¿Ç°RequestRateLimiterGatewayFilterFactoryµÄÊµÏÖÒÀÀµÓÚ Redis£¬ËùÒÔÎÒÃÇ»¹ÒªÒıÈëspring-boot-starter-data-redis-reactive¡£·ñÔòRequestRateLimiterGatewayFilterFactory²»»á×¢Èë
+ç›®å‰RequestRateLimiterGatewayFilterFactoryçš„å®ç°ä¾èµ–äº Redisï¼Œæ‰€ä»¥æˆ‘ä»¬è¿˜è¦å¼•å…¥spring-boot-starter-data-redis-reactiveã€‚å¦åˆ™RequestRateLimiterGatewayFilterFactoryä¸ä¼šæ³¨å…¥
 
 ```
 <dependency>
@@ -19,7 +19,7 @@ Spring Cloud Gateway ÒÑ¾­ÄÚÖÃÁËÒ»¸öRequestRateLimiterGatewayFilterFactory£¬ÎÒÃÇ¿
 </dependency>
 ```
 
-ÅäÖÃÏŞÁ÷¹ıÂËÆ÷
+é…ç½®é™æµè¿‡æ»¤å™¨
 
 ```
 spring:
@@ -38,13 +38,13 @@ spring:
                 redis-rate-limiter.burstCapacity: 3
 ```
 
-¸Ã¹ıÂËÆ÷ĞèÒªÅäÖÃÈı¸ö²ÎÊı£º
+è¯¥è¿‡æ»¤å™¨éœ€è¦é…ç½®ä¸‰ä¸ªå‚æ•°ï¼š
 
-- burstCapacity£ºÁîÅÆÍ°×ÜÈİÁ¿¡£
-- replenishRate£ºÁîÅÆÍ°Ã¿ÃëÌî³äÆ½¾ùËÙÂÊ¡£
-- key-resolver£ºÓÃÓÚÏŞÁ÷µÄ¼üµÄ½âÎöÆ÷µÄ Bean ¶ÔÏóµÄÃû×Ö¡£ËüÊ¹ÓÃ SpEL ±í´ïÊ½¸ù¾İ#{@beanName}´Ó Spring ÈİÆ÷ÖĞ»ñÈ¡ Bean ¶ÔÏó¡£
+- burstCapacityï¼šä»¤ç‰Œæ¡¶æ€»å®¹é‡ã€‚
+- replenishRateï¼šä»¤ç‰Œæ¡¶æ¯ç§’å¡«å……å¹³å‡é€Ÿç‡ã€‚
+- key-resolverï¼šç”¨äºé™æµçš„é”®çš„è§£æå™¨çš„ Bean å¯¹è±¡çš„åå­—ã€‚å®ƒä½¿ç”¨ SpEL è¡¨è¾¾å¼æ ¹æ®#{@beanName}ä» Spring å®¹å™¨ä¸­è·å– Bean å¯¹è±¡ã€‚
 
-Òò´ËÎÒÃÇĞèÒªÊµÏÖÒ»¸ökey-resolver
+å› æ­¤æˆ‘ä»¬éœ€è¦å®ç°ä¸€ä¸ªkey-resolver
 
 ```
 @Bean
@@ -53,9 +53,9 @@ public KeyResolver hostAddrKeyResolver() {
 }
 ```
 
-ÉÏÃæµÄKeyResolverÊÇ»ñÈ¡ÇëÇóÓÃ»§ip×÷ÎªÏŞÁ÷key¡£ÎÒÃÇÒ²¿ÉÒÔÊµÏÖÆäËûµÄÏŞÁ÷·½Ê½
+ä¸Šé¢çš„KeyResolveræ˜¯è·å–è¯·æ±‚ç”¨æˆ·ipä½œä¸ºé™æµkeyã€‚æˆ‘ä»¬ä¹Ÿå¯ä»¥å®ç°å…¶ä»–çš„é™æµæ–¹å¼
 
-**»ñÈ¡ÇëÇóÓÃ»§id×÷ÎªÏŞÁ÷key**
+**è·å–è¯·æ±‚ç”¨æˆ·idä½œä¸ºé™æµkey**
 
 ```
 @Bean
@@ -64,7 +64,7 @@ public KeyResolver userKeyResolver() {
 }
 ```
 
-**»ñÈ¡ÇëÇóµØÖ·µÄuri×÷ÎªÏŞÁ÷key**
+**è·å–è¯·æ±‚åœ°å€çš„uriä½œä¸ºé™æµkey**
 
 ```
 @Bean
@@ -73,7 +73,7 @@ KeyResolver apiKeyResolver() {
 }
 ```
 
-> ×Ô¼ºÔÚ²âÊÔµÄÊ±ºòÒ»Ö±Ã»Æğ×÷ÓÃ£¬ºóÀ´·¢ÏÖÊÇÃ»ÓĞÅäÖÃredisÃÜÂë£¬µ«ÊÇRedisRateLimiterÔÚÓöµ½Òì³£Ê±Ö±½Ó½«Òì³£ºöÂÔÁË
+> è‡ªå·±åœ¨æµ‹è¯•çš„æ—¶å€™ä¸€ç›´æ²¡èµ·ä½œç”¨ï¼Œåæ¥å‘ç°æ˜¯æ²¡æœ‰é…ç½®rediså¯†ç ï¼Œä½†æ˜¯RedisRateLimiteråœ¨é‡åˆ°å¼‚å¸¸æ—¶ç›´æ¥å°†å¼‚å¸¸å¿½ç•¥äº†
 >
 > ```java
 > return flux.onErrorResume(throwable -> {
@@ -87,7 +87,7 @@ KeyResolver apiKeyResolver() {
 
 
 
-¶ÔÓÚ±»ÏŞÁ÷µÄÇëÇó£¬ÔÚÇëÇóÍ·ÖĞ»áÓĞÌáÊ¾ĞÅÏ¢
+å¯¹äºè¢«é™æµçš„è¯·æ±‚ï¼Œåœ¨è¯·æ±‚å¤´ä¸­ä¼šæœ‰æç¤ºä¿¡æ¯
 
 ```
 $ curl -si http://localhost:8080/hello
@@ -101,7 +101,7 @@ X-RateLimit-Replenish-Rate: 1
 
 
 
-²âÊÔ¹ı³ÌÖĞ¿ÉÒÔÍ¨¹ıRedisµÄmonitoÃüÁî¹Û²ìredisÖĞµÄkey±ä»¯
+æµ‹è¯•è¿‡ç¨‹ä¸­å¯ä»¥é€šè¿‡Redisçš„monitoå‘½ä»¤è§‚å¯Ÿredisä¸­çš„keyå˜åŒ–
 
 ```
 127.0.0.1:6379> monitor
