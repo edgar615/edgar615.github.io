@@ -5,7 +5,7 @@ date: 2020-05-21
 categories:
     - java
 comments: true
-permalink: rpc-shutdown-hook.html
+permalink: java-shutdown-hook.html
 ---
 
 # 1. 信号
