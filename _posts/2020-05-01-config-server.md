@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 配置中心 - 流量网关和业务网关
+title: 配置中心
 date: 2020-05-01
 categories:
     - 分布式

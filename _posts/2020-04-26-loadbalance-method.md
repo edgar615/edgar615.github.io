@@ -1,7 +1,7 @@
 ---
 layout: post
 title: 负载均衡（2）-负载均衡算法
-date: 2020-04-16
+date: 2020-04-26
 categories:
     - 分布式
 comments: true
