@@ -1,11 +1,11 @@
 ---
 layout: post
-title: spring boot配置文件生成随机数
-date: 2019-03-19
+title: Spring Boot - 配置文件生成随机数
+date: 2019-03-20
 categories:
     - Spring
 comments: true
-permalink: Random-Configuration-Property-Values.html
+permalink: spring-random-property-values.html
 ---
 
 spring通过`RandomValuePropertySource`实现了配置文件的随机数（源码很简单），我们可以在配置文件的value中通过`${random.<type>}`来生成随机数，目前仅支持`String`, `Integer`, `Long` 和 `UUID`四种类型，还可以通过`${random.int[<start>,<end>]}`来指定随机数的范围
@@ -31,26 +31,26 @@ public class Application {
 
     @Value("${my.secret.password}")
     private String password;
-
+    
     @Value("${my.secret.intValue}")
     private Integer intValue;
-
+    
     @Value("${my.secret.intValueRange}")
     private Integer intValueRange;
-
+    
     @Value("${my.secret.longValue}")
     private Long longValue;
-
+    
     @Value("${my.secret.longValueRange}")
     private Long longValueRange;
-
+    
     @Value("${my.secret.uuid}")
     private UUID uuid;
-
+    
     public static void main(String[] args) throws Exception {
         SpringApplication.run(Application.class, args);
     }
-
+    
     @PostConstruct
     private void init(){
         System.out.println("Configure Random Property Values using Spring Boot");

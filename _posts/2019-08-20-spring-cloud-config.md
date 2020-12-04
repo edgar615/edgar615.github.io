@@ -351,23 +351,26 @@ Mapped "{[/actuator/bus-refresh],methods=[POST]}" onto public java.lang.Object o
 
 ```
 启动成功后，我们可以发现kafka中多了一个topic
-<pre class="line-numbers "><code class="language-shell">
+```
 kafka-topics.sh --list --zookeeper localhost:2181
 __consumer_offsets
 springCloudBus
-</code></pre>
+```
 
-请求一下`/actuator/bus-refresh`我们可以看到springCloudBus的主题中多了一条消息
-<pre class="line-numbers "><code class="language-shell">
-$ curl -s -X POST -H "Content-Type: application/json" http://localhost:9001/actuator/bus-refresh
+请求一下`/actuator/bus-refresh`后我们可以看到springCloudBus的主题中多了一条消息
+```
+$ curl -s -X POST http://localhost:9001/actuator/bus-refresh
+```
 
+```
 $ ./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic springCloudBus --from-beginning
-{"type":"RefreshRemoteApplicationEvent","timestamp":1552546588187,"originService":"config-bus-refresh:9001:0e7842bbedb5cb2ff9ffdce822756310","destinationService":"**","id":"d1061741-1d49-45f2-aefc-3a2359ba6600"}
-{"type":"AckRemoteApplicationEvent","timestamp":1552546588346,"originService":"config-bus-refresh:9001:0e7842bbedb5cb2ff9ffdce822756310","destinationService":"**","id":"45d31331-2fda-49de-893e-25f38f5fa8c0","ackId":"d1061741-1d49-45f2-aefc-3a2359ba6600","ackDestinationService":"**","event":"org.springframework.cloud.bus.event.RefreshRemoteApplicationEvent"}
+{"type":"RefreshRemoteApplicationEvent","timestamp":1607059874411,"originService":"order:9001:60c6fa563fa969937f1aa36cf6808ee4","destinationService":"**","id":"385d2ce8-994d-46a1-a66d-38e560be561f"}
+{"type":"AckRemoteApplicationEvent","timestamp":1607059874629,"originService":"order:9001:60c6fa563fa969937f1aa36cf6808ee4","destinationService":"**","id":"078b6b4b-a302-423e-adb4-caec530efe04","ackId":"385d2ce8-994d-46a1-a66d-38e560be561f","ackDestinationService":"**","event":"org.springframework.cloud.bus.event.RefreshRemoteApplicationEvent"}
+{"type":"AckRemoteApplicationEvent","timestamp":1607059878627,"originService":"user:9002:8be70724a9cabbbd34bab904d4c2d2af","destinationService":"**","id":"82b2c41c-249e-4efe-ae69-b06719e87b8d","ackId":"385d2ce8-994d-46a1-a66d-38e560be561f","ackDestinationService":"**","event":"org.springframework.cloud.bus.event.RefreshRemoteApplicationEvent"}
 
-</code></pre>
+```
 
-**我们可以在构建另外一个config client来测试广播的效果，这里就不多余描述了**，`/bus-refresh`触发后，所有的服务都会刷新配置
+通过**AckRemoteApplicationEvent**可以看到，`/bus-refresh`触发后，所有的服务都会刷新配置
 
 ![](/assets/images/posts/spring-cloud-config/spring-cloud-config-2.png)
 
@@ -406,7 +409,7 @@ spring:
     stream:
       kafka:
         binder:
-          brokers: 192.168.1.212:9092
+          brokers: localhost:9092
           minPartitionCount: 1
           autoCreateTopics: true
           autoAddPartitions: true
@@ -423,11 +426,13 @@ spring:
 当webhook被触发,  Config Server会发送一个refresh事件给配置被修改了的应用 ( RefreshRemoteApplicationEvent)
 
 模拟webhook的触发
-<pre class="line-numbers "><code class="language-shell">
+
+```
 curl -v -X POST "http://localhost:8080/monitor" \
 -H "Content-Type: application/json" \
 -H "X-Event-Key: repo:push" \
 -H "X-Hook-UUID: webhook-uuid" \
 -d '{"push": {"changes": []} }'
-</code></pre>
+```
+
 ![](/assets/images/posts/spring-cloud-config/spring-cloud-config-3.png)

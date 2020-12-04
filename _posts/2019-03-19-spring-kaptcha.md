@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Spring Boot集成Kaptcha实现简易验证码功能
-date: 2020-06-13
+title: Spring Boot - 集成Kaptcha实现简易验证码功能
+date: 2019-03-19
 categories:
     - Spring
 comments: true
