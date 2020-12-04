@@ -1,33 +1,33 @@
 ---
 layout: post
-title: 通过程序重启spring boot
-date: 2019-03-10
+title: Spring Boot - 重启
+date: 2019-03-07
 categories:
     - Spring
 comments: true
 permalink: spring-restart.html
 ---
 
-方式1
+# 1. 方式1
 
 <pre class="line-numbers "><code class="language-java">
 @SpringBootApplication
 public class Application {
 
     private static ConfigurableApplicationContext context;
-
+    
     public static void main(String[] args) {
         context = SpringApplication.run(Application.class, args);
     }
-
+    
     public static void restart() {
         ApplicationArguments args = context.getBean(ApplicationArguments.class);
-
+    
         Thread thread = new Thread(() -> {
             context.close();
             context = SpringApplication.run(Application.class, args.getSourceArgs());
         });
-
+    
         thread.setDaemon(false);
         thread.start();
     }
@@ -49,7 +49,7 @@ public class RestartController {
 $ curl -s -X POST localhost:8080/restart
 </code></pre>
 
-方式2 RestartEndpoint
+# 2. 方式2 RestartEndpoint
 引入依赖
 ```
     <dependency>
@@ -77,7 +77,7 @@ $ curl -s -X POST localhost:8080/actuator/restart
 <pre class="line-numbers "><code class="language-java">
 @Service
 public class RestartService {
-     
+
     @Autowired
     private RestartEndpoint restartEndpoint;
      

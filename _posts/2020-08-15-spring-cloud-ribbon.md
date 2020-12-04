@@ -246,6 +246,24 @@ public Server chooseServer(Object key) {
 
 可以看到使用了 IRule 接口的 choose 方法。接下来就让我们看看 Ribbon 中的 IRule 接口为我们提供了具体哪些负载均衡算法。
 
+`BaseLoadBalancer`中定义了一个`IPingStrategy`，用来描述服务检查策略，`IPingStrategy`默认实现采用了`SerialPingStrategy`实现，`SerialPingStrategy`中的`pingServers`方法就是遍历所有的服务实例，一个一个发送请求，查看这些服务实例是否还有效，如果网络环境不好的话，这种检查策略效率会很低，如果我们想自定义检查策略的话，可以重写`SerialPingStrategy`的`pingServers`方法。
+
+## 4.1. DynamicServerListLoadBalancer
+
+`DynamicServerListLoadBalancer`是`BaseLoadBalancer`的一个子类，在`DynamicServerListLoadBalancer`中对基础负载均衡器的功能做了进一步的扩展。
+
+1. 首先`DynamicServerListLoadBalancer`类一开始就声明了一个变量serverListImpl，serverListImpl变量的类型是一个`ServerList<T extends Server>`，这里的泛型得是Server的子类，`ServerList`是一个接口，里边定义了两个方法：一个getInitialListOfServers用来获取初始化的服务实例清单；另一个getUpdatedListOfServers用于获取更新的服务实例清单。
+
+2. `DynamicServerListLoadBalancer`中还定义了一个ServerListUpdater.UpdateAction类型的服务更新器，Spring  Cloud提供了两种服务更新策略：一种是`PollingServerListUpdater`，表示定时更新；另一种是`EurekaNotificationServerListUpdater`表示由Eureka的事件监听来驱动服务列表的更新操作，默认的实现策略是第一种，即定时更新，定时的方式很简单，创建Runnable，调用`DynamicServerListLoadBalancer`中updateAction对象的doUpdate方法，Runnable延迟启动时间为1秒，重复周期为30秒。
+
+3. 在更新服务清单的时候，调用了我们在第一点提到的getUpdatedListOfServers方法，拿到实例清单之后，又调用了一个过滤器中的方法进行过滤。过滤器的类型有好几种，默认是`DefaultNIWSServerListFilter`，这是一个继承自`ZoneAffinityServerListFilter`的过滤器，具有区域感知功能。即它会对服务提供者所处的Zone和服务消费者所处的Zone进行比较，过滤掉哪些不是同一个区域的实例。
+
+综上，`DynamicServerListLoadBalancer`主要是实现了服务实例清单在运行期间的动态更新能力，同时提供了对服务实例清单的过滤功能。
+
+## 4.2. ZoneAwareLoadBalancer
+
+`ZoneAwareLoadBalancer`是`DynamicServerListLoadBalancer`的子类，`ZoneAwareLoadBalancer`的出现主要是为了弥补`DynamicServerListLoadBalancer`的不足。由于`DynamicServerListLoadBalancer`中并没有重写chooseServer方法，所以`DynamicServerListLoadBalancer`中负责均衡的策略依然是我们在`BaseLoadBalancer`中分析出来的线性轮询策略，这种策略不具备区域感知功能，这样当需要跨区域调用时，可能会产生高延迟。`ZoneAwareLoadBalancer`重写了setServerListForZones方法，该方法在其父类中的功能主要是根据区域Zone分组的实例列表，为负载均衡器中的`LoadBalancerStats`对象创建ZoneStats并存入集合中，ZoneStats是一个用来存储每个Zone的状态和统计信息。重写之后的setServerListForZones方法主要做了两件事：一件是调用getLoadBalancer方法来创建负载均衡器，同时创建服务选择策略；另一件是对Zone区域中的实例清单进行检查，如果对应的Zone下已经没有实例了，则将Zone区域的实例列表清空，防止节点选择时出现异常。
+
 # 5. Netflix Ribbon 中的负载均衡策略
 
 一般而言，负载均衡算法可以分成两大类，即**静态负载均衡算法**和**动态负载均衡算法**。静态负载均衡算法比较容易理解和实现，典型的包括随机（Random）、轮询（Round Robin）和加权轮询（Weighted Round  Robin）算法等。所有涉及权重的静态算法都可以转变为动态算法，因为权重可以在运行过程中动态更新。例如动态轮询算法中权重值基于对各个服务器的持续监控并不断更新。另外，基于服务器的实时性能分析分配连接是常见的动态策略。典型动态算法包括源 IP 哈希算法、最少连接数算法、服务调用时延算法等。
