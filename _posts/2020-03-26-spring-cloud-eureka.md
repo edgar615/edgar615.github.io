@@ -1,18 +1,18 @@
 ---
 layout: post
 title: Spring Cloud Eureka
-date: 2019-03-26
+date: 2020-03-26
 categories:
     - Spring
 comments: true
-permalink: Spring-Cloud-Eureka.html
+permalink: spring-cloud-eureka.html
 ---
 
 我一般是用consul做服务发现，不过大多数使用spring cloud都会用eureka做服务发现，所以抽时间简单用了一下
 
 
-# get started
-## Server
+# 1. get started
+## 1.1 Server
 增加依赖
 ```
     <dependency>
@@ -29,7 +29,7 @@ permalink: Spring-Cloud-Eureka.html
 
 ```
 server:
-  port: 8671
+  port: 8761
 ```
 
 增加启动类
@@ -45,7 +45,7 @@ public class Application {
 }
 </code></pre>
 
-启动应用后，访问`localhost:8671`可以看到eureka的信息
+启动应用后，访问`localhost:8761`可以看到eureka的信息
 
 ![](/assets/images/posts/eureka/Eureka1.png)
 
@@ -72,7 +72,7 @@ public class Application {
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8671/eureka/
+      defaultZone: http://localhost:8761/eureka/
 spring:
   application:
     name: eureka-client
@@ -120,7 +120,7 @@ com.netflix.discovery.DiscoveryClient    : Application version is -1: false
 com.netflix.discovery.DiscoveryClient    : Getting all instance registry info from the eureka server
 com.netflix.discovery.DiscoveryClient    : The response status is 200
 ```
-再次访问`http://localhost:8671`，可以看到`Instances currently registered with Eureka`一栏多了一个实例，状态为`UP`
+再次访问`http://localhost:8761`，可以看到`Instances currently registered with Eureka`一栏多了一个实例，状态为`UP`
 ![](/assets/images/posts/eureka/Eureka2.png)
 
 
