@@ -34,7 +34,7 @@ public @interface SpringBootApplication {
 
 - ** @SpringBootConfiguration**
 
-`@SpringBootConfiguration` 注解比较简单，事实上它是一个空注解，只是使用了 Spring 中的 `@Configuration` 注解。`@Configuration` 注解比较常见，提供了 JavaConfig 配置类实现。
+`@SpringBootConfiguration` 注解比较简单，事实上它是一个空注解，只是使用了 Spring 中的 `@Configuration` 注解。`@Configuration` 注解比较常见，提供了 JavaConfig 配置类实现。所以我们可以认为：`@SpringBootConfiguration` = `@Configuration`
 
 - **@EnableAutoConfiguration**
 
@@ -185,6 +185,16 @@ protected Class<?> getSpringFactoriesLoaderFactoryClass() {
 `SpringFactoriesLoader` 会查找所有  META-INF/spring.factories 文件夹中的配置文件，并把 Key 为 `EnableAutoConfiguration`  所对应的配置项通过反射实例化为配置类并加载到容器中。
 
 `EnableAutoConfiguration` 项中包含了各式各样的配置项，这些配置项在 Spring Boot 启动过程中都能够通过 `SpringFactoriesLoader` 加载到运行时环境，从而实现自动化配置。
+
+分析到这里，我们就可以得出一个完整的结论了：
+
+当我们的SpringBoot项目启动的时候，会先导入AutoConfigurationImportSelector
+
+这个类会帮我们选择所有候选的配置，我们需要导入的配置都是SpringBoot帮我们写好的一个一个的配置类，那么这些配置类的位置，存在与META-INF/spring.factories文件中
+
+通过这个文件，Spring可以找到这些配置类的位置，于是去加载其中的配置。
+
+![](/assets/images/posts/spring-auto-config/spring-auto-config-1.png)
 
 # 2. @ConditionalOn 条件注解
 
