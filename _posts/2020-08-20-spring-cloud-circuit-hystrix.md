@@ -8,7 +8,7 @@ comments: true
 permalink: spring-cloud-circuit-hystrix.html
 ---
 
-> Hystrix已闭源
+> Hystrix已停止更新
 
 # 1. Get Started
 

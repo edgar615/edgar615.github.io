@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Spring Cloud Config
-date: 2019-08-20
+date: 2019-08-25
 categories:
     - Spring
 comments: true
@@ -252,14 +252,14 @@ msg: "Hello world - this is from config server, updated"
 ```
 提交git后访问config server
 
+```
 $ curl -s http://localhost:8080/user/default
 {"name":"user","profiles":["default"],"label":null,"version":"634dcd3183a7c7d04c5561b880c9615dc16409d9","state":null,"propertySources":[{"name":"https://github.com/edgar615/spring-cloud-consul-config-data//service-config/user/user.yml","source":{"msg":"Hello user - this is from config server, updated"}}]}
+```
 
 我们看到config server中的配置已经更新（通过定时pull）
 
 再次访问config client，发现配置并未更新
-
-
 
 ```
 $ curl -s http://localhost:9000/msg
@@ -436,3 +436,45 @@ curl -v -X POST "http://localhost:8080/monitor" \
 ```
 
 ![](/assets/images/posts/spring-cloud-config/spring-cloud-config-3.png)
+
+# 7. Refresh Bean
+
+前面演示refresh时，使用了一个`@Value`注解刷新配置，如果我们需要修改已经注入的Bean可以用下面的方式实现
+
+```
+@ConfigurationProperties(prefix = "some")
+public class SomeConfigProperties {
+    private String msg;
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public void setMsg(String msg) {
+        this.msg = msg;
+    }
+}
+```
+
+```
+@Configuration
+@EnableConfigurationProperties(SomeConfigProperties.class)
+public class SomeBeanConfiguration {
+
+    @Bean
+    @RefreshScope
+    public SomeBean someBean(SomeConfigProperties someConfigProperties) {
+        SomeBean someBean = new SomeBean();
+        someBean.setMsg(someConfigProperties.getMsg());
+        return someBean;
+    }
+}
+```
+
+在测试时可以发现，SomeBean对象发生了变化
+
+```
+com.github.edgar615.spring.config.client.SomeBean@7a557fbf
+com.github.edgar615.spring.config.client.SomeBean@278fd676
+```
+
