@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Spring Cloud CircuitBreaker - Resilience4j使用
+title: Spring Cloud CircuitBreaker - Resilience4j
 date: 2020-08-16
 categories:
     - Spring

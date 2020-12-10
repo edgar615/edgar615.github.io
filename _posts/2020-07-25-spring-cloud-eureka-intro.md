@@ -1,28 +1,26 @@
 ---
 layout: post
-title: Spring Cloud Eureka
-date: 2020-03-26
+title: Spring Cloud Eureka - 使用
+date: 2020-07-25
 categories:
     - Spring
 comments: true
-permalink: spring-cloud-eureka.html
+permalink: spring-cloud-eureka-intro.html
 ---
-
-我一般是用consul做服务发现，不过大多数使用spring cloud都会用eureka做服务发现，所以抽时间简单用了一下
 
 
 # 1. get started
 ## 1.1 Server
 增加依赖
 ```
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
-    </dependency>
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+<dependency>
+  <groupId>org.springframework.cloud</groupId>
+  <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+</dependency>
 ```
 
 增加application.yml配置
@@ -49,22 +47,22 @@ public class Application {
 
 ![](/assets/images/posts/eureka/Eureka1.png)
 
-## Client
+虽然目前还没有任何一个服务注册到 Eureka 中，但从上图中，我们还是得到了关于 Eureka 服务器内存、CPU 等的有用信息。
+
+## 1.2. Client
 
 增加依赖
 
 ```
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-    </dependency>
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+<dependency>
+  <groupId>org.springframework.cloud</groupId>
+  <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+</dependency>
 ```
-
-
 
 增加配置
 
@@ -121,43 +119,94 @@ com.netflix.discovery.DiscoveryClient    : Getting all instance registry info fr
 com.netflix.discovery.DiscoveryClient    : The response status is 200
 ```
 再次访问`http://localhost:8761`，可以看到`Instances currently registered with Eureka`一栏多了一个实例，状态为`UP`
+
 ![](/assets/images/posts/eureka/Eureka2.png)
-
-
 
 我们在观察Server
 
+```
+c.n.e.registry.AbstractInstanceRegistry  : Registered instance EUREKA-CLIENT/dev-server:eureka-client:9000 with status UP (replication=false)
+c.n.e.registry.AbstractInstanceRegistry  : Registered instance EUREKA-CLIENT/dev-server:eureka-client:9000 with status UP (replication=true)
+```
+
+访问http://localhost:8761/eureka/apps/eureka-client可以查询某一个服务实例的详细信息
+
+```
+$ curl -s http://localhost:8761/eureka/apps/eureka-client
+<application>
+  <name>EUREKA-CLIENT</name>
+  <instance>
+    <instanceId>dev-server:eureka-client:9000</instanceId>
+    <hostName>dev-server</hostName>
+    <app>EUREKA-CLIENT</app>
+    <ipAddr>172.16.126.236</ipAddr>
+    <status>UP</status>
+    <overriddenstatus>UNKNOWN</overriddenstatus>
+    <port enabled="true">9000</port>
+    <securePort enabled="false">443</securePort>
+    <countryId>1</countryId>
+    <dataCenterInfo class="com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo">
+      <name>MyOwn</name>
+    </dataCenterInfo>
+    <leaseInfo>
+      <renewalIntervalInSecs>30</renewalIntervalInSecs>
+      <durationInSecs>90</durationInSecs>
+      <registrationTimestamp>1607583311874</registrationTimestamp>
+      <lastRenewalTimestamp>1607583612007</lastRenewalTimestamp>
+      <evictionTimestamp>0</evictionTimestamp>
+      <serviceUpTimestamp>1607583311202</serviceUpTimestamp>
+    </leaseInfo>
+    <metadata>
+      <management.port>9000</management.port>
+    </metadata>
+    <homePageUrl>http://dev-server:9000/</homePageUrl>
+    <statusPageUrl>http://dev-server:9000/actuator/info</statusPageUrl>
+    <healthCheckUrl>http://dev-server:9000/actuator/health</healthCheckUrl>
+    <vipAddress>eureka-client</vipAddress>
+    <secureVipAddress>eureka-client</secureVipAddress>
+    <isCoordinatingDiscoveryServer>false</isCoordinatingDiscoveryServer>
+    <lastUpdatedTimestamp>1607583311874</lastUpdatedTimestamp>
+    <lastDirtyTimestamp>1607583311074</lastDirtyTimestamp>
+    <actionType>ADDED</actionType>
+  </instance>
+</application>
+
+```
 
 
-# 集群
+
+# 2. 集群
+
+## 2.1. Server
+
+前面我们介绍了构建单个 Eureka 服务器的方法，这种运行 Eureka 服务的方式一般称为 Standalone 模式。考虑到单个 Eureka 服务可能存在的单点失效问题，我们通常都需要构建一个 Eureka 服务器集群来确保注册中心本身的可用性。与传统的集群构建方式不同，如果我们把 Eureka 也视为一个服务，也就是说 Eureka服务自身也能注册到其他 Eureka 服务上，从而实现相互注册，并构成一个集群。在 Eureka中，这种实现高可用的部署方式被称为 Peer Awareness 模式。
 
 server1的配置
 
-<pre class="line-numbers"><code class="language-yml">
+```
+server:
+  port: 8091
+
 eureka:
   instance:
-    #集群这个名字必须相同，如果没有填写，默认为unkown
-    appname: eureka-peer
   client:
-    registerWithEureka: true
-    fetchRegistry: true
     serviceUrl:
       defaultZone: http://localhost:8092/eureka/
-</code></pre>
+```
+
 
 server2的配置
 
-<pre class="line-numbers"><code class="language-yml">
+```
+server:
+  port: 8092
+
 eureka:
   instance:
-    #集群这个名字必须相同，如果没有填写，默认为unkown
-    appname: eureka-peer
   client:
-    registerWithEureka: true
-    fetchRegistry: true
     serviceUrl:
       defaultZone: http://localhost:8091/eureka/
-</code></pre>
+```
 
 启动server1，我们可以看到日志中有一条错误信息
 ```
@@ -168,22 +217,22 @@ com.sun.jersey.api.client.ClientHandlerException: java.net.ConnectException: Con
 
 ...
 
-DiscoveryClient_EUREKA-PEER/PC-201809260001:8091 - was unable to send heartbeat!
+DiscoveryClient_UNKNOWN/dev-server:8091 - was unable to send heartbeat!
 
 com.netflix.discovery.shared.transport.TransportException: Cannot execute request on any known server
 
 ```
 启动server2，我们可以看到日志中没有错误信息
 ```
-DiscoveryClient_EUREKA-PEER/PC-201809260001:8092 - registration status: 204
+DiscoveryClient_UNKNOWN/dev-server:8092 - registration status: 204
 Initializing Spring FrameworkServlet 'dispatcherServlet'
 FrameworkServlet 'dispatcherServlet': initialization started
 FrameworkServlet 'dispatcherServlet': initialization completed in 19 ms
-Registered instance EUREKA-PEER/PC-201809260001:8092 with status UP (replication=true)
+Registered instance UNKNOWN/dev-server:8092 with status UP (replication=true)
 ```
 server1也不再报错
 ```
-Registered instance EUREKA-PEER/PC-201809260001:8092 with status UP (replication=false)
+Registered instance UNKNOWN/dev-server:8092 with status UP (replication=false)
 Got 1 instances from neighboring DS node
 Renew threshold is: 1
 Changing status to UP
@@ -195,66 +244,77 @@ Application is null : false
 Registered Applications size is zero : true
 Application version is -1: true
 Getting all instance registry info from the eureka server
-DiscoveryClient_EUREKA-PEER/PC-201809260001:8091 - Re-registering apps/EUREKA-PEER
-DiscoveryClient_EUREKA-PEER/PC-201809260001:8091: registering service...
-DiscoveryClient_EUREKA-PEER/PC-201809260001:8091 - registration status: 204
+DiscoveryClient_UNKNOWN/dev-server:8091 - Re-registering apps/EUREKA-PEER
+DiscoveryClient_UNKNOWN/dev-server:8091: registering service...
+DiscoveryClient_UNKNOWN/dev-server:8091 - registration status: 204
 The response status is 200
-Registered instance EUREKA-PEER/PC-201809260001:8091 with status UP (replication=true)
+Registered instance UNKNOWN/dev-server:8091 with status UP (replication=true)
 ```
 访问`http://localhost:8091`，可以看到`instances`处有了eureka-peer的信息
 ![](/assets/images/posts/eureka/eureka_peer1.png)
 
 但是我我们发现`8092`在unavailable-replicas中，这是因为eureka集群不能工作在同一个hostname中，我们做如下修改
 server1
-<pre class="line-numbers"><code class="language-yml">
+
+```
+server:
+  port: 8091
+
 eureka:
   instance:
-    appname: eureka-peer
     hostname: eureka-peer1
   client:
-    registerWithEureka: true
-    fetchRegistry: true
     serviceUrl:
       defaultZone: http://eureka-peer2:8092/eureka/
-</code></pre>
+```
+
 server2
-<pre class="line-numbers"><code class="language-yml">
+```
+server:
+  port: 8092
+
 eureka:
   instance:
-    appname: eureka-peer
     hostname: eureka-peer2
   client:
-    registerWithEureka: true
-    fetchRegistry: true
     serviceUrl:
       defaultZone: http://eureka-peer1:8091/eureka/
-</code></pre>
+```
+
+这里出现了一个 Eureka 实例管理类配置项 **eureka.instance.hostname**，用于指定当前 Eureka 服务的主机名称。构建 Eureka 集群模式的关键点在于使用客户端配置项 eureka.client.serviceUrl.defaultZone 用于指向集群中的其他 Eureka 服务器。所以 Eureka 集群的构建方式实际上就是将自己作为服务并向其他注册中心注册自己，这样就形成了一组互相注册的服务注册中心以实现服务列表的同步。显然，这个场景下 registerWithEureka 和 fetchRegistry配置项应该都使用其默认的 true 值，所以我们不需要对其进行显式的设置。
+
 在hosts文件中设置好`eureka-peer1`和`eureka-peer2`，重新启动server后发现`8092`出现在了`available-replicas`
-![](/assets/images/posts/eureka/eureka_peer2.png)
+
+我们发现Eureka自己注册的服务名是UNKOWN，我们可以通过配置项 **eureka.instance.appname**修改,集群中Eureka的appname必须相同
+
+```
+eureka:
+  instance:
+    #集群这个名字必须相同，如果没有填写，默认为unkown
+    appname: eureka-peer
+```
+
+## 2.2. Client
 
 修改并启动client
-<pre class="line-numbers"><code class="language-yml">
+
+```
 server:
   port: 9000
 
 eureka:
   client:
-​    serviceUrl:
-​      defaultZone: http://eureka-peer1:8091/eureka/
+    serviceUrl:
+      defaultZone: http://eureka-peer1:8091/eureka/,http://eureka-peer2:8091/eureka/
 spring:
   application:
-​    name: eureka-client
-</code></pre>
-观察`eureka-peer1`和`eureka-peer2`，可以看到client已经注册(换了台电脑测试，所以账有些内容和上面的图有差别)
-![](/assets/images/posts/eureka/eureka_peer3.png)
+    name: eureka-client
+```
 
-理想的eureka架构
+观察`eureka-peer1`和`eureka-peer2`，可以看到client已经注册
 
-![](/assets/images/posts/eureka/eureka-architecture.png)
 
-> High level architecture by Netflix, licensed under Apache License v2.0
-
-# 自我保护机制
+# 3. 自我保护机制
 Eureka各个节点都是平等的，没有ZK中角色的概念， 即使N-1个节点挂掉也不会影响其他节点的正常运行。
 
 默认情况下，如果Eureka Server在一定时间内（默认90秒）没有接收到某个微服务实例的心跳，Eureka Server将会移除该实例。但是当网络分区故障发生时，微服务与Eureka Server之间无法正常通信，而微服务本身是正常运行的，此时不应该移除这个微服务，所以引入了自我保护机制。
@@ -269,11 +329,22 @@ Eureka各个节点都是平等的，没有ZK中角色的概念， 即使N-1个�
 
 因此Eureka Server可以很好的应对因网络故障导致部分节点失联的情况，而不会像ZK那样如果有一半不可用的情况会导致整个集群不可用而变成瘫痪。
 
-Eureka自我保护机制，通过配置 eureka.server.enable-self-preservation来true打开/false禁用自我保护机制，默认打开状态，建议生产环境打开此配置。
+Eureka自我保护机制，通过配置 **eureka.server.enable-self-preservation**来打开/禁用自我保护机制，默认打开状态，建议生产环境打开此配置。
 
-# 配置
-## client
-<pre class="line-numbers"><code class="language-yml">
+
+
+理想的eureka架构
+
+![](/assets/images/posts/eureka/eureka-architecture.png)
+
+> High level architecture by Netflix, licensed under Apache License v2.0
+
+# 4. 配置
+
+Eureka 也为开发人员提供了一系列的配置项。这些配置项可以分成三大类，一类用于控制 Eureka 服务器端行为，以 `eureka.server` 开头；一类则是从客户端角度出发考虑配置需求，以 `eureka.client` 开头；而最后一类则关注于注册到 Eureka 的服务实例本身，以 `eureka.instance` 开头。请注意，Eureka 除了充当服务器端组件之外，实际上也可以作为客户端注册到 Eureka 本身，这时候它使用的就是客户端配置项。
+
+## 4.1. client
+```
 eureka:
   client:
   	#关闭eureka client，默认true
@@ -348,10 +419,11 @@ eureka:
     on-demand-update-status-change: true
     # 此客户端只对一个单一的VIP注册表的信息感兴趣。默认为null
     registry-refresh-single-vip-address: null
-</code></pre>
+```
 
-## instance
-<pre class="line-numbers"><code class="language-yml">
+## 4.2. instance
+
+```
 eureka:
   instance:
   	#此实例注册到eureka服务端的唯一的实例ID,其组成为{spring.application.instance_id:${random.value}}
@@ -391,10 +463,9 @@ eureka:
 	registry.default-open-for-traffic-count: 1
 	# 【Eureka Server 端属性】每分钟续约次数 	
 	expected-number-of-renews-per-min: 1
-  	# 获取该实例应该接收通信的非安全端口。默认为80
-  	# 定义服务续约任务（心跳）的调用间隔，单位：秒，默认值30
+  	# 定义服务续约任务（心跳）的调用间隔，单位：秒，默认值30，生产中建议降低
   	lease-renewal-interval-in-seconds: 30
-  	# 定义服务失效的时间，单位：秒，默认值90
+  	# 定义服务失效的时间，单位：秒，默认值90，生产环境建议设为降低
   	lease-expiration-duration-in-seconds: 90
   	# 状态页面的URL，相对路径，默认使用 HTTP 访问，如果需要使用 HTTPS则需要使用绝对路径配置
   	status-page-url-path: /info
@@ -411,10 +482,10 @@ eureka:
 	# 该服务实例的主页地址，相对地址 	
 	home-page-url-path:	/
 
-</code></pre>
+```
 
-## server
-<pre class="line-numbers"><code class="language-yml">
+## 4.3. server
+```
 eureka:
 	server:
 	# 启用自我保护机制，默认为true 
@@ -453,9 +524,10 @@ eureka:
 	sync-when-timestamp-differs: true
 	# 是否使用只读缓存策略
 	use-read-only-response-cache: true
-</code></pre>
+```
 
 还有些集群相关的配置就不写了，o(╥﹏╥)o
+
 参考资料
 
 https://thepracticaldeveloper.com/2018/03/18/spring-boot-service-discovery-eureka/

@@ -362,7 +362,30 @@ public interface ServiceInstanceChooser {
 
 在 LoadBalancerClient 接口的实现类 RibbonLoadBalancerClient 中，choose 方法最终调用了Netflix Ribbon 中的 ILoadBalancer 接口的实现类。
 
-# 7. 参考资料
+# 7. 配置
+
+```
+# 每台服务器最多重试次数，但是首次调用不包括在内 Max number of retries on the same server (excluding the first try)
+hello-client.ribbon.MaxAutoRetries=1
+# 最多重试多少台服务器 Max number of next servers to retry (excluding the first server)
+hello-client.ribbon.MaxAutoRetriesNextServer=1
+# 无论是请求超时或者socket read timeout都进行重试 Whether all operations can be retried for this client
+hello-client.ribbon.OkToRetryOnAllOperations=true
+# Interval to refresh the server list from the source
+hello-client.ribbon.ServerListRefreshInterval=2000
+# Connect timeout used by Apache HttpClient
+hello-client.ribbon.ConnectTimeout=3000
+# Readtimeout used by Apache HttpClient
+hello-client.ribbon.ReadTimeout=3000
+# Initial list of servers, can be changed via Archaius dynamic property at runtime
+#ribbon.listOfServers=localhost:8765
+hello-client.ribbon.listOfServers=localhost:8765,localhost:8766
+hello-client.ribbon.NFLoadBalancerRuleClassName=com.netflix.loadbalancer.RoundRobinRule
+```
+
+
+
+# 8. 参考资料
 
 《Spring Cloud 原理与实战 》
 
