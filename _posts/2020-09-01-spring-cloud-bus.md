@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Spring Cloud Bus
-date: 2019-03-25
+date: 2020-09-01
 categories:
     - Spring
 comments: true
@@ -21,7 +21,7 @@ permalink: Spring-Cloud-Bus.html
 - 使用发布－订阅模式来提供内容或基千主题的消息路由。
 
 
-# get started
+# 1. get started
 增加依赖
 ```
     <dependency>
@@ -47,7 +47,7 @@ spring:
     stream:
       kafka:
         binder:
-          brokers: 192.168.1.212:9092
+          brokers: localhost:9092
           minPartitionCount: 1
           autoCreateTopics: true
           autoAddPartitions: true
@@ -104,15 +104,19 @@ $ curl -s -X POST -H "Content-Type: application/json" http://localhost:8080/actu
 可以看到另一个应用收到了对应的refresh
 
 ```
-Received remote refresh request. Keys refreshed []
+o.s.cloud.bus.event.RefreshListener      : Received remote refresh request.
+o.s.boot.SpringApplication               : No active profile set, falling back to default profiles: default
+o.s.boot.SpringApplication               : Started application in 0.161 seconds (JVM running for 400.201)
+o.s.cloud.bus.event.RefreshListener      : Keys refreshed []
 ```
-`springCloudBus`中出现了三个消息，一个`RefreshRemoteApplicationEvent`，两个`AckRemoteApplicationEvent`（我总共启动了两个应用）
+`springCloudBus`中出现了三个消息，一个`RefreshRemoteApplicationEvent`，两个`AckRemoteApplicationEvent`（总共启动了两个应用）
+
 ```
 {"type":"RefreshRemoteApplicationEvent","timestamp":1553496711901,"originService":"application:0:48fcd10b6e8981d213b01250be5e292e","destinationService":"**","id":"5571a1db-ef1d-4791-ad42-ad36d60b43df"}
 {"type":"AckRemoteApplicationEvent","timestamp":1553496711904,"originService":"application:0:48fcd10b6e8981d213b01250be5e292e","destinationService":"**","id":"cbdda733-8dbd-403a-a8e3-f76016e0d19b","ackId":"5571a1db-ef1d-4791-ad42-ad36d60b43df","ackDestinationService":"**","event":"org.springframework.cloud.bus.event.RefreshRemoteApplicationEvent"}
 {"type":"AckRemoteApplicationEvent","timestamp":1553496712363,"originService":"application:9001:b06bd84ba7be1d2e0cf7d101b55b6f2a","destinationService":"**","id":"028ac8a9-a23c-4386-ae86-581facfd3326","ackId":"5571a1db-ef1d-4791-ad42-ad36d60b43df","ackDestinationService":"**","event":"org.springframework.cloud.bus.event.RefreshRemoteApplicationEvent"}
 ```
-触发一次的`/bus-env
+触发一次的`/bus-env`
 
 ```
 $ curl -s -X POST -d '{"name": "key1", "value": "value1"}' -H "Content-Type: application/json" http://localhost:8080/actuator/bus-env
@@ -122,18 +126,39 @@ $ curl -s -X POST -d '{"name": "key1", "value": "value1"}' -H "Content-Type: app
 Received remote environment change request. Keys/values to update {key1=value1}
 ```
 `springCloudBus`中出现了三个消息，一个`EnvironmentChangeRemoteApplicationEvent`，两个`AckRemoteApplicationEvent`
+
 ```
 {"type":"EnvironmentChangeRemoteApplicationEvent","timestamp":1553496803529,"originService":"application:0:48fcd10b6e8981d213b01250be5e292e","destinationService":"**","id":"f7634064-10fa-47ff-8e2e-acc965c8b74c","values":{"key1":"value1"}}
 {"type":"AckRemoteApplicationEvent","timestamp":1553496803538,"originService":"application:0:48fcd10b6e8981d213b01250be5e292e","destinationService":"**","id":"89285fe4-c4de-4226-9089-1b6c3a46bc64","ackId":"f7634064-10fa-47ff-8e2e-acc965c8b74c","ackDestinationService":"**","event":"org.springframework.cloud.bus.event.EnvironmentChangeRemoteApplicationEvent"}
 {"type":"AckRemoteApplicationEvent","timestamp":1553496803590,"originService":"application:9001:b06bd84ba7be1d2e0cf7d101b55b6f2a","destinationService":"**","id":"99e10919-410a-464a-951e-c1f64248f440","ackId":"f7634064-10fa-47ff-8e2e-acc965c8b74c","ackDestinationService":"**","event":"org.springframework.cloud.bus.event.EnvironmentChangeRemoteApplicationEvent"}
 ```
-# 实例地址
+# 2.实例地址
 
 应用的每个实例都有个实例ID，它可以通过`spring.cloud.bus.id`指定，而且它的值应该是使用`:`分隔的字符串，从左到右依次确定实例的ID，默认的实例ID为`{app}:{index}:{id}`
 
 - `app`  通过 `vcap.application.name`设置，如果不存在使用 `spring.application.name`
 - `index` 通过 `vcap.application.instance_index`设置,如果不存在，按照下面的顺序设置, `spring.application.index`, `local.server.port`, `server.port`, or `0`
 - `id` 通过 `vcap.application.instance_id`设置, 如果不存在，使用随机数
+
+可以在`BusEnvironmentPostProcessor`的`postProcessEnvironment`方法中找到相关代码
+
+```
+@Override
+public void postProcessEnvironment(ConfigurableEnvironment environment,
+		SpringApplication application) {
+	Map<String, Object> map = new HashMap<String, Object>();
+	map.put("spring.cloud.stream.bindings." + SpringCloudBusClient.OUTPUT
+			+ ".content-type",
+			environment.getProperty("spring.cloud.bus.content-type",
+					"application/json"));
+	map.put("spring.cloud.bus.id", IdUtils.getUnresolvedServiceId());
+	addOrReplace(environment.getPropertySources(), map);
+}
+```
+
+```
+public static final String DEFAULT_SERVICE_ID_STRING = "${vcap.application.name:${spring.application.name:application}}:${vcap.application.instance_index:${spring.application.index:${local.server.port:${server.port:0}}}}:${vcap.application.instance_id:${cachedrandom.${vcap.application.name:${spring.application.name:application}}.value}}";
+```
 
 
 我们按照上述规则配置后重新观察`springCloudBus`主题，发现服务的ID已经变化了
@@ -155,76 +180,98 @@ $ curl -s -X POST -d '{"name": "key1", "value": "value1"}' -H "Content-Type: app
 `EnvironmentChangeRemoteApplicationEvent`消息中指明了`destinationService`
 如果想匹配某个服务的所有实例，可以使用`cloud-bus-kafka2:**`
 
-# 跟踪总线的事件
-前面看到的`EnvironmentChangeRemoteApplicationEvent`、`AckRemoteApplicationEvent`这些都是`RemoteApplicationEvent`的子类，我们可以通过`spring.cloud.bus.trace.enabled=true`来跟踪它
+# 3. 跟踪总线的事件
+前面看到的`EnvironmentChangeRemoteApplicationEvent`、`AckRemoteApplicationEvent`这些都是`RemoteApplicationEvent`的子类，我们可以通过`spring.cloud.bus.trace.enabled=true`来跟踪它。
 
-如果我们想自己处理ack事件，可以通过`@EventListener`注解监听`AckRemoteApplicationEvent`和`SentApplicationEvent`来实现，也可以通过`tracerepository`来挖掘
-`tracerepository`这我找了好多资料也不知道该怎么做
+如果我们想自己处理ack事件，可以通过`@EventListener`注解监听`AckRemoteApplicationEvent`和`SentApplicationEvent`来实现，也可以通过`tracerepository`来挖掘。
 
-# 自定义事件
-1 继承`RemoteApplicationEvent`
-<pre class="line-numbers "><code class="language-java">
+> `tracerepository`这我找了好多资料也不知道该怎么做 
+
+```
+@Component
+public class AckRemoteApplicationEventListener {
+
+  @EventListener
+  public void ack(AckRemoteApplicationEvent ackRemoteApplicationEvent) {
+    System.out.println(ackRemoteApplicationEvent);
+  }
+}
+```
+
+# 4. 自定义事件
+- 继承`RemoteApplicationEvent`
+
+```
 public class MyCustomRemoteEvent extends RemoteApplicationEvent {
     private String message;
 
     public MyCustomRemoteEvent() {
     }
-
+    
     public MyCustomRemoteEvent(Object source, String originService, String message) {
         // source is the object that is publishing the event
         // originService is the unique context ID of the publisher
         super(source, originService);
         this.message = message;
     }
-
+    
     public String getMessage() {
         return message;
     }
-
+    
     public MyCustomRemoteEvent setMessage(String message) {
         this.message = message;
         return this;
     }
-    
+
 }
-</code></pre>
+```
+
 注意：构造函数的第一个参数是发布事件的对象，第二个参数是发布事件的实例ID，第三个对象才是我们的消息
 我们可以将自定义的事件放在`org.springframework.cloud.bus.event`的子包下，但是这种方式不灵活
-2 定义事件的包扫描，支持`value`, `basePackages` 和`basePackageClasses`三种方式，默认BusConfiguration的路径
-<pre class="line-numbers "><code class="language-java">
+
+- 定义事件的包扫描
+
+包扫描支持`value`, `basePackages` 和`basePackageClasses`三种方式，默认BusConfiguration的路径
+
+```
 @Configuration
 //@RemoteApplicationEventScan({"com.acme", "foo.bar"})
 //@RemoteApplicationEventScan(basePackages = {"com.acme", "foo.bar", "fizz.buzz"})
 @RemoteApplicationEventScan(basePackageClasses = BusConfiguration.class)
 public class BusConfiguration {
 }
-</code></pre>
+```
 
-3 增加端点
-<pre class="line-numbers "><code class="language-java">
+- 增加端点
+
+```
 @Endpoint(id = "event")
 public class EventEndpoint extends AbstractBusEndpoint {
 
 	public EventEndpoint(ApplicationEventPublisher context, String id) {
 		super(context, id);
 	}
-
+	
 	@WriteOperation
 	public String event() {
-    String data = UUID.randomUUID().toString();
-    publish(new MyCustomRemoteEvent(data, getInstanceId(), data));
-    return data;
+        String data = UUID.randomUUID().toString();
+        publish(new MyCustomRemoteEvent(data, getInstanceId(), data));
+        return data;
 	}
 
 }
-</code></pre>
+```
+
 4 配置端点
-<pre class="line-numbers "><code class="language-java">
-  @Bean
-  public EventEndpoint eventEndpoint(ApplicationContext context, BusProperties bus) {
-    return new EventEndpoint(context, bus.getId());
-  }
-</code></pre>
+
+```
+@Bean
+public EventEndpoint eventEndpoint(ApplicationContext context, BusProperties bus) {
+	return new EventEndpoint(context, bus.getId());
+}
+```
+
 测试
 ```
 $ curl -s -X POST -d '{"name": "key1", "value": "value1"}' -H "Content-Type: application/json" http://localhost:8080/actuator/event
@@ -235,8 +282,47 @@ $ curl -s -X POST -d '{"name": "key1", "value": "value1"}' -H "Content-Type: app
 {"type":"AckRemoteApplicationEvent","timestamp":1553502643149,"originService":"application:0:8c0933e8abe0729c7a843cf23414a301","destinationService":"**","id":"0dba62b0-6a97-495d-91a8-433dafb3ecd0","ackId":"f7d501e7-48d6-4fae-9bbe-d3c3c351d417","ackDestinationService":"**","event":"com.github.edgar615.example.bus.MyCustomRemoteEvent"}
 {"type":"AckRemoteApplicationEvent","timestamp":1553502643152,"originService":"cloud-bus-kafka2:9001:984d42e380589881af8e53f224241ddf","destinationService":"**","id":"25078bb5-0f34-41ff-8ebd-c2bed0fc0e7b","ackId":"f7d501e7-48d6-4fae-9bbe-d3c3c351d417","ackDestinationService":"**","event":"com.github.edgar615.example.bus.MyCustomRemoteEvent"}
 ```
+但是程序中还没有处理`MyCustomRemoteEvent`，在另一个服务里增加一个Listener
+
+```
+@Component
+public class MyCustomRemoteEventListener {
+
+  @EventListener
+  public void ack(MyCustomRemoteEvent myCustomRemoteEvent) {
+    System.out.println(myCustomRemoteEvent);
+  }
+}
+```
+
+发现并没有收到`MyCustomRemoteEvent`，收到的是`UnknownRemoteApplicationEvent`，这是因为我们没有配置`@RemoteApplicationEventScan`。
+
+```
+@Configuration
+@RemoteApplicationEventScan(basePackageClasses = BusConfiguration.class)
+public class BusConfiguration {
+}
+```
+
+之后我们就可以收到`MyCustomRemoteEvent`了。
+
 我们也可以不通过endpoint，而是直接通过controller发布事件
-<pre class="line-numbers "><code class="language-java">
+
+```
+@RestController
+@RequestMapping("/")
+public class BusRestController implements ApplicationEventPublisherAware {
+
+  private ApplicationEventPublisher publisher;
+
+  @Autowired
+  private BusProperties busProperties;
+
+  @Override
+  public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+    this.publisher = applicationEventPublisher;
+  }
+
   @PostMapping("/event")
   public String event() {
     String data = UUID.randomUUID().toString();
@@ -245,4 +331,6 @@ $ curl -s -X POST -d '{"name": "key1", "value": "value1"}' -H "Content-Type: app
     publisher.publishEvent(event);
     return data;
   }
-</code></pre>
+}
+```
+
