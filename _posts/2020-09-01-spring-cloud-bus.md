@@ -5,7 +5,7 @@ date: 2020-09-01
 categories:
     - Spring
 comments: true
-permalink: Spring-Cloud-Bus.html
+permalink: spring-cloud-bus.html
 ---
 
 在微服务中，我们将使用轻量级消息代理，通过一个共用的消息主题，让系统中所有微服务都连上来，主题中的消息会被所有监听者消费，所以称为消息总线。

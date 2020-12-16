@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Spring Boot - 自动配置原理
+title: Spring Boot - spring.factories
 date: 2019-03-15
 categories:
     - Spring
