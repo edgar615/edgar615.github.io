@@ -305,8 +305,60 @@ public class UserChangeSource {
 
 > 在UserChangedChannel中可以同时定义多个Input,Output
 
-# 5. 消费分区
+# 5. 消费分组
 
 Spring Cloud Stream通过消费者组的概念来模拟这种行为。（Spring Cloud Stream消费者组与Kafka的消费者组相似）每个消费者绑定可以使用`spring.cloud.stream.bindings.<channelName>.group`属性来指定一个组名。
 
-订阅给定destination的所有分组会接收到发布消息的一个副本，但是在每个组中，只有一个成员会从destination接收到这个消息。默认情况下，没有指定组的时候，Spring Cloud Stream会将应用程序分配到一个匿名、独立且单一的消费者组，这个消费者组与所有其他消费者组都出于同一个发布-订阅关系中
+订阅给定destination的所有分组会接收到发布消息的一个副本，但是在每个组中，只有一个成员会从destination接收到这个消息。默认情况下，没有指定组的时候，Spring Cloud Stream会将应用程序分配到一个匿名、独立且单一的消费者组，这个消费者组与所有其他消费者组都出于同一个发布-订阅关系中。
+
+有2个消费服务，当我们不指定组，或者组不同时，服务都会收到消息。当我们指定相同的消费者组时，只有一个服务收到了消息
+
+# 6. 消费分区
+
+Spring Cloud Stream支持在一个应用程序的多个实例间分区数据。在分区场景中，物理通信媒介（例如：代理topic）被视为是结构化的多个分区。一个或多个生产者应用实例发送消息到多个消费者应用实例，并确保通过共同特征标识的数据由相同的消费者实例处理。
+
+Spring Cloud Stream为统一实现分区处理提供了一个通用抽象。因此，不管代理自己本来是支持分区的（例如：Kafka）或者不支持分区的（例如：RabbitMQ)，都能够使用分区。
+
+在source上指定分区
+
+```
+spring:
+    cloud:
+        stream:
+            bindings:
+                UserChangedChannel:
+                    content-type: application/json
+                    destination:  UserChangedTopic
+                    producer:
+                        partitionKeyExpression: payload.user.id % 2
+                        partitionCount: 2
+```
+
+> 发送消息报错MessageDispatchingException: Dispatcher has no subscribers，还没搞清楚原因
+>
+> 因为在工作中没有用到stream，后面解决了在更新 
+
+在Sink上指定分区
+
+```
+spring:
+    cloud:
+        stream:
+            instanceIndex: 0
+            instanceCount: 2
+            bindings:
+                UserChangedChannel:
+                    destination:  UserChangedTopic
+                    content-type: application/json
+                    group: userConsumerGroup1
+                    consumer:
+                        partitioned: true
+```
+
+其中 `partitioned=true` 表示启用消息分区功能，`instanceCount=2` 表示消息分区的消费者节点数量为 2 个。特别要注意的是 `instanceIndex` 参数用来设置当前消费者实例的索引号。`instanceIndex` 是从 0 开始的，我们在这里就把当前服务实例的索引号为 0。显然我们在另外一个 实例中需要将 `instanceIndex` 设置为 1。
+
+> 暂时就整理到这里了，如果后面用到了stream再继续整理
+
+# 7. 参考资料
+
+《Spring Cloud 原理与实战 》
