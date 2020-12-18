@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Consul - G
+title: Consul - 介绍
 date: 2019-04-01
 categories:
     - Consul
@@ -54,34 +54,46 @@ unzip consul_1.9.0_linux_amd64.zip -d /usr/local/bin
 在终端中输入consul命令来检查
 
 	$ consul
-	usage: consul [--version] [--help] <command> [<args>]
+	Usage: consul [--version] [--help] <command> [<args>]
 	
 	Available commands are:
+	    acl            Interact with Consul's ACLs
 	    agent          Runs a Consul agent
-	    configtest     Validate config file
+	    catalog        Interact with the catalog
+	    config         Interact with Consul's Centralized Configurations
+	    connect        Interact with Consul Connect
+	    debug          Records a debugging archive for operators
 	    event          Fire a new event
 	    exec           Executes a command on Consul nodes
 	    force-leave    Forces a member of the cluster to enter the "left" state
-	    info           Provides debugging information for operators
+	    info           Provides debugging information for operators.
+	    intention      Interact with Connect service intentions
 	    join           Tell Consul agent to join cluster
 	    keygen         Generates a new encryption key
 	    keyring        Manages gossip layer encryption keys
 	    kv             Interact with the key-value store
 	    leave          Gracefully leaves the Consul cluster and shuts down
 	    lock           Execute a command holding a lock
+	    login          Login to Consul using an auth method
+	    logout         Destroy a Consul token created with login
 	    maint          Controls node or service maintenance mode
 	    members        Lists the members of a Consul cluster
 	    monitor        Stream logs from a Consul agent
 	    operator       Provides cluster-level tools for Consul operators
 	    reload         Triggers the agent to reload configuration files
 	    rtt            Estimates network round trip time between nodes
+	    services       Interact with services
 	    snapshot       Saves, restores and inspects snapshots of Consul server state
+	    tls            Builtin helpers for creating CAs and certificates
+	    validate       Validate config files/directories
 	    version        Prints the Consul version
 	    watch          Watch for changes in Consul
 	
-	$ consul version
-	Consul v0.7.5
+	$  consul -v
+	Consul v1.9.0
+	Revision a417fe510
 	Protocol 2 spoken by default, understands 2 to 3 (agent will automatically use protocol >2 when speaking to compatible agents)
+
 
 ## 3.2. Agent
 
@@ -93,61 +105,84 @@ unzip consul_1.9.0_linux_amd64.zip -d /usr/local/bin
 
 使用开发者模式启动一个Agent,这个模式可以非常容易快速地启动一个单节点的Consul环境。当然它并不是用于生产环境下并且它也不会持久任何状态。
 
-	$ consul agent -dev
-	
+	$  consul agent -dev
 	==> Starting Consul agent...
-	==> Starting Consul agent RPC...
-	==> Consul agent running!
-	           Version: 'v0.7.5'
-	           Node ID: 'e46e29fa-6a5b-4b41-ad9a-6559df987baf'
-	         Node name: 'csst-ubuntu-server'
-	        Datacenter: 'dc1'
-	            Server: true (bootstrap: false)
-	       Client Addr: 127.0.0.1 (HTTP: 8500, HTTPS: -1, DNS: 8600, RPC: 8400)
+	           Version: '1.9.0'
+	           Node ID: '41958888-acfb-fe9e-13ae-a3b8f8534b2a'
+	         Node name: 'VM-0-17-centos'
+	        Datacenter: 'dc1' (Segment: '<all>')
+	            Server: true (Bootstrap: false)
+	       Client Addr: [127.0.0.1] (HTTP: 8500, HTTPS: -1, gRPC: 8502, DNS: 8600)
 	      Cluster Addr: 127.0.0.1 (LAN: 8301, WAN: 8302)
-	    Gossip encrypt: false, RPC-TLS: false, TLS-Incoming: false
-	             Atlas: <disabled>
+	           Encrypt: Gossip: false, TLS-Outgoing: false, TLS-Incoming: false, Auto-Encrypt-TLS: false
 	
 	==> Log data will now stream in as it occurs:
 	
-	    2017/03/17 17:17:49 [DEBUG] Using unique ID "e46e29fa-6a5b-4b41-ad9a-6559df987baf" from host as node ID
-	    2017/03/17 17:17:49 [INFO] raft: Initial configuration (index=1): [{Suffrage:Voter ID:127.0.0.1:8300 Address:127.0.0.1:8300}]
-	    2017/03/17 17:17:49 [INFO] raft: Node at 127.0.0.1:8300 [Follower] entering Follower state (Leader: "")
-	    2017/03/17 17:17:49 [INFO] serf: EventMemberJoin: csst-ubuntu-server 127.0.0.1
-	    2017/03/17 17:17:49 [INFO] serf: EventMemberJoin: csst-ubuntu-server.dc1 127.0.0.1
-	    2017/03/17 17:17:49 [INFO] consul: Adding LAN server csst-ubuntu-server (Addr: tcp/127.0.0.1:8300) (DC: dc1)
-	    2017/03/17 17:17:49 [INFO] consul: Adding WAN server csst-ubuntu-server.dc1 (Addr: tcp/127.0.0.1:8300) (DC: dc1)
-	    2017/03/17 17:17:56 [ERR] agent: failed to sync remote state: No cluster leader
-	    2017/03/17 17:17:58 [WARN] raft: Heartbeat timeout from "" reached, starting election
-	    2017/03/17 17:17:58 [INFO] raft: Node at 127.0.0.1:8300 [Candidate] entering Candidate state in term 2
-	    2017/03/17 17:17:58 [DEBUG] raft: Votes needed: 1
-	    2017/03/17 17:17:58 [DEBUG] raft: Vote granted from 127.0.0.1:8300 in term 2. Tally: 1
-	    2017/03/17 17:17:58 [INFO] raft: Election won. Tally: 1
-	    2017/03/17 17:17:58 [INFO] raft: Node at 127.0.0.1:8300 [Leader] entering Leader state
-	    2017/03/17 17:17:58 [INFO] consul: cluster leadership acquired
-	    2017/03/17 17:17:58 [INFO] consul: New leader elected: csst-ubuntu-server
-	    2017/03/17 17:17:58 [DEBUG] consul: reset tombstone GC to index 3
-	    2017/03/17 17:17:58 [INFO] consul: member 'csst-ubuntu-server' joined, marking health alive
-	    2017/03/17 17:18:00 [INFO] agent: Synced service 'consul'
-	    2017/03/17 17:18:00 [DEBUG] agent: Node info in sync
+	    2020-12-18T10:09:47.368+0800 [INFO]  agent.server.raft: initial configuration: index=1 servers="[{Suffrage:Voter ID:41958888-acfb-fe9e-13ae-a3b8f8534b2a Address:127.0.0.1:8300}]"
+	    2020-12-18T10:09:47.368+0800 [INFO]  agent.server.raft: entering follower state: follower="Node at 127.0.0.1:8300 [Follower]" leader=
+	    2020-12-18T10:09:47.369+0800 [INFO]  agent.server.serf.wan: serf: EventMemberJoin: VM-0-17-centos.dc1 127.0.0.1
+	    2020-12-18T10:09:47.369+0800 [INFO]  agent.server.serf.lan: serf: EventMemberJoin: VM-0-17-centos 127.0.0.1
+	    2020-12-18T10:09:47.369+0800 [INFO]  agent.router: Initializing LAN area manager
+	    2020-12-18T10:09:47.369+0800 [INFO]  agent.server: Adding LAN server: server="VM-0-17-centos (Addr: tcp/127.0.0.1:8300) (DC: dc1)"
+	    2020-12-18T10:09:47.369+0800 [INFO]  agent.server: Handled event for server in area: event=member-join server=VM-0-17-centos.dc1 area=wan
+	    2020-12-18T10:09:47.369+0800 [INFO]  agent: Started DNS server: address=127.0.0.1:8600 network=udp
+	    2020-12-18T10:09:47.369+0800 [INFO]  agent: Started DNS server: address=127.0.0.1:8600 network=tcp
+	    2020-12-18T10:09:47.370+0800 [INFO]  agent: Starting server: address=127.0.0.1:8500 network=tcp protocol=http
+	    2020-12-18T10:09:47.370+0800 [WARN]  agent: DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.
+	    2020-12-18T10:09:47.370+0800 [INFO]  agent: Started gRPC server: address=127.0.0.1:8502 network=tcp
+	    2020-12-18T10:09:47.370+0800 [INFO]  agent: started state syncer
+	==> Consul agent running!
+	    2020-12-18T10:09:47.422+0800 [WARN]  agent.server.raft: heartbeat timeout reached, starting election: last-leader=
+	    2020-12-18T10:09:47.422+0800 [INFO]  agent.server.raft: entering candidate state: node="Node at 127.0.0.1:8300 [Candidate]" term=2
+	    2020-12-18T10:09:47.422+0800 [DEBUG] agent.server.raft: votes: needed=1
+	    2020-12-18T10:09:47.422+0800 [DEBUG] agent.server.raft: vote granted: from=41958888-acfb-fe9e-13ae-a3b8f8534b2a term=2 tally=1
+	    2020-12-18T10:09:47.422+0800 [INFO]  agent.server.raft: election won: tally=1
+	    2020-12-18T10:09:47.422+0800 [INFO]  agent.server.raft: entering leader state: leader="Node at 127.0.0.1:8300 [Leader]"
+	    2020-12-18T10:09:47.422+0800 [INFO]  agent.server: cluster leadership acquired
+	    2020-12-18T10:09:47.422+0800 [DEBUG] agent.server: Cannot upgrade to new ACLs: leaderMode=0 mode=0 found=true leader=127.0.0.1:8300
+	    2020-12-18T10:09:47.422+0800 [INFO]  agent.server: New leader elected: payload=VM-0-17-centos
+	    2020-12-18T10:09:47.423+0800 [DEBUG] agent.server.autopilot: autopilot is now running
+	    2020-12-18T10:09:47.423+0800 [DEBUG] agent.server.autopilot: state update routine is now running
+	    2020-12-18T10:09:47.423+0800 [DEBUG] connect.ca.consul: consul CA provider configured: id=07:80:c8:de:f6:41:86:29:8f:9c:b8:17:d6:48:c2:d5:c5:5c:7f:0c:03:f7:cf:97:5a:a7:c1:68:aa:23:ae:81 is_primary=true
+	    2020-12-18T10:09:47.432+0800 [INFO]  agent.server.connect: initialized primary datacenter CA with provider: provider=consul
+	    2020-12-18T10:09:47.432+0800 [INFO]  agent.leader: started routine: routine="federation state anti-entropy"
+	    2020-12-18T10:09:47.432+0800 [INFO]  agent.leader: started routine: routine="federation state pruning"
+	    2020-12-18T10:09:47.432+0800 [INFO]  agent.leader: started routine: routine="intermediate cert renew watch"
+	    2020-12-18T10:09:47.432+0800 [INFO]  agent.leader: started routine: routine="CA root pruning"
+	    2020-12-18T10:09:47.432+0800 [DEBUG] agent.server: successfully established leadership: duration=10.485092ms
+	    2020-12-18T10:09:47.432+0800 [INFO]  agent.server: member joined, marking health alive: member=VM-0-17-centos
+	    2020-12-18T10:09:47.433+0800 [INFO]  agent.server: federation state anti-entropy synced
+	    2020-12-18T10:09:47.488+0800 [DEBUG] agent: Skipping remote check since it is managed automatically: check=serfHealth
+	    2020-12-18T10:09:47.489+0800 [INFO]  agent: Synced node info
+	    2020-12-18T10:09:47.489+0800 [DEBUG] agent: Node info in sync
 
 从日志信息中，可以看到我们Agent运行Server模式 `Server: true (bootstrap: false)`，
 
 并且声明集群的Leader 
 
-    2017/03/17 17:17:56 [ERR] agent: failed to sync remote state: No cluster leader
-    2017/03/17 17:17:58 [WARN] raft: Heartbeat timeout from "" reached, starting election
-    2017/03/17 17:17:58 [INFO] raft: Node at 127.0.0.1:8300 [Candidate] entering Candidate state in term 2
-    2017/03/17 17:17:58 [DEBUG] raft: Votes needed: 1
-    2017/03/17 17:17:58 [DEBUG] raft: Vote granted from 127.0.0.1:8300 in term 2. Tally: 1
-    2017/03/17 17:17:58 [INFO] raft: Election won. Tally: 1
-    2017/03/17 17:17:58 [INFO] raft: Node at 127.0.0.1:8300 [Leader] entering Leader state
-    2017/03/17 17:17:58 [INFO] consul: cluster leadership acquired
-    2017/03/17 17:17:58 [INFO] consul: New leader elected: csst-ubuntu-server
+    2020-12-18T10:09:47.422+0800 [WARN]  agent.server.raft: heartbeat timeout reached, starting election: last-leader=
+    2020-12-18T10:09:47.422+0800 [INFO]  agent.server.raft: entering candidate state: node="Node at 127.0.0.1:8300 [Candidate]" term=2
+    2020-12-18T10:09:47.422+0800 [DEBUG] agent.server.raft: votes: needed=1
+    2020-12-18T10:09:47.422+0800 [DEBUG] agent.server.raft: vote granted: from=41958888-acfb-fe9e-13ae-a3b8f8534b2a term=2 tally=1
+    2020-12-18T10:09:47.422+0800 [INFO]  agent.server.raft: election won: tally=1
+    2020-12-18T10:09:47.422+0800 [INFO]  agent.server.raft: entering leader state: leader="Node at 127.0.0.1:8300 [Leader]"
+    2020-12-18T10:09:47.422+0800 [INFO]  agent.server: cluster leadership acquired
+    2020-12-18T10:09:47.422+0800 [DEBUG] agent.server: Cannot upgrade to new ACLs: leaderMode=0 mode=0 found=true leader=127.0.0.1:8300
+    2020-12-18T10:09:47.422+0800 [INFO]  agent.server: New leader elected: payload=VM-0-17-centos
 
 另外，本地的成员已经被标记为一个健康的集群成员
 
-	    2017/03/17 17:17:58 [INFO] consul: member 'csst-ubuntu-server' joined, marking health alive
+	2020-12-18T10:09:47.422+0800 [INFO]  agent.server: New leader elected: payload=VM-0-17-centos
+
+通过日志我们还可以看到，Consul开启了4个服务，分别是UDP，TCP，HTTP，GRPC
+
+```
+2020-12-18T10:09:47.369+0800 [INFO]  agent: Started DNS server: address=127.0.0.1:8600 network=udp
+2020-12-18T10:09:47.369+0800 [INFO]  agent: Started DNS server: address=127.0.0.1:8600 network=tcp
+2020-12-18T10:09:47.370+0800 [INFO]  agent: Starting server: address=127.0.0.1:8500 network=tcp protocol=http
+2020-12-18T10:09:47.370+0800 [WARN]  agent: DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.
+2020-12-18T10:09:47.370+0800 [INFO]  agent: Started gRPC server: address=127.0.0.1:8502 network=tcp
+```
 
 - **单机启动**
 
@@ -159,59 +194,74 @@ consul agent -server -bootstrap-expect=1 -data-dir=/data/consul-data -ui -bind=1
 
 在终端上输入`consul members`，能看到Consul集群所有的节点
 
-	$ consul members
-	
-	Node                Address         Status  Type    Build  Protocol  DC
-	csst-ubuntu-server  127.0.0.1:8301  alive   server  0.7.5  2         dc1
+	$  consul members
+	Node            Address         Status  Type    Build  Protocol  DC   Segment
+	VM-0-17-centos  127.0.0.1:8301  alive   server  1.9.0  2         dc1  <all>
 
 输出显示了节点的名称、运行地址、健康状态、在集群中的角色、版本信息等等。一些额外元数据可以通过 `-detailed`选项来查看
 
 该命令输出显示你自己的节点，运行的地址，它的健康状态，它在集群中的角色，以及一些版本信息。另外元数据可以通过 -detailed 选项来查看。
 
 	$ consul members -detailed
-	
-	Node                Address         Status  Tags
-	csst-ubuntu-server  127.0.0.1:8301  alive   build=0.7.5:'21f2d5a,dc=dc1,id=e46e29fa-6a5b-4b41-ad9a-6559df987baf,port=8300,role=consul,vsn=2,vsn_max=3,vsn_min=2
+	Node            Address         Status  Tags
+	VM-0-17-centos  127.0.0.1:8301  alive   acls=0,bootstrap=1,build=1.9.0:a417fe51,dc=dc1,ft_fs=1,ft_si=1,id=def3b026-0416-5b08-b35f-3a41ae38b4ad,port=8300,raft_vsn=3,role=consul,segment=<all>,vsn=2,vsn_max=3,vsn_min=2,wan_join_port=8302
 
-members 命令选项的输出是基于gossip协议，并且其内容保证最终一致性。也就是说，在任何时候你在本地代理看到的内容也许与当前服务器中的状态并不是绝对一致的。如果需要强一致性的状态信息，使用HTTP API向Consul服务器发送请求`http://127.0.0.1:8500/v1/catalog/nodes`	
-	$ curl http://127.0.0.1:8500/v1/catalog/nodes
-	[
-	    {
-	        "ID": "e46e29fa-6a5b-4b41-ad9a-6559df987baf",
-	        "Node": "csst-ubuntu-server",
-	        "Address": "127.0.0.1",
-	        "TaggedAddresses": {
-	            "lan": "127.0.0.1",
-	            "wan": "127.0.0.1"
-	        },
-	        "Meta": {},
-	        "CreateIndex": 4,
-	        "ModifyIndex": 5
-	    }
-	]
+members 命令选项的输出是基于**gossip协议**，并且其内容保证最终一致性。也就是说，在任何时候你在本地代理看到的内容也许与当前服务器中的状态并不是绝对一致的。如果需要强一致性的状态信息，使用HTTP API向Consul服务器发送请求`http://127.0.0.1:8500/v1/catalog/nodes`	
+
+```
+$ curl http://127.0.0.1:8500/v1/catalog/nodes
+[
+    {
+        "ID": "def3b026-0416-5b08-b35f-3a41ae38b4ad", 
+        "Node": "VM-0-17-centos", 
+        "Address": "127.0.0.1", 
+        "Datacenter": "dc1", 
+        "TaggedAddresses": {
+            "lan": "127.0.0.1", 
+            "lan_ipv4": "127.0.0.1", 
+            "wan": "127.0.0.1", 
+            "wan_ipv4": "127.0.0.1"
+        }, 
+        "Meta": {
+            "consul-network-segment": ""
+        }, 
+        "CreateIndex": 5, 
+        "ModifyIndex": 7
+    }
+]
+```
 
 另外除了HTTP API，DNS接口也常被用来查询节点信息。但你必须确保你的DNS能够找到Consul代理的DNS服务器，Consul代理的DNS服务器默认运行在8600端口。
 
-	$ dig @127.0.0.1 -p 8600 csst-ubuntu-server.node.consul
+	$ dig @127.0.0.1 -p 8600 VM-0-17-centos.node.consul
 	
-	; <<>> DiG 9.9.5-3ubuntu0.7-Ubuntu <<>> @127.0.0.1 -p 8600 csst-ubuntu-server.node.consul
+	; <<>> DiG 9.11.4-P2-RedHat-9.11.4-16.P2.el7_8.6 <<>> @127.0.0.1 -p 8600 VM-0-17-centos.node.consul
 	; (1 server found)
 	;; global options: +cmd
 	;; Got answer:
-	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 17078
-	;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 53144
+	;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 2
 	;; WARNING: recursion requested but not available
 	
+	;; OPT PSEUDOSECTION:
+	; EDNS: version: 0, flags:; udp: 4096
 	;; QUESTION SECTION:
-	;csst-ubuntu-server.node.consul.	IN	A
+	;VM-0-17-centos.node.consul.    IN      A
 	
 	;; ANSWER SECTION:
-	csst-ubuntu-server.node.consul.	0 IN	A	127.0.0.1
+	VM-0-17-centos.node.consul. 0   IN      A       127.0.0.1
+	
+	;; ADDITIONAL SECTION:
+	VM-0-17-centos.node.consul. 0   IN      TXT     "consul-network-segment="
 	
 	;; Query time: 0 msec
 	;; SERVER: 127.0.0.1#8600(127.0.0.1)
-	;; WHEN: Fri Mar 17 17:44:30 CST 2017
-	;; MSG SIZE  rcvd: 64
+	;; WHEN: Fri Dec 18 10:40:15 CST 2020
+	;; MSG SIZE  rcvd: 107
+
+> dig的详细用法参考这篇文章
+>
+> https://edgar615.github.io/dig.html
 
 - **关闭**
 
@@ -219,31 +269,30 @@ members 命令选项的输出是基于gossip协议，并且其内容保证最终
 
 为了优雅地离开集群，Consul会通知其他的集群成员自己已经脱离了。如果你强制杀死代理的进程，那么其他的集群成员需要侦测节点是否失效。当一个成员离开，它的服务以及（checks）将从目录中移除。当一个成员失效，它的健康会简单地标记为critical，但它并不会被从目录中移除。Consul将自动尝试重新连接到失效的节点，并允许它在某些网络状况下恢复。
 
-## 3.3. 服务
+# 4. 服务
 
-- **定义服务**
+## 4.1. 定义服务
 
 一个服务可以通过提供一个服务定义或者调用HTTP API来注册.
 
 服务定义是最通用的注册服务的方法。
 
-首先，为consul的配置创建一个目录，Consul加载这个配置目录下的所有配件文字，通常在Unix系统中惯例是建立以名为 /etc/consul.d 的目录（ .d 后缀暗示这个目录包含了一些配置文件的集合）。
+首先，为consul的配置创建一个目录，Consul加载这个配置目录下的所有配件文字，通常在Unix系统中惯例是建立以名为 /etc/consul.d 的目录（ .d 后缀暗示这个目录包含了一些配置文件的集合）。我们这里采用一个其他的方式
 
-	$ sudo mkdir /etc/consul.d
+	$ mkdir /server/data/consul
 
 下一步，我们创建一个服务定义的配置文件.
 
-	$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80}}' | sudo tee /etc/consul.d/web.json
+	$ echo '{"service": {"name": "web", "tags": ["java"], "port":8080}}' | tee /server/data/consul/web.json
 
-上面的定义文件定义了一个名称为web，运行在80端口的服务
+上面的定义文件定义了一个名称为web，运行在8080端口的服务
 
 接着，我们重启Agent，并指定配置文件目录
 
-	$ consul agent -dev -config-dir=/etc/consul.d
+	$ consul agent -dev -config-dir=/server/data/consul
 		...
-	    2017/03/20 11:23:20 [INFO] agent: Synced service 'consul'
-	    2017/03/20 11:23:20 [INFO] agent: Synced service 'web'
-	    2017/03/20 11:23:20 [DEBUG] agent: Node info in sync
+	    2020-12-18T10:44:17.738+0800 [DEBUG] agent: Node info in sync
+	    2020-12-18T10:44:17.738+0800 [DEBUG] agent: Service in sync: service=web
 		...
 
 
@@ -251,7 +300,7 @@ members 命令选项的输出是基于gossip协议，并且其内容保证最终
 
 一旦Agent启动，并且服务已经注册，我们可以通过DNS或HTTP API来查询服务
 
-- **DNS API**
+## 4.2. DNS API
 
 对于DNS API，服务的DNS名称是`NAME.service.consul`，默认所有的DSN名称都是在consul的命名空间下，当然这个也可以配置.`service`的子域名告诉Consul我们我们正在查询服务，`Name`是需要查询的服务名称
 
@@ -259,24 +308,26 @@ members 命令选项的输出是基于gossip协议，并且其内容保证最终
 
 	$ dig @127.0.0.1 -p 8600 web.service.consul
 	
-	; <<>> DiG 9.9.5-3ubuntu0.7-Ubuntu <<>> @127.0.0.1 -p 8600 web.service.consul
+	; <<>> DiG 9.11.4-P2-RedHat-9.11.4-16.P2.el7_8.6 <<>> @127.0.0.1 -p 8600 web.service.consul
 	; (1 server found)
 	;; global options: +cmd
 	;; Got answer:
-	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 47018
-	;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 51922
+	;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
 	;; WARNING: recursion requested but not available
 	
+	;; OPT PSEUDOSECTION:
+	; EDNS: version: 0, flags:; udp: 4096
 	;; QUESTION SECTION:
-	;web.service.consul.		IN	A
+	;web.service.consul.            IN      A
 	
 	;; ANSWER SECTION:
-	web.service.consul.	0	IN	A	127.0.0.1
+	web.service.consul.     0       IN      A       127.0.0.1
 	
 	;; Query time: 0 msec
 	;; SERVER: 127.0.0.1#8600(127.0.0.1)
-	;; WHEN: Mon Mar 20 11:32:54 CST 2017
-	;; MSG SIZE  rcvd: 52
+	;; WHEN: Fri Dec 18 10:45:41 CST 2020
+	;; MSG SIZE  rcvd: 63
 
 上面的查询返回了一个带有节点IP地址的A记录，A记录只能包含IP地址
 
@@ -284,137 +335,218 @@ members 命令选项的输出是基于gossip协议，并且其内容保证最终
 
 	$ dig @127.0.0.1 -p 8600 web.service.consul SRV
 	
-	; <<>> DiG 9.9.5-3ubuntu0.7-Ubuntu <<>> @127.0.0.1 -p 8600 web.service.consul SRV
+	; <<>> DiG 9.11.4-P2-RedHat-9.11.4-16.P2.el7_8.6 <<>> @127.0.0.1 -p 8600 web.service.consul SRV
 	; (1 server found)
 	;; global options: +cmd
 	;; Got answer:
-	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 48601
-	;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 61016
+	;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 3
 	;; WARNING: recursion requested but not available
 	
+	;; OPT PSEUDOSECTION:
+	; EDNS: version: 0, flags:; udp: 4096
 	;; QUESTION SECTION:
-	;web.service.consul.		IN	SRV
+	;web.service.consul.            IN      SRV
 	
 	;; ANSWER SECTION:
-	web.service.consul.	0	IN	SRV	1 1 80 csst-ubuntu-server.node.dc1.consul.
+	web.service.consul.     0       IN      SRV     1 1 8080 VM-0-17-centos.node.dc1.consul.
 	
 	;; ADDITIONAL SECTION:
-	csst-ubuntu-server.node.dc1.consul. 0 IN A	127.0.0.1
+	VM-0-17-centos.node.dc1.consul. 0 IN    A       127.0.0.1
+	VM-0-17-centos.node.dc1.consul. 0 IN    TXT     "consul-network-segment="
 	
 	;; Query time: 0 msec
 	;; SERVER: 127.0.0.1#8600(127.0.0.1)
-	;; WHEN: Mon Mar 20 11:36:43 CST 2017
-	;; MSG SIZE  rcvd: 100
+	;; WHEN: Fri Dec 18 10:46:23 CST 2020
+	;; MSG SIZE  rcvd: 149
 
-SRV记录显示了web服务允许在节点csst-ubuntu-server.node.dc1.consul.的80端口上.额外的步伐和A记录返回的内容一样
+SRV记录显示了web服务运行在节点VM-0-17-centos.node.dc1.consul.的8080端口上.额外的信息和A记录返回的内容一样
 
-最后，我们可以使用DNS API通过tags来过滤服务，基于tag查询服务的格式是`TAG.NAME.service.consul`，例如我们向Consul查询所有带`rails`标记的web服务:
+最后，我们可以使用DNS API通过tags来过滤服务，基于tag查询服务的格式是`TAG.NAME.service.consul`，例如我们向Consul查询所有带`java`标记的web服务:
 
-	$ dig @127.0.0.1 -p 8600 rails.web.service.consul
+	$ dig @127.0.0.1 -p 8600 java.web.service.consul SRV
 	
-	; <<>> DiG 9.9.5-3ubuntu0.7-Ubuntu <<>> @127.0.0.1 -p 8600 rails.web.service.consul
+	; <<>> DiG 9.11.4-P2-RedHat-9.11.4-16.P2.el7_8.6 <<>> @127.0.0.1 -p 8600 java.web.service.consul SRV
 	; (1 server found)
 	;; global options: +cmd
 	;; Got answer:
-	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 17492
-	;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 56507
+	;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 3
 	;; WARNING: recursion requested but not available
 	
+	;; OPT PSEUDOSECTION:
+	; EDNS: version: 0, flags:; udp: 4096
 	;; QUESTION SECTION:
-	;rails.web.service.consul.	IN	A
+	;java.web.service.consul.       IN      SRV
 	
 	;; ANSWER SECTION:
-	rails.web.service.consul. 0	IN	A	127.0.0.1
+	java.web.service.consul. 0      IN      SRV     1 1 8080 VM-0-17-centos.node.dc1.consul.
+	
+	;; ADDITIONAL SECTION:
+	VM-0-17-centos.node.dc1.consul. 0 IN    A       127.0.0.1
+	VM-0-17-centos.node.dc1.consul. 0 IN    TXT     "consul-network-segment="
 	
 	;; Query time: 0 msec
 	;; SERVER: 127.0.0.1#8600(127.0.0.1)
-	;; WHEN: Mon Mar 20 11:41:44 CST 2017
-	;; MSG SIZE  rcvd: 58
+	;; WHEN: Fri Dec 18 10:47:44 CST 2020
+	;; MSG SIZE  rcvd: 154
 
 如果查询服务未找到对应的服务，会返回AUTHORITY SECTION
 
-	$ dig @127.0.0.1 -p 8600 db.service.consul
+	$ dig @127.0.0.1 -p 8600 redis.service.consul SRV
 	
-	; <<>> DiG 9.9.5-3ubuntu0.7-Ubuntu <<>> @127.0.0.1 -p 8600 db.service.consul
+	; <<>> DiG 9.11.4-P2-RedHat-9.11.4-16.P2.el7_8.6 <<>> @127.0.0.1 -p 8600 redis.service.consul SRV
 	; (1 server found)
 	;; global options: +cmd
 	;; Got answer:
-	;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 43380
-	;; flags: qr aa rd; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+	;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 2308
+	;; flags: qr aa rd; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
 	;; WARNING: recursion requested but not available
 	
+	;; OPT PSEUDOSECTION:
+	; EDNS: version: 0, flags:; udp: 4096
 	;; QUESTION SECTION:
-	;db.service.consul.		IN	A
+	;redis.service.consul.          IN      SRV
 	
 	;; AUTHORITY SECTION:
-	consul.			0	IN	SOA	ns.consul. postmaster.consul. 1489981368 3600 600 86400 0
+	consul.                 0       IN      SOA     ns.consul. hostmaster.consul. 1608259702 3600 600 86400 0
 	
 	;; Query time: 0 msec
 	;; SERVER: 127.0.0.1#8600(127.0.0.1)
-	;; WHEN: Mon Mar 20 11:42:48 CST 2017
-	;; MSG SIZE  rcvd: 85
+	;; WHEN: Fri Dec 18 10:48:22 CST 2020
+	;; MSG SIZE  rcvd: 99
 
-- **HTTP API**
+## 4.3. HTTP API
 
-HTTP API的格式如下：
+查看所有服务
 
-	$ curl http://127.0.0.1:8500/v1/catalog/service/web
+```
+$ curl -s http://127.0.0.1:8500/v1/catalog/services
+{
+    "consul": [],
+    "web": [
+        "java"
+    ]
+}
+
+```
+
+查看某个服务
+
+	$ curl -s http://127.0.0.1:8500/v1/catalog/service/web
 	[
 	    {
-	        "ID": "e46e29fa-6a5b-4b41-ad9a-6559df987baf",
-	        "Node": "csst-ubuntu-server",
+	        "ID": "b0e0d63f-1a0e-acf4-63b8-1651e9446656",
+	        "Node": "VM-0-17-centos",
 	        "Address": "127.0.0.1",
+	        "Datacenter": "dc1",
 	        "TaggedAddresses": {
 	            "lan": "127.0.0.1",
-	            "wan": "127.0.0.1"
+	            "lan_ipv4": "127.0.0.1",
+	            "wan": "127.0.0.1",
+	            "wan_ipv4": "127.0.0.1"
 	        },
-	        "NodeMeta": {},
+	        "NodeMeta": {
+	            "consul-network-segment": ""
+	        },
+	        "ServiceKind": "",
 	        "ServiceID": "web",
 	        "ServiceName": "web",
 	        "ServiceTags": [
-	            "rails"
+	            "java"
 	        ],
 	        "ServiceAddress": "",
-	        "ServicePort": 80,
+	        "ServiceWeights": {
+	            "Passing": 1,
+	            "Warning": 1
+	        },
+	        "ServiceMeta": {},
+	        "ServicePort": 8080,
 	        "ServiceEnableTagOverride": false,
-	        "CreateIndex": 6,
-	        "ModifyIndex": 6
+	        "ServiceProxy": {
+	            "MeshGateway": {},
+	            "Expose": {}
+	        },
+	        "ServiceConnect": {},
+	        "CreateIndex": 9,
+	        "ModifyIndex": 9
 	    }
 	]
 
-catalog API返回了指定节点以及指定的服务信息。就像我们马上要看到了健康检测，通常我们的查询只是查询那些健康的实例，这些实例都是通过了健康检测的。这也是DNS在底层做的事情。
+catalog API返回了指定节点以及指定的服务信息。
 
-	$ curl http://127.0.0.1:8500/v1/catalog/service/web?passing
+指定passing=true，表示返回时过滤掉一些不健康的节点。这也是DNS在底层做的事情。
+
+	$ curl -s http://127.0.0.1:8500/v1/catalog/service/web?passing
 	[
 	    {
-	        "ID": "e46e29fa-6a5b-4b41-ad9a-6559df987baf",
-	        "Node": "csst-ubuntu-server",
+	        "ID": "b0e0d63f-1a0e-acf4-63b8-1651e9446656",
+	        "Node": "VM-0-17-centos",
 	        "Address": "127.0.0.1",
+	        "Datacenter": "dc1",
 	        "TaggedAddresses": {
 	            "lan": "127.0.0.1",
-	            "wan": "127.0.0.1"
+	            "lan_ipv4": "127.0.0.1",
+	            "wan": "127.0.0.1",
+	            "wan_ipv4": "127.0.0.1"
 	        },
-	        "NodeMeta": {},
+	        "NodeMeta": {
+	            "consul-network-segment": ""
+	        },
+	        "ServiceKind": "",
 	        "ServiceID": "web",
 	        "ServiceName": "web",
 	        "ServiceTags": [
-	            "rails"
+	            "java"
 	        ],
 	        "ServiceAddress": "",
-	        "ServicePort": 80,
+	        "ServiceWeights": {
+	            "Passing": 1,
+	            "Warning": 1
+	        },
+	        "ServiceMeta": {},
+	        "ServicePort": 8080,
 	        "ServiceEnableTagOverride": false,
-	        "CreateIndex": 6,
-	        "ModifyIndex": 6
+	        "ServiceProxy": {
+	            "MeshGateway": {},
+	            "Expose": {}
+	        },
+	        "ServiceConnect": {},
+	        "CreateIndex": 9,
+	        "ModifyIndex": 9
 	    }
 	]
 
-**更新服务**
+## 4.4. 更新服务
 
 当配置文件修改后服务定义可以被更新，需要发送 SIGHUP 信号给代理。这可以让代理更新服务而无需停止代理或者让服务查询时服务不可用。
 
+```
+$ consul reload
+Configuration reload triggered
+```
+
+可以看到多了一个redis的服务
+
+```
+$ curl -s http://127.0.0.1:8500/v1/catalog/services
+{
+    "consul": [],
+    "redis": [
+        "master"
+    ],
+    "web": [
+        "java"
+    ]
+}
+
+```
+
 可以选择HTTP API来动态地增加，删除，以及更改服务。
 
-# 4. 集群
+> 在服务注册章节详细描述
+
+# 5. 集群
 集群中的每个节点都必须有一个唯一的名称.Consul默认使用主机名称`hostname`，但是我们也可以手动的通过命令行参数`-node`来修改。
 
 我们可以指定一个绑定地址：Consul将监听这个地址，并且这个地址必须能够被集群中的其他节点访问到。虽然指定绑定地址并不是必需的，但是最好还是提供一个绑定地址。Consul默认会监听系统中所有的IPV4忘了接口，但是如果发现多个私有IP，Consul将会无法启动。因为生产服务器上通常会提供多个网络接口，所以指定一个绑定地址可以确保不会将Consul绑定到一个错误的网络接口上
@@ -539,16 +671,53 @@ catalog API返回了指定节点以及指定的服务信息。就像我们马上
 	agent-on   10.11.0.31:8301  alive   server  0.7.5  2         dc1
 	agent-two  10.4.7.14:8301   failed  client  0.7.5  2         dc1
 
-# 5. 健康检查
+# 6. 健康检查
 
 可以通过一个定义检查或者通过调研HTTP API来注册一个监控检查
 
-## 5.1. 定义检查
+## 6.1. 定义检查
+我们需要使用参数`enable_script_checks`或`enable_local_script_checks`来开启健康检查
+
+```
+$ consul agent -dev -config-dir=/server/data/consul -enable-script-checks
+```
+
+
+
 就像服务一样，使用定义是一个最为常用的方法来设置健康检查
 
-	$ echo '{"check": {"name": "ping", "script": "ping -c1 baidu.com >/dev/null", "interval": "30s"}}' | sudo tee /etc/consul.d/ping.json
+	$ echo '{
+	    "service": {
+	        "name": "baidu", 
+	        "check": {
+	            "args": [
+	                "ping", 
+	                "-c1", 
+	                "baidu.com", 
+	                ">/dev/null"
+	            ], 
+	            "interval": "30s"
+	        }
+	    }
+	}' > /server/data/consul/ping.json
 	
-	$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80, "check": {"script": "curl localhost >/dev/null 2>&1", "interval": "10s"}}}'  | sudo tee /etc/consul.d/web.json
+	$ echo '{
+	    "service": {
+	        "name": "web", 
+	        "tags": [
+	            "java"
+	        ], 
+	        "port": 8080, 
+	        "check": {
+	            "args": [
+	                "curl", 
+	                "-si", 
+	                "localhost:8080/health"
+	            ], 
+	            "interval": "10s"
+	        }
+	    }
+	}' > /server/data/consul/web.json
 
 
 第一个定义增加了一个主机级别的检测，名为"ping"。该检测每30秒间隔运行一次，调用命令 ping -c1 baidu.com。在一个基于脚本的健康检测中，该检测使用启动Consul进程的用户来启动该检测。如果检测命令返回一个非0的返回码，那么该节点将被标记为不健康。这就是任何基于 脚本 的健康检测的契约。
@@ -562,45 +731,77 @@ catalog API返回了指定节点以及指定的服务信息。就像我们马上
 
 查看日志
 
-	==> Caught signal: hangup
-	==> Reloading configuration...
-	    2017/03/20 15:20:00 [INFO] agent: Synced service 'web'
-	    2017/03/20 15:20:00 [INFO] agent: Synced check 'ping'
-	    2017/03/20 15:20:05 [WARN] agent: Check 'service:web' is now critical
-	    2017/03/20 15:20:15 [WARN] agent: Check 'service:web' is now critical
+	[WARN]  agent: Check is now critical: check=service:web
+	
 
-前面的几行指出该Agent已经同步了新的定义。后面的几行指出了被检测的 web 服务被标记为危险。这是因为我们还没有实际运行一个web服务器，所以这个curl测试标记为失败了。
+日志指出了被检测的 web 服务被标记为危险。这是因为我们还没有实际运行一个web服务器，所以这个curl测试标记为失败了。
 
 ## 5.2. 检查健康状态
 现在我们已经增加了一些健康检查，我们可以使用HTTP API来审查它们。首先，我们可以使用命令寻找任何失败的检测，这个命令可以在任何节点上运行
 
 	$ curl http://127.0.0.1:8500/v1/health/state/critical
-	[{"Node":"agent-two","CheckID":"service:web","Name":"Service 'web' check","Status":"critical","Notes":"","Output":"","ServiceID":"web","ServiceName":"web","CreateIndex":373,"ModifyIndex":378}]
+	[
+	    {
+	        "Node": "VM-0-17-centos",
+	        "CheckID": "service:baidu",
+	        "Name": "Service 'baidu' check",
+	        "Status": "critical",
+	        "Notes": "",
+	        "Output": "",
+	        "ServiceID": "baidu",
+	        "ServiceName": "baidu",
+	        "ServiceTags": [],
+	        "Type": "script",
+	        "Definition": {},
+	        "CreateIndex": 26,
+	        "ModifyIndex": 26
+	    },
+	    {
+	        "Node": "VM-0-17-centos",
+	        "CheckID": "service:web",
+	        "Name": "Service 'web' check",
+	        "Status": "critical",
+	        "Notes": "",
+	        "Output": "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0curl: (7) Failed connect to localhost:8080; Connection refused\n",
+	        "ServiceID": "web",
+	        "ServiceName": "web",
+	        "ServiceTags": [
+	            "java"
+	        ],
+	        "Type": "script",
+	        "Definition": {},
+	        "CreateIndex": 14,
+	        "ModifyIndex": 25
+	    }
+	]
+	
 
 另外，通过DNS查询web服务，Consul不会放任何结果，因为这个服务是不健康的
 
 	$ dig @127.0.0.1 -p 8600 web.service.consul
 	
-	; <<>> DiG 9.9.5-3ubuntu0.7-Ubuntu <<>> @127.0.0.1 -p 8600 web.service.consul
+	; <<>> DiG 9.11.4-P2-RedHat-9.11.4-16.P2.el7_8.6 <<>> @127.0.0.1 -p 8600 web.service.consul
 	; (1 server found)
 	;; global options: +cmd
 	;; Got answer:
-	;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 56242
-	;; flags: qr aa rd; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+	;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 50774
+	;; flags: qr aa rd; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
 	;; WARNING: recursion requested but not available
 	
+	;; OPT PSEUDOSECTION:
+	; EDNS: version: 0, flags:; udp: 4096
 	;; QUESTION SECTION:
-	;web.service.consul.		IN	A
+	;web.service.consul.            IN      A
 	
 	;; AUTHORITY SECTION:
-	consul.			0	IN	SOA	ns.consul. postmaster.consul. 1489994995 3600 600 86400 0
+	consul.                 0       IN      SOA     ns.consul. hostmaster.consul. 1608262882 3600 600 86400 0
 	
 	;; Query time: 0 msec
 	;; SERVER: 127.0.0.1#8600(127.0.0.1)
-	;; WHEN: Mon Mar 20 15:29:55 CST 2017
-	;; MSG SIZE  rcvd: 86
+	;; WHEN: Fri Dec 18 11:41:22 CST 2020
+	;; MSG SIZE  rcvd: 97
 
-# 6. 键/值存储
+# 7. 键/值存储
 
 Consul提供了非常容易使用的键/值对存储。它能被用于存储动态配置信息，帮助服务协作，建构leader选举机制，以及开发者可以想到的建构任何其它的东西。
 
@@ -683,7 +884,7 @@ Consul提供了通过CAS操作来对K/V的原子更新，使用`-cas`选项
 	$ consul kv put -cas -modify-index=573 foo bar
 	Error! Did not write to foo: CAS failed
 
-# 7. WEB UI
+# 8. WEB UI
 
 	consul agent -client 0.0.0.0 -ui
 
