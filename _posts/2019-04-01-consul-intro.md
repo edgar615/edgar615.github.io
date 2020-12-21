@@ -682,8 +682,6 @@ $ curl -s http://127.0.0.1:8500/v1/catalog/services
 $ consul agent -dev -config-dir=/server/data/consul -enable-script-checks
 ```
 
-
-
 就像服务一样，使用定义是一个最为常用的方法来设置健康检查
 
 	$ echo '{
@@ -807,7 +805,6 @@ Consul提供了非常容易使用的键/值对存储。它能被用于存储动�
 
 有两种与Consul的KV存储交互的方式：HTTP API或 Consul KV命令行
 
-**命令行**
 查询`redis/config/minconns`的值
 
 	$ consul kv get redis/config/minconns
