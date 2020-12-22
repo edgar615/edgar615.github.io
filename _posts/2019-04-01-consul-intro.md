@@ -475,47 +475,86 @@ $ curl -s http://127.0.0.1:8500/v1/catalog/services
 
 catalog API返回了指定节点以及指定的服务信息。
 
-指定passing=true，表示返回时过滤掉一些不健康的节点。这也是DNS在底层做的事情。
+通过`/v1/health/service`指定passing=true，表示返回时过滤掉一些不健康的节点。这也是DNS在底层做的事情。
 
-	$ curl -s http://127.0.0.1:8500/v1/catalog/service/web?passing
+	$ curl -s http://127.0.0.1:8500/v1/health/service/web?passing
 	[
 	    {
-	        "ID": "b0e0d63f-1a0e-acf4-63b8-1651e9446656",
-	        "Node": "VM-0-17-centos",
-	        "Address": "127.0.0.1",
-	        "Datacenter": "dc1",
-	        "TaggedAddresses": {
-	            "lan": "127.0.0.1",
-	            "lan_ipv4": "127.0.0.1",
-	            "wan": "127.0.0.1",
-	            "wan_ipv4": "127.0.0.1"
+	        "Node": {
+	            "ID": "fce5ac85-f41b-761c-492e-fe42b1ae4102",
+	            "Node": "VM-0-17-centos",
+	            "Address": "127.0.0.1",
+	            "Datacenter": "dc1",
+	            "TaggedAddresses": {
+	                "lan": "127.0.0.1",
+	                "lan_ipv4": "127.0.0.1",
+	                "wan": "127.0.0.1",
+	                "wan_ipv4": "127.0.0.1"
+	            },
+	            "Meta": {
+	                "consul-network-segment": ""
+	            },
+	            "CreateIndex": 11,
+	            "ModifyIndex": 13
 	        },
-	        "NodeMeta": {
-	            "consul-network-segment": ""
+	        "Service": {
+	            "ID": "web",
+	            "Service": "web",
+	            "Tags": [
+	                "java"
+	            ],
+	            "Address": "",
+	            "Meta": null,
+	            "Port": 8080,
+	            "Weights": {
+	                "Passing": 1,
+	                "Warning": 1
+	            },
+	            "EnableTagOverride": false,
+	            "Proxy": {
+	                "MeshGateway": {},
+	                "Expose": {}
+	            },
+	            "Connect": {},
+	            "CreateIndex": 4225,
+	            "ModifyIndex": 4225
 	        },
-	        "ServiceKind": "",
-	        "ServiceID": "web",
-	        "ServiceName": "web",
-	        "ServiceTags": [
-	            "java"
-	        ],
-	        "ServiceAddress": "",
-	        "ServiceWeights": {
-	            "Passing": 1,
-	            "Warning": 1
-	        },
-	        "ServiceMeta": {},
-	        "ServicePort": 8080,
-	        "ServiceEnableTagOverride": false,
-	        "ServiceProxy": {
-	            "MeshGateway": {},
-	            "Expose": {}
-	        },
-	        "ServiceConnect": {},
-	        "CreateIndex": 9,
-	        "ModifyIndex": 9
+	        "Checks": [
+	            {
+	                "Node": "VM-0-17-centos",
+	                "CheckID": "serfHealth",
+	                "Name": "Serf Health Status",
+	                "Status": "passing",
+	                "Notes": "",
+	                "Output": "Agent alive and reachable",
+	                "ServiceID": "",
+	                "ServiceName": "",
+	                "ServiceTags": [],
+	                "Type": "",
+	                "Definition": {},
+	                "CreateIndex": 11,
+	                "ModifyIndex": 11
+	            },
+	            {
+	                "Node": "VM-0-17-centos",
+	                "CheckID": "service:web",
+	                "Name": "Service 'web' check",
+	                "Status": "passing",
+	                "Notes": "",
+	                "Output": "",
+	                "ServiceID": "web",
+	                "ServiceName": "web",
+	                "ServiceTags": [
+	                    "java"
+	                ],
+	                "Type": "script",
+	                "Definition": {},
+	                "CreateIndex": 4225,
+	                "ModifyIndex": 4231
+	            }
+	        ]
 	    }
-	]
+	] 
 
 ## 4.4. 更新服务
 
@@ -730,7 +769,7 @@ $ consul agent -dev -config-dir=/server/data/consul -enable-script-checks
 查看日志
 
 	[WARN]  agent: Check is now critical: check=service:web
-	
+
 
 日志指出了被检测的 web 服务被标记为危险。这是因为我们还没有实际运行一个web服务器，所以这个curl测试标记为失败了。
 
@@ -772,7 +811,7 @@ $ consul agent -dev -config-dir=/server/data/consul -enable-script-checks
 	        "ModifyIndex": 25
 	    }
 	]
-	
+
 
 另外，通过DNS查询web服务，Consul不会放任何结果，因为这个服务是不健康的
 
