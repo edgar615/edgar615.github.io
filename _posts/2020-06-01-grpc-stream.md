@@ -1,6 +1,6 @@
 ---
 layout: post
-title: GRPC的流式调用
+title: GRPC（1） - 流式调用
 date: 2020-06-01
 categories:
     - rpc

@@ -1,7 +1,7 @@
 ---
 layout: post
-title: GRPC异常重试
-date: 2020-05-16
+title: GRPC（2）- 异常重试
+date: 2020-06-02
 categories:
     - rpc
 comments: true
@@ -55,6 +55,7 @@ RPC 调用失败可以分为三种情况：
     - **retryableStatusCode** 重试状态码，当 RPC 调用返回非 OK 响应，会根据 retryableStatusCode 来判断是否进行重试，GRPC并没有提供自定义CODE的功能，所以只能用内置的CODE
     - **initialBackoff，maxBackoff，backoffMultiplier** 指数退避参数，在进行下一次重试请求前，会计算需要等待的时间。必须指定，并且必须具有大于0。第一次重试间隔是`random(0, initialBackoff)`, 第 n 次的重试间隔为`random(0, min( initialBackoff*backoffMultiplier**(n-1) , maxBackoff))`
     
+
 示例：
 
 ```

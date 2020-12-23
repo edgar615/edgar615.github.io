@@ -1,6 +1,6 @@
 ---
 layout: post
-title: GRPC配置Server全局异常处理器
+title: GRPC（5）- 配置Server全局异常处理器
 date: 2020-06-05
 categories:
     - rpc
@@ -36,7 +36,7 @@ HelloReply response = blockingStub.sayHello(request);
 ```
 Exception in thread "main" io.grpc.StatusRuntimeException: UNKNOWN
 ```
- 
+
 我们可以看到异常并没有提供任何有用的信息。
 
 我们可以在server端通过拦截器，捕获所有运行时异常，并返回更多的异常信息给调用方
