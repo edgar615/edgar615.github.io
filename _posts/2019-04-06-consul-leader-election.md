@@ -61,4 +61,6 @@ curl -X GET http://localhost:8500/v1/kv/lead?wait=10s&index=1100
 
 # 3. 参考资料
 
+https://learn.hashicorp.com/tutorials/consul/application-leader-elections
+
 http://blog.bossma.cn/consul/consul-leader-election-solution/

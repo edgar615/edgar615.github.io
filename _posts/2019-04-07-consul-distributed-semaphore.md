@@ -75,4 +75,6 @@ base64解码后的值为
 
 # 参考资料
 
+https://learn.hashicorp.com/tutorials/consul/distributed-semaphore
+
 https://blog.csdn.net/dyc87112/article/details/73739518
