@@ -3,7 +3,7 @@ layout: post
 title: OpenSSL升级
 date: 2020-06-22
 categories:
-    - rpc
+    - linux
 comments: true
 permalink: openssl-upgrade.html
 ---
