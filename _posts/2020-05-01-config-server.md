@@ -114,7 +114,46 @@ permalink: config-server.html
 1. 配置项增加一个host属性，表示这个配置项只“发布”给某些IP。
 2. 定义一个优先级，客户端优先加载本地配置文件，这样如果某些机器上的应用需要特殊配置，那么可以采用老的方式上去修改其本地配置文件。
 
-# 3. 开源实现
+# 3. 实践经验
+
+> 本节来自于个推基于Consul的配置管理经验 https://mp.weixin.qq.com/s/Xr49dQfafEiJX2I0CPaawQ
+>
+> 如果用其他配置中心也级别差不多
+
+在实践中，不同产品线的配置会放置在Consul的不同路径下，实现不同产品线配置之间的隔离。
+
+按照配置的用途，可将同一产品线下的配置分为三类：
+
+1. API网关相关配置；
+2. 服务注册与发现相关配置；
+3. 应用相关配置。
+
+其中，每类配置会对应Consul上的不同目录。
+
+按照配置的变化特性，可将配置分为两类：
+
+1. 环境相关的全局配置，如MySQL等外部依赖相关的配置和其他与环境相关的配置，这类配置在开发测试生产环境中存在差异，需要为不同环境配置不同的值。
+2. 应用本身的配置，一般为不经常性发生变化、可动态调整、开关的配置。这类配置比较稳定，在初始化后，只有在需要时才会改动，通常会设置默认值。这两类配置在Consul上会放在不同的子目录下。这样QA、运维只需要关注环境差异部分即可。
+
+基于以上对配置的分类，最终Consul上的Key的格式如下：
+
+```
+/ProductLine_Prefix/Usage_Prefix/Environmental_Correlation_Prefix/Config_Item_Path
+```
+
+其中：
+
+- ProductLine_Prefix：用来隔离不同产品线的配置；
+- Usage_Prefix：用来区分配置的用途；
+- EnvironmentalCorrelationPrefix：用来分隔与环境相关的配置；
+- ConfigItemPath：具体的配置项。
+
+配置在Consul上的组织形式有以下两种：
+
+1. 以配置文件的形式组织，Consul上的一个K/V，对应一个配置文件，如nginx的配置文件。
+2. 以配置项的形式组织，将配置文件模板化，拆成一个个的配置项，每个配置项对应Consul上的一个K/V，多个配置项对应一个配置文件。大部分配置文件本身都是以K/V的形式组织的，均适合模板化，模板化后即可以按照配置项的特性，在Consul上分成不同的类别进行管理。
+
+# 4. 开源实现
 
 - **Apollo**
 - **Qconf**
@@ -122,7 +161,7 @@ permalink: config-server.html
 - **Spring Cloud Config**
 - **Nacos**
 
-# 4. 参考资料
+# 5. 参考资料
 
 https://mp.weixin.qq.com/s/k1IVjya7qtIf8jwWqTumjA
 
