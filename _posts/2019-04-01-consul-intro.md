@@ -39,6 +39,18 @@ Agent与一个或者多个Consul服务器通信.Server是保持和复制数据�
 
 每个数据中心都运行着一组Server,当有跨数据中心的服务发现或者配置请求时，本地的Consul服务器会将请求转发到远程数据中心并返回结果
 
+下面这张图来源于Consul官网，很好的解释了Consul的工作原理
+
+![](/assets/images/posts/consul/consul-1.png)
+
+首先Consul支持多数据中心，在上图中有两个DataCenter，他们通过Internet互联，同时请注意为了提高通信效率，只有Server节点才加入跨数据中心的通信。
+
+在单个数据中心中，Consul分为Client和Server两种节点（所有的节点也被称为Agent），Server节点保存数据，Client负责健康检查及转发数据请求到Server；Server节点有一个Leader和多个Follower，Leader节点会将数据同步到Follower，Server的数量推荐是3个或者5个，在Leader挂掉的时候会启动选举机制产生一个新的Leader。
+
+集群内的Consul节点通过gossip协议（流言协议）维护成员关系，也就是说某个节点了解集群内现在还有哪些节点，这些节点是Client还是Server。单个数据中心的流言协议同时使用TCP和UDP通信，并且都使用8301端口。跨数据中心的流言协议也同时使用TCP和UDP通信，端口使用8302。
+
+集群内数据的读写请求既可以直接发到Server，也可以通过Client使用RPC转发到Server，请求最终会到达Leader节点，在允许数据轻微陈旧的情况下，读请求也可以在普通的Server节点完成，集群内数据的读写和复制都是通过TCP的8300端口完成。
+
 # 3. 快速入门
 ## 3.1. 安装
 

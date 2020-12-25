@@ -415,3 +415,39 @@ $ curl -X PUT \
 > While the `/catalog` endpoint seems to offer a valid alternative to the `/agent` one when it comes to register services and checks it is not recommended to use it to register agent related entities. The reason behind this is that, thanks to the anti-entropy mechanism Consul will constantly re-align the state of the single nodes with the one of the global catalog. When this happens services that were registered using the `/catalog` endpoint will disappear. The `/catalog` endpoint is the recommended way to register external services because in that case we will register the service as belonging to an `external-node`.
 > 
 > https://learn.hashicorp.com/tutorials/consul/service-registration-health-checks?in=consul/developer-discovery
+
+# 5. 部署模型
+
+网上找的部署模型
+
+![](/assets/images/posts/consul/consul-service-register-1.png)
+
+首先需要有一个正常的Consul集群，有Server，有Leader。这里在服务器Server1、Server2、Server3上分别部署了Consul Server，假设他们选举了Server2上的Consul  Server节点为Leader。这些服务器上最好只部署Consul程序，以尽量维护Consul Server的稳定。
+
+然后在服务器Server4和Server5上通过Consul Client分别注册Service  A、B、C，这里每个Service分别部署在了两个服务器上，这样可以避免Service的单点问题。服务注册到Consul可以通过HTTP  API（8500端口）的方式，也可以通过Consul配置文件的方式。Consul  Client可以认为是无状态的，它将注册信息通过RPC转发到Consul  Server，服务信息保存在Server的各个节点中，并且通过Raft实现了强一致性。
+
+最后在服务器Server6中Program D需要访问Service B，这时候Program D首先访问本机Consul  Client提供的HTTP API，本机Client会将请求转发到Consul Server，Consul Server查询到Service  B当前的信息返回，最终Program D拿到了Service B的所有部署的IP和端口，然后就可以选择Service  B的其中一个部署并向其发起请求了。如果服务发现采用的是DNS方式，则Program D中直接使用Service  B的服务发现域名，域名解析请求首先到达本机DNS代理，然后转发到本机Consul Client，本机Client会将请求转发到Consul  Server，Consul Server查询到Service B当前的信息返回，最终Program D拿到了Service  B的某个部署的IP和端口。
+
+如果不想在每个主机部署Consul Client，还有一个多路注册的方案可供选择
+
+![](/assets/images/posts/consul/consul-service-register-2.png)
+
+如图所示，在专门的服务器上部署Consul  Client，然后每个服务都注册到多个Client，这里为了避免服务单点问题还是每个服务部署多份，需要服务发现时，程序向一个提供负载均衡的程序发起请求，该程序将请求转发到某个Consul Client。这种方案需要注意将Consul的8500端口绑定到私网IP上，默认只有127.0.0.1。
+
+这个架构的优势：
+
+- Consul节点服务器与应用服务器隔离，互相干扰少；
+- 不用每台主机都部署Consul，方便Consul的集中管理；
+- 某个Consul Client挂掉的情况下，注册到其上的服务仍有机会被访问到；
+
+但也需要注意其缺点：
+
+- 引入更多技术栈：负载均衡的实现，不仅要考虑Consul Client的负载均衡，还要考虑负载均衡本身的单点问题。
+- Client的节点数量：单个Client如果注册的服务太多，负载较重，需要有个算法（比如hash一致）合理分配每个Client上的服务数量，以及确定Client的总体数量。
+- 服务发现要过滤掉重复的注册，因为注册到了多个节点会认为是多个部署（DNS接口不会有这个问题）。
+
+这个方案其实还可以优化，服务发现使用的负载均衡可以直接代理Server节点，因为相关请求还是会转发到Server节点，不如直接就发到Server。
+
+# 6. 参考资料
+
+http://blog.didispace.com/consul-service-discovery-exp/

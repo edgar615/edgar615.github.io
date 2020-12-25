@@ -1,6 +1,6 @@
 ---
 layout: post
-title: spring cache原理
+title: spring - cache原理
 date: 2019-11-26
 categories:
     - Spring
