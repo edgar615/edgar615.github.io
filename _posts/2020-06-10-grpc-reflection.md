@@ -68,3 +68,31 @@ permalink: grpc-reflection.html
         System.out.println(reply);
 ```
 
+- 基于JSON转换
+
+有时候我们要将对象转换为JSON，如果直接用protobuf的对象返回的话会抛出异常。原因是protobuf生成对象的get方法，返回的类型有byte[]，而只有String类型可以作为json的key。
+
+不过google有提供专门的架包，方便protobuf与json之间相互转换
+
+```
+实际上已经集成在了grpc-all中，不用再次引入
+<dependency>
+	<groupId>com.googlecode.protobuf-java-format</groupId>
+	<artifactId>protobuf-java-format</artifactId>
+	<version>1.4</version>
+</dependency>
+```
+
+```
+// protobuf -> json
+String json = JsonFormat.printer().print(reply);
+System.out.println(json);
+
+// json -> protobuf
+Message.Builder messageBuilder = HelloReply.newBuilder();
+JsonFormat.parser()
+		.merge("{ \"message\": \"hello edgar\"}", messageBuilder);
+HelloReply helloReply = (HelloReply) messageBuilder.build();
+System.out.println(helloReply);
+```
+
