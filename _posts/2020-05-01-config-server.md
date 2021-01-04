@@ -3,7 +3,7 @@ layout: post
 title: 配置中心
 date: 2020-05-01
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: config-server.html
 ---

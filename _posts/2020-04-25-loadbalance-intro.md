@@ -3,7 +3,7 @@ layout: post
 title: 负载均衡（1）-介绍
 date: 2020-04-25
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: loadbalance-intro.html
 ---

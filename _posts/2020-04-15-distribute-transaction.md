@@ -3,7 +3,7 @@ layout: post
 title: 分布式事务
 date: 2020-04-15
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: distribute-transaction.html
 ---

@@ -3,7 +3,7 @@ layout: post
 title: 限流（3）- Redis
 date: 2020-04-17
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: ratelimit-redis.html
 ---

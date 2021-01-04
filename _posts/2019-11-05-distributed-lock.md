@@ -3,7 +3,7 @@ layout: post
 title: 分布式锁实现
 date: 2019-11-05
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: distributed-lock.html
 ---

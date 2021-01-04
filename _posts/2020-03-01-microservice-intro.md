@@ -3,7 +3,7 @@ layout: post
 title: 微服务概念
 date: 2020-03-01
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: microservice-intro.html
 ---

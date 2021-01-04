@@ -3,7 +3,7 @@ layout: post
 title: 限流（1）- 介绍
 date: 2020-04-15
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: ratelimit.html
 ---

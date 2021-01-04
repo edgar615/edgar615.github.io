@@ -3,7 +3,7 @@ layout: post
 title: 服务注册中心
 date: 2020-05-05
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: service-register.html
 ---

@@ -3,7 +3,7 @@ layout: post
 title: API网关 - 介绍
 date: 2020-04-21
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: api-gateway-intro.html
 ---

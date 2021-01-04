@@ -3,7 +3,7 @@ layout: post
 title: ID生成方式
 date: 2019-05-21
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: id-generate.html
 ---

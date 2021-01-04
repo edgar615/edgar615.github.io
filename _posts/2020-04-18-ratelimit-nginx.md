@@ -3,7 +3,7 @@ layout: post
 title: 限流（4）- Nginx
 date: 2020-04-18
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: ratelimit-ngnix.html
 ---

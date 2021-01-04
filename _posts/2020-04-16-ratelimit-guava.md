@@ -3,7 +3,7 @@ layout: post
 title: 限流（2）- Guava
 date: 2020-04-16
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: ratelimit-guava.html
 ---

@@ -3,7 +3,7 @@ layout: post
 title: API网关 - 流量网关和业务网关
 date: 2020-04-22
 categories:
-    - 分布式
+    - 架构设计
 comments: true
 permalink: api-gateway-flow.html
 ---
