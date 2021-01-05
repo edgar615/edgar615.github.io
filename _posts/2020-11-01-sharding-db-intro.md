@@ -3,7 +3,7 @@ layout: post
 title: 分库分表（1）- 介绍
 date: 2020-11-01
 categories:
-    - 分库分表
+    - 架构设计
 comments: true
 permalink: sharding-db-intro.html
 ---
