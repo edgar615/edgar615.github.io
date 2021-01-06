@@ -98,6 +98,10 @@ Consul基于Raft协议来实现CP，解决一致性问题
 - 最小化对已有应用的侵入性，这也是贯穿我们整个微服务化改造的原则之一
 - 降低运维的复杂度，Consul Agent既可以运行在服务器模式，又可以运行在客户端模式 
 
+网上存在如下一个技术对比表格，可以参考一下
+
+![](/assets/images/posts/service-register/service-register-7.png)
+
 # 4. 健康检查
 
 zookeeper、Eureka采用集中式的心跳机制，是让各个服务都必须每隔一定时间发送心跳到Eureka Server。如果一段时间没收到心跳，那么就认为这个服务宕机了。
