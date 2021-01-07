@@ -52,14 +52,14 @@ permalink: grpc-reflection.html
                 .loadClass("com.github.edgar615.grpc.GreeterGrpc");
         Class stubClass = GrpcReflectExample.class.getClassLoader()
                 .loadClass("com.github.edgar615.grpc.GreeterGrpc$GreeterBlockingStub");
-//        获取不到newBlockingStub方法，原因未知
-//        Method stubMethod = grpcClass.getMethod("newBlockingStub", ManagedChannel.class);
-        Method stubMethod = null;
-        for (Method method1 : grpcClass.getMethods()) {
-            if (method1.getName().equals("newBlockingStub")) {
-                stubMethod = method1;
-            }
-        }
+        Method stubMethod = grpcClass.getMethod("newBlockingStub", Channel.class);
+        // 或者
+        // Method stubMethod = null;
+        // for (Method method1 : grpcClass.getMethods()) {
+        //     if (method1.getName().equals("newBlockingStub")) {
+        //         stubMethod = method1;
+        //     }
+        // }
 
         AbstractStub stub = (AbstractStub) stubMethod.invoke(null, new Object[]{managedChannel});
         System.out.println(stub);
