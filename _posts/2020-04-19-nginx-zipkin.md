@@ -3,7 +3,6 @@ layout: post
 title: Nginx使用zipkin
 date: 2020-04-19
 categories:
-    - 架构设计
     - nginx
 comments: true
 permalink: ratelimit-ngnix.html
