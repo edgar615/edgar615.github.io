@@ -4,7 +4,7 @@ title: 认证（5）-认证服务
 description: 
 date: 2019-03-05
 categories:
-    - 设计
+    - 架构设计
 comments: true
 permalink: authentication-service.html
 ---

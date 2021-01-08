@@ -4,7 +4,7 @@ title: 认证（2）-Cookie和Session
 description: 
 date: 2019-03-02
 categories:
-    - 设计
+    - 架构设计
 comments: true
 permalink: cookie-session.html
 ---
