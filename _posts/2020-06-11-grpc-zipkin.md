@@ -81,6 +81,6 @@ GrpcTracing grpcTracing = GrpcTracing.create(RpcTracing.newBuilder(tracing)
 
 观察zipkin，我们可以看到span中多了一个`grpc.method_type:UNARY`的tag
 
-参考资料
+# 3. 参考资料
 
 https://github.com/openzipkin/brave/tree/master/brave
