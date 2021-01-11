@@ -25,6 +25,8 @@ permalink: dynamic-static-separation.html
 > CDN内容分发：就是将静态资源服务器部署在全国各个服务器节点上去。
 >
 > 就近原则：用户访问的时候，遵循就近原则，离得越近传输速度越快，离得越远传输的速度相对来说就会慢一些。就像我们访问国外的网站速度比较慢，而  访问国内的网站速度就会快一些。
+>
+> 参考：https://edgar615.github.io/cdn.html
 
 ![](/assets/images/posts/dynamic-static-separation/dynamic-static-separation-2.png)
 

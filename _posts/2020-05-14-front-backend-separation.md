@@ -8,7 +8,7 @@ comments: true
 permalink: front-backend-separation.html
 ---
 
-> 本文基本拷贝的沈大在架构师之路的文章
+> 本文基本复制的沈大在架构师之路的文章
 >
 > https://mp.weixin.qq.com/s/d65cXGXp_jcEeELyDZxGVA
 

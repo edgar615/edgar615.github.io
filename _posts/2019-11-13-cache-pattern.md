@@ -1,9 +1,9 @@
 ---
 layout: post
-title: 缓存-缓存的模式(part2)
+title: 缓存（2）- 缓存的模式
 date: 2019-11-13
 categories:
-    - 缓存
+    - 架构设计
 comments: true
 permalink: cache-pattern.html
 ---

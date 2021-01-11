@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 缓存-面临的问题(part3)
+title: 缓存（3）- 面临的问题
 date: 2019-11-14
 categories:
     - 缓存

@@ -1,9 +1,9 @@
 ---
 layout: post
-title: 缓存-介绍(part1)
-date: 2019-06-13
+title: 缓存（1）-介绍
+date: 2019-11-13
 categories:
-    - 缓存
+    - 架构设计
 comments: true
 permalink: cache-intro.html
 ---

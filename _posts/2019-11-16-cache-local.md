@@ -1,9 +1,9 @@
 ---
 layout: post
-title: 缓存-进程内缓存(part4)
+title: 缓存（4）- 进程内缓存
 date: 2019-11-16
 categories:
-    - 缓存
+    - 架构设计
 comments: true
 permalink: cache-local.html
 ---
