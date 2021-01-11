@@ -4,6 +4,7 @@ title: GRPC（11）- 基于Zipkin跟踪调用链
 date: 2020-06-11
 categories:
     - rpc
+	- Zipkin
 comments: true
 permalink: grpc-zipkin.html
 ---

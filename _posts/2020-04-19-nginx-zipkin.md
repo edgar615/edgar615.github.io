@@ -1,11 +1,12 @@
 ---
 layout: post
-title: Nginx使用zipkin
+title: Nginx使用zipkin进行调用链跟踪
 date: 2020-04-19
 categories:
     - nginx
+	- Zipkin
 comments: true
-permalink: ratelimit-ngnix.html
+permalink: ngnix-zipkin.html
 ---
 
 下载对应版本的OpenTracing插件并解压。

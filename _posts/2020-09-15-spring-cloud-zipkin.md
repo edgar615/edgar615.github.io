@@ -4,6 +4,7 @@ title: Spring Cloud Zipkin（1）- 基本使用
 date: 2020-09-15
 categories:
     - Spring
+	- Zipkin
 comments: true
 permalink: spring-cloud-zipkin.html
 ---
