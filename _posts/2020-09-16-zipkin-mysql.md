@@ -14,13 +14,35 @@ permalink: zipkin-mysql.html
 
 首先创建一个名为 **zipkin** 的数据库，如何到[Github](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/mysql-v1)上下载MySQL脚本，执行创建表结构
 
-使用jar包运行zipkin
+# 1. 使用jar包运行zipkin
+
+下载最新的zipkin
 
 ```
-java -jar zipkin-server-2.12.9-exec.jar --STORAGE_TYPE=mysql --MYSQL_HOST=localhost --MYSQL_TCP_PORT=3306  --MYSQL_USER=root --MYSQL_PASS=123456 --MYSQL_DB=zipkin
+https://search.maven.org/remote_content?g=io.zipkin&a=zipkin-server&v=LATEST&c=exec
 ```
 
-使用docker运行
+运行
+
+```
+java -jar -DSTORAGE_TYPE=mysql  -DMYSQL_HOST=localhost -DMYSQL_TCP_PORT=3306  -DMYSQL_USER=root -DMYSQL_PASS=123456 -DMYSQL_DB=zipkin zipkin-server-2.23.2-exec.jar
+```
+
+可以看到`zipkin_spans`表中有了数据
+
+```
+mysql> select * from zipkin_spans where name = 'get /students/{schoolname}';
++---------------+---------------------+---------------------+----------------------------+---------------------+---------------------+--------------+------------------+----------+
+| trace_id_high | trace_id            | id                  | name                       | remote_service_name | parent_id           | debug        | start_ts         | duration |
++---------------+---------------------+---------------------+----------------------------+---------------------+---------------------+--------------+------------------+----------+
+|             0 | 5269165354849432675 | 1242664465845218647 | get /students/{schoolname} |                     | 5269165354849432675 | 0x           | 1610428616435867 |   237893 |
+|             0 | 5269165354849432675 | 5269165354849432675 | get /students/{schoolname} |                     |                NULL | 0x           | 1610428616414131 |   265520 |
++---------------+---------------------+---------------------+----------------------------+---------------------+---------------------+--------------+------------------+----------+
+2 rows in set (0.00 sec)
+
+```
+
+# 2. 使用docker运行
 
 ```
 docker run --name zipkin -d -p 9411:9411 -e STORAGE_TYPE=mysql -e  MYSQL_HOST=localhost -e MYSQL_TCP_PORT=3306 -e MYSQL_USER=root -e  MYSQL_PASS=123456 -e MYSQL_DB=zipkin openzipkin/zipkin
@@ -57,5 +79,5 @@ services:
 >         at java.lang.reflect.Constructor.newInstanceWithCaller(Unknown Source) ~[?:?]
 >         at java.lang.reflect.Constructor.newInstance(Unknown Source) ~[?:?]
 
-最终我使用官方提供的[docker-compose.yml](https://github.com/openzipkin-attic/docker-zipkin/blob/master/docker-compose.yml)测试成功
+最终我使用官方提供的[docker-compose.yml](https://github.com/openzipkin/zipkin/blob/master/docker/examples/docker-compose-mysql.yml)测试成功
 
