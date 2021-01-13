@@ -909,3 +909,26 @@ $ consul agent -dev -config-dir=/server/data/consul -enable-script-checks
 
 http://<IP地址>:8500/ui
 
+# 8. 配置Systemd
+
+```
+cat > /lib/systemd/system/consul-server1.service << EOF
+[Unit]
+Description="consul Server"
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+User=consul
+Group=consul
+ExecStart=/usr/local/bin/consul agent -config-dir=/data/consul/server/config
+ExecReload=/usr/local/bin/consul reload
+KillMode=process
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
