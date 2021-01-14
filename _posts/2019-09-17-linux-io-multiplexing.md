@@ -1,12 +1,14 @@
 ---
 layout: post
-title: Linux IO（2）- I/O多路复用
-date: 2019-09-16
+title: Linux IO（3）- I/O多路复用
+date: 2019-09-17
 categories:
     - linux
 comments: true
 permalink: linux-io-multiplexing.html
 ---
+
+# 1. I/O多路复用
 
 应用程序通常需要处理来自多条事件流中的事件，比如我现在用的电脑，需要同时处理键盘鼠标的输入、中断信号等等事件，再比如web服务器如nginx，需要同时处理来来自N个客户端的事件。
 
@@ -20,11 +22,15 @@ permalink: linux-io-multiplexing.html
 2. CPU切换不同线程/进程成本
 3. 多线程的资源竞争
 
-有没有一种可以在单线程/进程中处理多个事件流的方法呢？一种答案就是IO多路复用。
+有没有一种可以在单线程/进程中处理多个事件流的方法呢？一种答案就是**IO多路复用**。
 
 因此IO多路复用解决的本质问题是在**用更少的资源完成更多的事**。
 
 **I/O multiplexing 这里面的 multiplexing 指的其实是在单个线程通过记录跟踪每一个Sock(I/O流)的状态来同时管理多个I/O流**. 发明它的原因，是尽量多的提高服务器的吞吐能力。
+
+**操作系统如何同时监视多个socket的数据？**
+
+假如能够预先传入一个socket列表，**如果列表中的socket都没有数据，挂起进程，直到有一个socket收到数据，唤醒进程**。这种方法很直接，也是**select**的设计思想。
 
 在系统底层，IO 多路复用有 3 种实现机制：
 
@@ -34,7 +40,46 @@ permalink: linux-io-multiplexing.html
 
 **注意：select，poll，epoll本质上都是同步I/O，因为他们都需要在读写事件就绪后自己负责进行读写，也就是说这个读写过程是阻塞的，而异步I/O则无需自己负责进行读写，异步I/O的实现会负责把数据从内核拷贝到用户空间**
 
-下面比较一下3种机制的区别
+# 2. select
+
+select的实现思路很直接。假如程序同时监视如下图的sock1、sock2和sock3三个socket，那么在调用select之后，操作系统把进程A分别加入这三个socket的等待队列中。
+
+![](/assets/images/posts/linux-io/linux-io-29.jpg)
+
+当任何一个socket收到数据后，中断程序将唤起进程。下图展示了sock2接收到了数据的处理流程。
+
+![](/assets/images/posts/linux-io/linux-io-30.jpg)
+
+所谓唤起进程，就是将进程从所有的等待队列中移除，加入到工作队列里面。如下图所示。
+
+![](/assets/images/posts/linux-io/linux-io-31.jpg)
+
+经由这些步骤，当进程A被唤醒后，它知道至少有一个socket接收了数据。**程序只需遍历一遍socket列表**，就可以得到就绪的socket。
+
+这种简单方式**行之有效**，在几乎所有操作系统都有对应的实现。
+
+**但是简单的方法往往有缺点，主要是：**
+
+- 每次调用select都需要将进程加入到所有监视socket的等待队列，每次唤醒都需要从每个队列中移除。这里涉及了两次遍历，而且每次都要将整个fds列表传递给内核，有一定的开销。正是因为遍历操作开销大，出于效率的考量，才会规定select的最大监视数量，默认只能监视1024个socket。
+- 进程被唤醒后，程序并不知道哪些socket收到数据，还需要遍历一次。
+
+# 3. epoll
+
+epoll是select和poll的增强版本。epoll通过以下一些措施来改进效率。
+
+**措施一：功能分离**
+
+select低效的原因之一是将“维护等待队列”和“阻塞进程”两个步骤合二为一。如下图所示，每次调用select都需要这两步操作，然而大多数应用场景中，需要监视的socket相对固定，并不需要每次都修改。epoll将这两个操作分开，先用epoll_ctl维护等待队列，再调用epoll_wait阻塞进程。显而易见的，效率就能得到提升。
+
+![](/assets/images/posts/linux-io/linux-io-32.jpg)
+
+**措施二：就绪列表**
+
+select低效的另一个原因在于程序不知道哪些socket收到数据，只能一个个遍历。如果内核维护一个“就绪列表”，引用收到数据的socket，就能避免遍历。如下图所示，计算机共有三个socket，收到数据的sock2和sock3被rdlist（就绪列表）所引用。当进程被唤醒后，只要获取rdlist的内容，就能够知道哪些socket收到数据。
+
+![](/assets/images/posts/linux-io/linux-io-33.jpg)
+
+# 4. 三种实现的区别
 
 **用户态将文件描述符传入内核的方式**
 
@@ -76,6 +121,8 @@ permalink: linux-io-multiplexing.html
 - select、poll适用于所监视的文件描述符数量较少的场景
 - 当活动连接比较多的时候，epoll_wait的效率未必比select和poll高，因为此时回调函数被触发的过于频繁，因此epoll_wait适用于连接数量多，但活动连接较少的情况
 
-# 参考资料
+# 5. 参考资料
 
 https://www.liangzl.com/get-article-detail-26853.html
+
+https://zhuanlan.zhihu.com/p/64138532

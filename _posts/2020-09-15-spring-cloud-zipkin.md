@@ -200,7 +200,7 @@ tracing.currentTraceContext().get().traceId();
 
 # 5. MySQL跟踪
 
-前面我们已经了解了通过resttemplate发起远程调用的调用链跟踪，经过尝试使用RedisTemplate,KafkaTemplate均可以记录调用链。但是JdbcTemplate却没有追踪。在网上找到了2个方法
+前面我们已经了解了通过resttemplate发起远程调用的调用链跟踪，经过尝试使用RedisTemplate,KafkaTemplate均可以记录调用链，Spring Cloud Gateway也可以。但是JdbcTemplate却没有追踪。在网上找到了2个方法
 
 > 使用brave-instrumentation-mysql的方法我用jdbctemplate没有成功，改用了p6spy成功了，后面再研究原因
 

@@ -16,6 +16,18 @@ SkyWalking 和 Zipkin 的定位不同，决定了它们不是相同类型的产�
 
 要通过SkyWalking将Java应用数据上报至链路追踪控制台，首先需要完成埋点工作。SkyWalking既支持自动埋点（Dubbo、gRPC、JDBC、OkHttp、Spring、Tomcat、Struts、Jedis等），也支持手动埋点（OpenTracing）
 
+核心功能如下：
+
+- 服务、服务实例、端点指标分析
+- 根本原因分析
+- 服务拓扑图分析
+- 服务、服务实例和端点依赖性分析
+- 慢服务和端点检测
+- 性能优化
+- 分布式跟踪和上下文传播
+- 数据库访问指标，慢 SQL 检测（包括 SQL 语句）
+- 报警
+
 # 1. 系统架构
 ![](/assets/images/posts/skywalking/skywalking-0.jpg)
 
@@ -104,3 +116,13 @@ java -javaagent:/agent/school/skywalking-agent.jar -jar school.java
 支持Kafka调用跟踪
 
 ![](/assets/images/posts/skywalking/skywalking-10.png)
+
+**spring-cloud-gateway需要将agent/optional-plugins下的两个插件 复制到 agent/plugins目录下**
+
+```
+apm-spring-cloud-gateway-2.1.x-plugin-8.3.0.jar
+# 下面这个包plugins中一般有，不需要复制了
+apm-spring-webflux-5.x-plugin-8.3.0.jar
+```
+
+![](/assets/images/posts/skywalking/skywalking-11.png)

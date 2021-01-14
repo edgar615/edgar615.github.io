@@ -1,10 +1,10 @@
 ---
 layout: post
-title: Rest Api的返回值key=null vs key不返回, 哪个设计更好?
+title: Rest API- 返回值key=null vs key不返回, 哪个设计更好?
 description: 没有定论的一个文章
 date: 2019-09-24
 categories:
-    - Restful
+    - 设计
 comments: true
 permalink: rest-api-exclude-null-fields.html
 ---

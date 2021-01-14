@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Linux IO（3）- IO读写方式
-date: 2019-09-17
+title: Linux IO（4）- IO读写方式
+date: 2019-09-18
 categories:
     - linux
 comments: true

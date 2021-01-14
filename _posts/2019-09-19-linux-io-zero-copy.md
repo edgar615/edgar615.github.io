@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Linux IO（4）- 零拷贝
-date: 2019-09-18
+title: Linux IO（5）- 零拷贝
+date: 2019-09-19
 categories:
     - linux
 comments: true
@@ -10,7 +10,7 @@ permalink: linux-io-zero-copy.html
 
 ## 为什么需要零拷贝
 
-根据上面的描述，传统的  Linux 系统的标准 I/O 接口（read、write）是基于数据拷贝的，也就是数据都是 copy_to_user 或者  copy_from_user，这样做的好处是，通过中间缓存的机制，减少磁盘 I/O  的操作，但是坏处也很明显，大量数据的拷贝，用户态和内核态的频繁切换，会消耗大量的 CPU  资源，严重影响数据传输的性能，有数据表明，在Linux内核协议栈中，这个拷贝的耗时甚至占到了数据包整个处理流程的57.1%
+传统的  Linux 系统的标准 I/O 接口（read、write）是基于数据拷贝的，也就是数据都是 copy_to_user 或者  copy_from_user，这样做的好处是，通过中间缓存的机制，减少磁盘 I/O  的操作，但是坏处也很明显，大量数据的拷贝，用户态和内核态的频繁切换，会消耗大量的 CPU  资源，严重影响数据传输的性能，有数据表明，在Linux内核协议栈中，这个拷贝的耗时甚至占到了数据包整个处理流程的57.1%
 
 在 Linux 中零拷贝技术主要有 3 个实现思路：
 
