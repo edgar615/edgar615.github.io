@@ -351,6 +351,7 @@ public class BufferFillDrain {
 有时，您可能只想从缓冲区中释放一部分数据，而不是全部，然后重新填充。为了实现这一点，未读的数据元素需要下移以使第一个元素索引为0。尽管重复这样做会效率低下，但这有时非常必要，而API对此为您提供了一个compact()函数。这一缓冲区工具在复制数据时要比您使用get()和put()函数高效得多
 
 *被部分释放的缓冲区*
+
 <table>
     <tr>
         <td>0</td>
@@ -394,6 +395,7 @@ public class BufferFillDrain {
 </table>
 
 调用<code>buffer.compact();</code>后，缓冲区变为
+
 <table>
     <tr>
         <td>0</td>
@@ -440,27 +442,6 @@ public class BufferFillDrain {
 
 **调用compact()的作用是丢弃已经释放的数据，保留未释放的数据，并使缓冲区对重新填充容量准备就绪**
 
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-    </tr>
-    <tr>
-        <td>slice</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td>mark(x)、potision(0)</td>
-        <td></td>
-        <td>limit(2)、capacity(2)</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-    </tr>
-</table>
 
 # 3. 字节缓冲区
 ## 3.1. 字节顺序
