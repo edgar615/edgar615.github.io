@@ -8,6 +8,8 @@ comments: true
 permalink: netty-eventlop.html
 ---
 
+> 基本复制自《Netty 核心原理剖析与 RPC 实践》
+
 # EventLoop 
 
 Reactor 线程模型运行机制分为四个步骤：连接注册**、**事件轮询**、**事件分发**、**任务处理**，如下图所示。
