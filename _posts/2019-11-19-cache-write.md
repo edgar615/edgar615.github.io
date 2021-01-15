@@ -1,7 +1,7 @@
 ---
 layout: post
 title: 缓存（7）-写缓存提高数据库写操作资源
-date: 2019-11-18
+date: 2019-11-19
 categories:
     - 架构设计
 comments: true

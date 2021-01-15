@@ -8,7 +8,7 @@ comments: true
 permalink: kafka-at-least-once.html
 ---
 
-在分布式系统中一般有三种处理语义
+[投递有三种语义](https://edgar615.github.io/at-least-once.html)
 
 - **at-least-once**
 
