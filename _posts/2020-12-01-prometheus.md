@@ -63,6 +63,13 @@ Checking /etc/prometheus/prometheus.yml
 prometheus --config.file=/etc/prometheus/prometheus.yml  --storage.tsdb.path=/server/data/prometheus
 ```
 
+```
+#开启配置文件热加载，Prometheus启动时在参数中加入--web.enable-lifecycle(该参数默认关闭)，然后执行curl命令刷新配置
+
+/prometheus --web.enable-lifecycle
+curl -X POST http://IP:port/-/reload
+```
+
 # 2.2. 配置说明
 
 ```
