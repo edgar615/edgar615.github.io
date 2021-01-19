@@ -308,15 +308,184 @@ https://github.com/prometheus/consul_exporter
 
 # 4. Redis
 
+**参考资料**
+
+https://github.com/oliver006/redis_exporter
+
 # 5. Nginx
+
+配置prometheus模块
+
+```
+lua_shared_dict prometheus_metrics 10M;
+# 多个路径用;分隔，如lua_package_path "/server/nginx/lua/tracing/?.lua;/server/nginx/lua/prometheus/?.lua;;";
+lua_package_path "/path/to/nginx-lua-prometheus/?.lua;;";
+init_worker_by_lua_block {
+  prometheus = require("prometheus").init("prometheus_metrics")
+  metric_requests = prometheus:counter(
+    "nginx_http_requests_total", "Number of HTTP requests", {"host", "status"})
+  metric_latency = prometheus:histogram(
+    "nginx_http_request_duration_seconds", "HTTP request latency", {"host"})
+  metric_connections = prometheus:gauge(
+    "nginx_http_connections", "Number of HTTP connections", {"state"})
+}
+log_by_lua_block {
+  metric_requests:inc(1, {ngx.var.server_name, ngx.var.status})
+  metric_latency:observe(tonumber(ngx.var.request_time), {ngx.var.server_name})
+}
+```
+
+新增一个用于暴露指标的服务器配置文件
+
+```
+server {
+  listen 9145;
+  #allow 192.168.0.0/16;
+  #deny all;
+  location /metrics {
+    content_by_lua_block {
+      metric_connections:set(ngx.var.connections_reading, {"reading"})
+      metric_connections:set(ngx.var.connections_waiting, {"waiting"})
+      metric_connections:set(ngx.var.connections_writing, {"writing"})
+      prometheus:collect()
+    }
+  }
+}
+```
+
+reload 一下 Nginx，就可以去访问指标了
+
+```
+curl -s http://localhost:9145/metrics
+# HELP nginx_http_request_duration_seconds HTTP request latency
+# TYPE nginx_http_request_duration_seconds histogram
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.005"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.010"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.020"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.030"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.050"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.075"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.100"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.200"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.300"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.400"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.500"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="00.750"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="01.000"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="01.500"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="02.000"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="03.000"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="04.000"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="05.000"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="10.000"} 13
+nginx_http_request_duration_seconds_bucket{host="localhost",le="+Inf"} 13
+nginx_http_request_duration_seconds_count{host="localhost"} 13
+nginx_http_request_duration_seconds_sum{host="localhost"} 0
+# HELP nginx_http_requests_total Number of HTTP requests
+# TYPE nginx_http_requests_total counter
+nginx_http_requests_total{host="localhost",status="200"} 12
+nginx_http_requests_total{host="localhost",status="404"} 1
+# HELP nginx_metric_errors_total Number of nginx-lua-prometheus errors
+# TYPE nginx_metric_errors_total counter
+nginx_metric_errors_total 8
+```
+
+添加到 Prometheus
+
+```
+  - job_name: 'nginx'
+    static_configs:
+    - targets:
+      - 192.168.159.131:9145
+```
+
+添加到 Grafana
+
+ID：10223、10442
+
+参考资料
+
+https://github.com/knyar/nginx-lua-prometheus
 
 # 6. JVM
 
-# 7. Spring
+它是Prometheus官方组件，作为一个JAVA Agent来提供本地JVM的metrics，并通过http暴露出来。这也是官方推荐的一种方式，可以获取进程的信息，比如CPU和内存使用情况。
+
+Jmx_exporter是以代理的形式收集目标应用的jmx指标，这样做的好处在于无需对目标应用做任何的改动。
+运行JMX exporter的方式：
+
+```
+java XXX -javaagent:/root/jmx_exporter/jmx_prometheus_javaagent-0.14.0.jar=3010:/root/jmx_exporter/config.yaml  -jar XXX.jar
+```
+
+这里的3010就是开启的端口，prometheus就需要配置这个端口来抓取数据
 
 # 8. Kafka
 
+默认情况下, Kafka metrics 所有的 metric 都可以通过 JMX 获取，暴露kafka metrics 支持两种方式
+
+- 在 Kafka Broker 外部, 作为一个独立进程, 通过 JMX 的 RMI 接口读取数据. 这种方式的好处是有任何调整不需要重启 Kafka Broker 进程, 缺点是多维护了一个独立的进程。
+- 在 Kafka Broker 进程内部读取 JMX 数据, 这样解析数据的逻辑就在 Kafka Broker 进程内部, 如果有任何调整, 需要重启 Broker。
+
+我们选择第二种方式
+
+下载agent.jar
+
+```
+https://search.maven.org/remotecontent?filepath=io/prometheus/jmx/jmx_prometheus_javaagent/0.14.0/jmx_prometheus_javaagent-0.14.0.jar
+```
+
+下载kafka.yml
+
+```
+https://github.com/prometheus/jmx_exporter/blob/master/example_configs/kafka-2_0_0.yml
+```
+
+修改kafka-server-start.sh 
+
+```
+export JMX_PORT="9999"
+export KAFKA_OPTS="-javaagent:/server/kafka/jmx_prometheus_javaagent-0.14.0.jar=9991:/server/kafka/kafka.yml"
+```
+
+启动kafka后访问 http://localhost:9991/mertrics可以看到各种指标
+
+具体指标参考KAFKA相关文章
+
+添加到 Prometheus
+
+```
+  - job_name: 'kafka'
+    static_configs:
+    - targets:
+      - 192.168.159.131:9991
+
+```
+
+添加到 Grafana
+
+ID有：`7589`，`10466`,`11963`,`10555`等等
+
 # 9.  Zookeeper
+
+Zookeeper的方式与Kafka基本类似，我们还是采用agent的方式
+
+下载zookeeper.yml
+
+```
+https://github.com/prometheus/jmx_exporter/blob/master/example_configs/zookeeper.yaml
+```
+
+修改zkServer.sh
+
+```
+export JMX_PORT="8999"
+export JVMFLAGS="javaagent:/server/kafka/jmx_prometheus_javaagent-0.14.0.jar=9992:/server/kafka/zookeeper.yml $JVMFLAGS"
+```
+
+添加到 Grafana
+
+ID：10607
 
 
 
