@@ -1,12 +1,14 @@
 ---
 layout: post
-title: 错误码
-date: 2020-10-03
+title: Rest API - 错误码
+date: 2019-09-28
 categories:
     - 设计
 comments: true
 permalink: error-code.html
 ---
+
+> 除了rest api外还适用于其他API
 
 # 1. 错误消息
 
