@@ -1,0 +1,167 @@
+---
+layout: post
+title: Netty - keepalive
+date: 2019-01-16
+categories:
+    - netty
+	- java
+comments: true
+permalink: netty-keepalive.html
+---
+
+# 1.TCP保活（keepalive）
+
+TCP协议中有长连接和短连接之分。短连接环境下，数据交互完毕后，主动释放连接；
+
+长连接的环境下，进行一次数据交互后，很长一段时间内无数据交互时，客户端可能意外断电、死机、崩溃、重启，还是中间路由网络无故断开，这些TCP连接并未来得及正常释放，那么，连接的另一方并不知道对端的情况，它会一直维护这个连接，长时间的积累会导致非常多的半打开连接，造成端系统资源的消耗和浪费，且有可能导致在一个无效的数据链路层面发送业务数据，结果就是发送失败。所以服务器端要做到快速感知失败，减少无效链接操作，这就有了TCP的Keepalive（保活探测）机制。
+
+## 1.1. 工作原理
+
+当一个 TCP 连接建立之后，启用 TCP Keepalive 的一端便会启动一个计时器，当这个计时器数值到达 0  之后（也就是经过tcp_keep-alive_time时间后），一个 TCP 探测包便会被发出。这个 TCP 探测包是一个纯 ACK 包（规范建议，不应该包含任何数据，但也可以包含1个无意义的字节，比如0x0。），其 Seq号  与上一个包是重复的，所以其实探测保活报文不在窗口控制范围内。
+
+如果一个给定的连接在**两小时内（默认时长）**没有任何的动作，则服务器就向客户发一个探测报文段，客户主机必须处于以下4个状态之一：
+
+- 客户主机依然正常运行，并从服务器可达。客户的TCP响应正常，而服务器也知道对方是正常的，服务器在两小时后将保活定时器复位。
+- 客户主机已经崩溃，并且关闭或者正在重新启动。在任何一种情况下，客户的TCP都没有响应。服务端将不能收到对探测的响应，并在75秒后超时。**服务器总共发送10个这样的探测 ，每个间隔75秒**。如果服务器没有收到一个响应，它就认为客户主机已经关闭并终止连接。
+- 客户主机崩溃并已经重新启动。服务器将收到一个对其保活探测的响应，这个响应是一个复位，使得服务器终止这个连接。
+- 客户机正常运行，但是服务器不可达，这种情况与2类似，TCP能发现的就是没有收到探测的响应。
+
+## 1.2. 使用场景
+
+- 检测挂掉的连接（导致连接挂掉的原因很多，如服务停止、网络波动、宕机、应用重启等）
+- 防止因为网络不活动而断连（使用NAT代理或者防火墙的时候，经常会出现这种问题）
+- TCP层面的心跳检测
+
+## 1.3. KeepAlive参数
+
+对于linux内核来说，应用程序若想使用TCP Keepalive，需要设置SO_KEEPALIVE套接字选项才能生效
+
+有三个重要的参数：
+
+- **tcp_keepalive_intvl：**KeepAlive 探测包的发送间隔，默认为 75 秒
+- **tcp_keepalive_probes：**如果对方不予应答，探测包的最大发送次数，默认为 9 次。即连续 9 次发送，都没有应答的话，则关闭连接。
+- **tcp_keepalive_time：**连接的最大空闲（idle）时间，默认为 7200 秒，即 2 个小时。需要注意的是，这 2 个小时，指的是只有 KeepAlive 探测包，如果期间存在其他数据传输，则重新计时。
+
+这些的默认配置值在 /proc/sys/net/ipv4 目录下可以找到
+
+```
+# ls /proc/sys/net/ipv4 | grep keepalive
+tcp_keepalive_intvl
+tcp_keepalive_probes
+tcp_keepalive_time
+# cat /proc/sys/net/ipv4//tcp_keepalive_time
+7200
+```
+
+也可以用sysctl查看和修改
+
+```
+
+# sysctl net.ipv4.tcp_keepalive_time
+net.ipv4.tcp_keepalive_time = 7200
+# sysctl net.ipv4.tcp_keepalive_time=3600
+
+```
+
+TCP 中的 **SO_KEEPALIVE** 是一个开关选项，默认关闭，需要在应用程序需要代码中显式的开启。当开启之后，在通信双方没有数据传输时，操作系统底层会定时发送 KeepAlive 探测包，以保证连接的存活。
+
+然而，TCP 的 KeepAlive 机制，说实话，有一些鸡肋：
+
+- KeepAlive 只能检测连接是否存活，不能检测连接是否可用。例如，某一方发生了死锁，无法在连接上进行任何读写操作，但是操作系统仍然可以响应网络层 KeepAlive 包。
+- TCP KeepAlive 机制依赖于操作系统的实现,灵活性不够，默认关闭，且默认的 KeepAlive 心跳时间是 两个小时, 时间较长。 
+- 代理(如 Socks Proxy)、或者负载均衡器，会让 TCP KeepAlive 失效
+
+基于此，我们需要加上应用层的心跳，应用层心跳包可以定制，可以应对更复杂的情况或传输一些额外信息。KeepAlive仅代表连接保持着，而心跳包往往还代表客户端可正常工作
+
+# 2. Netty开启TCP keepalive
+
+在Server端开启TCP keepalive:　两种方式
+
+```
+serverBootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
+serverBootstrap.childOption(NioChannelOption.SO_KEEPALIVE,true)
+```
+
+**提示：“.option(ChannelOption.SO_KEEPALIVE,true)”存在，但是无效。**
+
+**这两种实现有什么区别呢？**
+
+我们在ServerBootstrap引导类中找到对childOption的使用
+
+```
+public void channelRead(ChannelHandlerContext ctx, Object msg) {
+    ...
+    setChannelOptions(child, childOptions, logger);
+    setAttributes(child, childAttrs);
+	...
+}
+```
+
+逐步分析，发现它最终在NioServerSocketChannel的setOption进行了处理
+
+```
+public <T> boolean setOption(ChannelOption<T> option, T value) {
+	// NioChannelOption.SO_KEEPALIVE
+    if (PlatformDependent.javaVersion() >= 7 && option instanceof NioChannelOption) {
+        return NioChannelOption.setOption(jdkChannel(), (NioChannelOption<T>) option, value);
+    }
+    // ChannelOption.SO_KEEPALIVE
+    return super.setOption(option, value);
+}
+```
+
+NioChannelOption.SO_KEEPALIVE处理如下
+
+```
+@SuppressJava6Requirement(reason = "Usage guarded by java version check")
+static <T> boolean setOption(Channel jdkChannel, NioChannelOption<T> option, T value) {
+	...
+    try {
+        channel.setOption(option.option, value);
+        return true;
+    } catch (IOException e) {
+        throw new ChannelException(e);
+    }
+}
+```
+
+ChannelOption.SO_KEEPALIVE的实现如下
+
+```
+@Override
+public <T> boolean setOption(ChannelOption<T> option, T value) {
+    validate(option, value);
+
+    if (option == SO_RCVBUF) {
+        setReceiveBufferSize((Integer) value);
+    } else if (option == SO_REUSEADDR) {
+        setReuseAddress((Boolean) value);
+    } else if (option == SO_BACKLOG) {
+        setBacklog((Integer) value);
+    } else {
+        return super.setOption(option, value);
+    }
+
+    return true;
+}
+```
+
+可以看到ChannelOption.SO_KEEPALIVE是写一堆if...else来确定的，不太优雅。
+
+# 2. IdleStateHandler
+
+Netty提供了对心跳机制的天然支持，心跳可以检测远程端是否存活，或者活跃
+
+IdleStateHandler通过构造参数，提供了三种不同风格的Idle监测。
+
+```
+public IdleStateHandler(
+        long readerIdleTime, long writerIdleTime, long allIdleTime,
+        TimeUnit unit) {
+    this(false, readerIdleTime, writerIdleTime, allIdleTime, unit);
+}
+```
+
+- readerIdleTimeSeconds: 读超时. 即当在指定的时间间隔内没有从 `Channel` 读取到数据时, 会触发一个 `READER_IDLE` 的 `IdleStateEvent` 事件.
+- writerIdleTimeSeconds: 写超时. 即当在指定的时间间隔内没有数据写入到 `Channel` 时, 会触发一个 `WRITER_IDLE` 的 `IdleStateEvent` 事件.
+- allIdleTimeSeconds: 读/写超时. 即当在指定的时间间隔内没有读或写操作时, 会触发一个 `ALL_IDLE` 的 `IdleStateEvent` 事件.

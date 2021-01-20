@@ -12,7 +12,9 @@ permalink: linux-user-kernel-space.html
 
 # 1. 用户空间和内核空间
 
-为了避免用户进程直接操作内核，保证内核安全，Linux将运行空间划分为两个，用户空间（User space）和内核空间（Kernel space）。
+Linux 按照特权等级，把进程的运行空间分为内核空间和用户空间，分别对应着下图中， CPU 特权等级的 Ring 0 和 Ring 3。内核空间（Ring 0）具有最高权限，可以直接访问所有资源；用户空间（Ring 3）只能访问受限资源，不能直接访问内存等硬件设备，必须通过系统调用陷入到内核中，才能访问这些特权资源。
+
+![](/assets/images/posts/linux-user-kernel-space/linux-user-kernel-space-10.png)
 
 - User space：用户空间，用户程序的运行空间
 - Kernel space：内核空间， Linux 内核的运行空间
