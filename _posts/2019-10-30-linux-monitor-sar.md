@@ -21,6 +21,30 @@ sar  可以全面地获取系统的CPU、运行队列、磁盘I/O、分页（交
 -q  ：显示运行队列的大小，它与系统当时的平均负载相同
 ```
 
+**平均负载**
+
+sar -q 1 5（1：每隔一秒，5：写入5次）
+
+```
+# sar -q 1 5
+Linux 5.4.0-62-generic (server-1)       01/21/2021      _x86_64_        (4 CPU)
+
+06:52:04 AM   runq-sz  plist-sz   ldavg-1   ldavg-5  ldavg-15   blocked
+06:52:05 AM         0       331      0.05      0.08      0.08         0
+06:52:06 AM         0       331      0.05      0.08      0.08         0
+06:52:07 AM         0       331      0.04      0.08      0.08         0
+06:52:08 AM         0       331      0.04      0.08      0.08         0
+06:52:09 AM         0       331      0.04      0.08      0.08         0
+Average:            0       331      0.04      0.08      0.08         0
+
+```
+
+- runq-sz  运行队列的长度（等待运行的进程数，每核的CP不能超过3个）
+- plist-sz 进程列表中的进程（processes）和线程数（threads）的数量
+- ldavg-1 最后1分钟的CPU平均负载，即将多核CPU过去一分钟的负载相加再除以核心数得出的平均值，5分钟和15分钟以此类推
+- ldavg-5 最后5分钟的CPU平均负载
+- ldavg-15 最后15分钟的CPU平均负载
+
 **CPU利用率**
 
 sar -u 1 10 （1：每隔一秒，10：写入10次）
@@ -183,3 +207,154 @@ Average:      docker0      0.00      0.00      0.00      0.00      0.00      0.0
 | rxcmp/s    | 每秒钟接收到的压缩包数目。     |
 | txcmp/s    | 每秒钟发送出去的压缩包数目。   |
 | rxmcst/s   | 每秒钟接收到的多播包的包数目。 |
+
+sar  -n选项使用6个不同的开关：DEV显示网络接口信息，EDEV显示关于网络错误的统计数据，NFS统计活动的NFS客户端的信息，NFSD统计NFS服务器的信息，SOCK显示套接字信息，ALL显示所有5个开关。它们可以单独或者一起使用。 
+
+```
+# 统计网络设备通信失败信息
+# sar -n EDEV 1 1
+Linux 5.4.0-62-generic (server-1)       01/21/2021      _x86_64_        (4 CPU)
+
+06:58:24 AM     IFACE   rxerr/s   txerr/s    coll/s  rxdrop/s  txdrop/s  txcarr/s  rxfram/s  rxfifo/s  txfifo/s
+06:58:25 AM        lo      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+06:58:25 AM br-6d212538ddbf      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+06:58:25 AM   docker0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+06:58:25 AM     ens33      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+
+Average:        IFACE   rxerr/s   txerr/s    coll/s  rxdrop/s  txdrop/s  txcarr/s  rxfram/s  rxfifo/s  txfifo/s
+Average:           lo      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+Average:    br-6d212538ddbf      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+Average:      docker0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+Average:        ens33      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+
+```
+
+- IFACE 网卡名称
+- rxerr/s 每秒钟接收到的损坏的数据包
+- txerr/s 每秒钟发送的数据包错误数
+- coll/s 当发送数据包时候，每秒钟发生的冲撞（collisions）数，这个是在半双工模式下才有
+- rxdrop/s 当由于缓冲区满的时候，网卡设备接收端每秒钟丢掉的网络包的数目
+- txdrop/s 当由于缓冲区满的时候，网络设备发送端每秒钟丢掉的网络包的数目
+- txcarr/s  当发送数据包的时候，每秒钟载波错误发生的次数
+- rxfram   在接收数据包的时候，每秒钟发生的帧对其错误的次数
+- rxfifo    在接收数据包的时候，每秒钟缓冲区溢出的错误发生的次数
+- txfifo    在发生数据包 的时候，每秒钟缓冲区溢出的错误发生的次数
+
+```
+# 统计socket连接信息
+# sar -n SOCK 1 1
+Linux 5.4.0-62-generic (server-1)       01/21/2021      _x86_64_        (4 CPU)
+
+07:00:11 AM    totsck    tcpsck    udpsck    rawsck   ip-frag    tcp-tw
+07:00:12 AM       194        13         1         0         0         0
+Average:          194        13         1         0         0         0
+```
+
+- totsck 当前被使用的socket总数
+- tcpsck 当前正在被使用的TCP的socket总数
+- udpsck  当前正在被使用的UDP的socket总数
+- rawsck 当前正在被使用于RAW的skcket总数
+- if-frag  当前的IP分片的数目
+- tcp-tw TCP套接字中处于TIME-WAIT状态的连接数量
+
+```
+#TCP连接的统计
+# sar -n TCP 1 1
+Linux 5.4.0-62-generic (server-1)       01/21/2021      _x86_64_        (4 CPU)
+
+07:01:15 AM  active/s passive/s    iseg/s    oseg/s
+07:01:16 AM      0.00      0.00      0.00      0.00
+Average:         0.00      0.00      0.00      0.00
+```
+
+- active/s 新的主动连接
+- passive/s 新的被动连接
+- iseg/s 接受的段
+- oseg/s 输出的段
+
+**查看系统swap分区的统计信息**
+
+```
+# sar -W 1 5
+Linux 5.4.0-62-generic (server-1)       01/21/2021      _x86_64_        (4 CPU)
+
+06:54:25 AM  pswpin/s pswpout/s
+06:54:26 AM      0.00      0.00
+06:54:27 AM      0.00      0.00
+06:54:28 AM      0.00      0.00
+06:54:29 AM      0.00      0.00
+06:54:30 AM      0.00      0.00
+Average:         0.00      0.00
+```
+
+- pswpin/s  每秒从交换分区到系统的交换页面（swap page）数量
+- pswpout/s 每秒从系统交换到swap的交换页面（swap page）的数量
+
+**查看I/O和传递速率的统计信息**
+
+```
+# sar -b 1 5
+Linux 5.4.0-62-generic (server-1)       01/21/2021      _x86_64_        (4 CPU)
+
+06:55:38 AM       tps      rtps      wtps      dtps   bread/s   bwrtn/s   bdscd/s
+06:55:39 AM     90.00      0.00     90.00      0.00      0.00   4176.00      0.00
+06:55:40 AM    100.00      0.00    100.00      0.00      0.00   4640.00      0.00
+06:55:41 AM    100.00      0.00    100.00      0.00      0.00   4640.00      0.00
+06:55:42 AM     90.00      0.00     90.00      0.00      0.00   4176.00      0.00
+06:55:43 AM    100.00      0.00    100.00      0.00      0.00   4664.00      0.00
+Average:        96.00      0.00     96.00      0.00      0.00   4459.20      0.00
+```
+
+- tps  磁盘每秒钟的IO总数，等于iostat中的tps
+- rtps 每秒钟从磁盘读取的IO总数
+- wtps 每秒钟从写入到磁盘的IO总数
+- bread/s 每秒钟从磁盘读取的块总数
+- bwrtn/s 每秒钟此写入到磁盘的块总数
+
+**页交换速率**
+
+```
+# sar -B 1 1
+Linux 5.4.0-62-generic (server-1)       01/21/2021      _x86_64_        (4 CPU)
+
+07:02:14 AM  pgpgin/s pgpgout/s   fault/s  majflt/s  pgfree/s pgscank/s pgscand/s pgsteal/s    %vmeff
+07:02:15 AM      0.00   2320.00      3.00      0.00    228.00      0.00      0.00      0.00      0.00
+Average:         0.00   2320.00      3.00      0.00    228.00      0.00      0.00      0.00      0.00
+```
+
+**进程、inode、文件和锁表状态**
+
+```
+# sar -v 1 1
+Linux 5.4.0-62-generic (server-1)       01/21/2021      _x86_64_        (4 CPU)
+
+07:05:04 AM dentunusd   file-nr  inode-nr    pty-nr
+07:05:05 AM     77193      1504     68680         3
+Average:        77193      1504     68680         3
+```
+
+- dentunusd 在缓冲目录条目中没有使用的条目数量
+- file-nr 被系统使用的文件句柄数量
+- inode-nr 已经使用的索引数量 
+- pty-nr 使用的pty数量
+
+默认监控: sar 5 5     //  CPU和IOWAIT统计状态 
+- sar -b 5 5        // IO传送速率
+- sar -B 5 5        // 页交换速率
+- sar -c 5 5        // 进程创建的速率
+- sar -d 5 5        // 块设备的活跃信息
+- sar -n DEV 5 5    // 网路设备的状态信息
+- sar -n SOCK 5 5   // SOCK的使用情况
+- sar -n ALL 5 5    // 所有的网络状态信息
+- sar -P ALL 5 5    // 每颗CPU的使用状态信息和IOWAIT统计状态 
+- sar -q 5 5        // 队列的长度（等待运行的进程数）和负载的状态
+- sar -r 5 5       // 内存和swap空间使用情况
+- sar -R 5 5       // 内存的统计信息（内存页的分配和释放、系统每秒作为BUFFER使用内存页、每秒被cache到的内存页）
+- sar -u 5 5       // CPU的使用情况和IOWAIT信息（同默认监控）
+- sar -v 5 5       // inode, file and other kernel tablesd的状态信息
+- sar -w 5 5       // 每秒上下文交换的数目
+- sar -W 5 5       // SWAP交换的统计信息(监控状态同iostat 的si so)
+- sar -x 2906 5 5  // 显示指定进程(2906)的统计信息，信息包括：进程造成的错误、用户级和系统级用户CPU的占用情况、运行在哪颗CPU上
+- sar -y 5 5       // TTY设备的活动状态
+- 将输出到文件(-o)和读取记录信息(-f)
+

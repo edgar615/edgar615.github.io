@@ -26,13 +26,13 @@ permalink: linux-trouble-cpu.html
 
 ## 1.2. **排查工具**
 
-![](/assets/images/posts/linux-trouble-cpu-1/linux-trouble-cpu-3.png)
+![](/assets/images/posts/linux-trouble-cpu/linux-trouble-cpu-3.png)
 
-![](/assets/images/posts/linux-trouble-cpu-1/linux-trouble-cpu-4.png)
+![](/assets/images/posts/linux-trouble-cpu/linux-trouble-cpu-4.png)
 
 ## 1.3. 排查过程
 
-![](/assets/images/posts/linux-trouble-cpu-1/linux-trouble-cpu-5.png)
+![](/assets/images/posts/linux-trouble-cpu/linux-trouble-cpu-5.png)
 
 - 从 top 的输出可以得到各种 CPU 使用率以及僵尸进程和平均负载等信息。
 - 从 vmstat 的输出可以得到上下文切换次数、中断次数、运行状态和不可中断状态的进程数。
@@ -336,13 +336,13 @@ cpu3 20286 81 33390 497321 36 0 34 0 0 0
 
 CPU 使用率，就是除了空闲时间外的其他时间占总 CPU 时间的百分比，用公式来表示就是：
 
-![](/assets/images/posts/linux-trouble-cpu-1/linux-trouble-cpu-1.png)
+![](/assets/images/posts/linux-trouble-cpu/linux-trouble-cpu-1.png)
 
 根据这个公式，我们就可以从 /proc/stat 中的数据，很容易地计算出 CPU 使用率。当然，也可以用每一个场景的 CPU 时间，除以总的 CPU 时间，计算出每个场景的 CPU 使用率.
 
 事实上，为了计算 CPU 使用率，性能工具一般都会取间隔一段时间（比如 3 秒）的两次值，作差后，再计算出这段时间内的平均 CPU 使用率，即
 
-![](/assets/images/posts/linux-trouble-cpu-1/linux-trouble-cpu-2.png)
+![](/assets/images/posts/linux-trouble-cpu/linux-trouble-cpu-2.png)
 
 这个公式，就是我们用各种性能工具所看到的 CPU 使用率的实际计算方法。现在，我们知道了系统 CPU 使用率的计算方法，那进程的呢？跟系统的指标类似，Linux 也给每个进程提供了运行情况的统计信息，也就是 **`/proc/[pid]/stat`**
 

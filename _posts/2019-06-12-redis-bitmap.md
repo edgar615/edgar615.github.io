@@ -10,7 +10,7 @@ permalink: redis-bitmap.html
 
 redis的BitMap本身不是一种数据结构，实际上它就是一个字符串，但是它可以对字符串的位进行操作，可以吧bitmap想象成一个以位为单位的数组，数组的每个单元只能存储0和1，数组的下标在bitmap中叫做偏移量。因为8个bit可以组成一个Byte，所以bitmap本身会极大的节省储存空间
 
-#设置值
+# 设置值
 setbit key offset value
 
 示例1:假设有20个用户，在今天0,5,11,16,19这5个用户访问了系统，那么初始化结果为：
