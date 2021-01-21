@@ -259,3 +259,22 @@ fi
 
 ```
 
+MySQL检查脚本
+
+```
+#!/bin/bash
+MYSQL_HOST=localhost 
+MYSQL_USER=root 
+MYSQL_PASSWORD=123456
+   
+mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD -e "show status;" >/dev/null 2>&1 
+if [ $? == 0 ] 
+then 
+    echo " $host mysql login successfully " 
+    exit 0 
+else 
+    killall keepalived
+    exit 2 
+fi
+```
+
