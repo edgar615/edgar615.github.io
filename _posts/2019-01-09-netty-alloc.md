@@ -10,7 +10,7 @@ permalink: netty-alloc.html
 
 > 基本复制自《Netty 核心原理剖析与 RPC 实践》
 >
-> 未完成，比较难懂，先占位吧
+> 比较难懂，先占位吧
 
 Netty 高性能的内存管理采用了 jemalloc 的思想，这是 FreeBSD 实现的一种并发 malloc 的算法。
 
@@ -241,6 +241,8 @@ private void allocateNormal(PooledByteBuf<T> buf, int reqCapacity, int sizeIdx, 
 
 这是一个折中的选择，在频繁分配内存的场景下，如果从 q000 开始，会有大部分的 PoolChunk 面临频繁的创建和销毁，造成内存分配的性能降低。如果从 q050 开始，会使 PoolChunk 的使用率范围保持在中间水平，降低了 PoolChunk 被回收的概率，从而兼顾了性能。
 
+> 分配后各个区间内存使用率更多处于[75,100)的区间范围内，提高PoolChunk内存使用率的同时也兼顾效率，减少在PoolChunkList中PoolChunk的遍历
+
 ## 3.2. PoolChunkList
 
 PoolChunkList 负责管理多个 PoolChunk 的生命周期，同一个 PoolChunkList 中存放内存使用率相近的 PoolChunk，这些 PoolChunk 同样以双向链表的形式连接在一起，PoolChunkList 的结构如下图所示。因为 PoolChunk 经常要从 PoolChunkList 中删除，并且需要在不同的 PoolChunkList 中移动，所以双向链表是管理 PoolChunk 时间复杂度较低的数据结构。
@@ -263,13 +265,66 @@ private final int maxCapacity;
 
 Netty 内存的分配和回收都是基于 PoolChunk 完成的，PoolChunk 是真正存储内存数据的地方，每个 PoolChunk 的默认大小为 16M。
 
-PoolChunk 可以理解为 Page 的集合，Page 只是一种抽象的概念，实际在 Netty 中 Page 所指的是 PoolChunk  所管理的子内存块，每个子内存块采用 PoolSubpage 表示。Netty 会使用伙伴算法将 PoolChunk 分配成 2048 个  Page，最终形成一颗满二叉树，二叉树中所有子节点的内存都属于其父节点管理，如下图所示。
+PoolChunk 可以理解为 Page 的集合，Page 只是一种抽象的概念，实际在 Netty 中 Page 所指的是 PoolChunk  所管理的子内存块，每个子内存块采用 PoolSubpage 表示。在同一个chunk中，Netty将page按照不同粒度进行多层分组管理：
 
-![](/assets/images/posts/netty-alloc/netty-alloc-32.png)
+![](/assets/images/posts/netty-alloc/netty-alloc-34.png)
+
+- 第1层，分组大小size = 1*pageSize，一共有2048个组
+- 第2层，分组大小size = 2*pageSize，一共有1024个组
+- 第3层，分组大小size = 4*pageSize，一共有512个组 ...
+
+当请求分配内存时，将请求分配的内存数向上取值到最接近的分组大小，在该分组大小的相应层级中从左至右寻找空闲分组
+
+例如请求分配内存对象为1.5 *pageSize，向上取值到分组大小2 * pageSize，在该层分组中找到完全空闲的一组内存进行分配，如下图：
+
+![](/assets/images/posts/netty-alloc/netty-alloc-35.png)
+
+当分组大小2 * pageSize的内存分配出去后，为了方便下次内存分配，分组被标记为**全部已使用**(图中红色标记)，向上更粗粒度的内存分组被标记为**部分已使用**(图中黄色标记)
+
+Netty 会使用伙伴算法将 PoolChunk 分配成 2048 个  Page，最终形成一颗满二叉树，二叉树中所有子节点的内存都属于其父节点管理。如下图所示。
+
+![](/assets/images/posts/netty-alloc/netty-alloc-36.png)
+
+当需要创建一个给定大小的ByteBuf，算法需要在PoolChunk中大小为chunkSize的内存中，找到第一个能够容纳申请分配内存的位置
+
+为了方便快速查找chunk中能容纳请求内存的位置，算法构建一个基于byte数组(memoryMap)存储的完全平衡树，该平衡树的多个层级深度，就是前面介绍的按照不同粒度对chunk进行多层分组。
+
+树的深度depth从0开始计算，各层节点数，每个节点对应的内存大小如下：
+
+```
+depth = 0， 1 node，nodeSize = chunkSize
+depth = 1， 2 nodes，nodeSize = chunkSize/2
+...
+depth = d， 2^d nodes， nodeSize = chunkSize/(2^d)
+...
+depth = maxOrder， 2^maxOrder nodes， nodeSize = chunkSize/2^{maxOrder} = pageSize
+```
+
+树的最大深度为maxOrder(最大阶，默认值11)，通过这棵树，算法在chunk中的查找就可以转换为：
+
+**当申请分配大小为chunkSize/2^k的内存，在平衡树高度为k的层级中，从左到右搜索第一个空闲节点**
+
+数组的使用域从index = 1开始，将平衡树按照层次顺序依次存储在数组中，depth = n的第1个节点保存在memoryMap[2^n] 中，第2个节点保存在memoryMap[2^n+1]中，以此类推(下图中已分配chunkSize/2)
+
+![](/assets/images/posts/netty-alloc/netty-alloc-37.png)
+
+可以根据memoryMap[id]的值得出节点的使用情况，memoryMap[id]值越大，剩余的可用内存越少
+
+- memoryMap[id] = depth_of_id：**id节点空闲**， 初始状态，depth_of_id的值代表id节点在树中的深度
+- memoryMap[id] = maxOrder + 1：**id节点全部已使用**，节点内存已完全分配，没有一个子节点空闲
+- depth_of_id < memoryMap[id] < maxOrder + 1：**id节点部分已使用**，memoryMap[id] 的值 x，代表**id的子节点中，第一个空闲节点位于深度x，在深度[depth_of_id, x)的范围内没有任何空闲节点**
 
 ## 3.4. PoolSubpage
 
 在小内存分配的场景下，即分配的内存大小小于一个 Page 8K，会使用 PoolSubpage 进行管理。
+
+相同规格大小(elemSize)的PoolSubpage组成链表，不同规格的PoolSubpage链表的head则分别保存在tinySubpagePools 或者 smallSubpagePools数组中，如下图：
+
+![](/assets/images/posts/netty-alloc/netty-alloc-38.png)
+
+当需要分配小内存对象到PoolSubpage中时，根据归一化后的大小，计算出需要访问的PoolSubpage链表在tinySubpagePools和smallSubpagePools数组的下标，访问链表中的PoolSubpage的申请内存分配，如果访问到的PoolSubpage链表节点数为0，则创建新的PoolSubpage分配内存然后加入链表。
+
+PoolSubpage链表存储的PoolSubpage都是已分配部分内存，当内存全部分配完或者内存全部释放完的PoolSubpage会移出链表，减少不必要的链表节点；当PoolSubpage内存全部分配完后再释放部分内存，会重新将加入链表。
 
 PoolSubpage 通过位图 bitmap 记录子内存是否已经被使用，bit 的取值为 0 或者 1，如下图所示。
 
@@ -277,7 +332,7 @@ PoolSubpage 通过位图 bitmap 记录子内存是否已经被使用，bit 的�
 
 **PoolSubpage 和 PoolArena 之间是如何联系起来的？**
 
-们知道 PoolArena 在创建是会初始化 tinySubpagePools 和 smallSubpagePools 两个 PoolSubpage 数组，数组的大小分别为 32 和 4。
+ PoolArena 在创建是会初始化 tinySubpagePools 和 smallSubpagePools 两个 PoolSubpage 数组，数组的大小分别为 32 和 4。
 
 假如我们现在需要分配 20B 大小的内存，会向上取整为 32B，从满二叉树的第 11 层找到一个  PoolSubpage 节点，并把它等分为 8KB/32B = 256B 个小内存块，然后找到这个 PoolSubpage 节点对应的  PoolArena，将 PoolSubpage 节点与 tinySubpagePools[1] 对应的 head  节点连接成双向链表，形成下图所示的结构。
 
@@ -314,6 +369,20 @@ PoolThreadCache 将不同规格大小的内存都使用单独的 MemoryRegionCac
 
 ![](/assets/images/posts/netty-alloc/netty-alloc-20.png)
 
-# 参考资料
+## 3.7. 释放
+
+对于内存的释放，PoolArena 主要是分为两种情况，即池化和非池化，如果是非池化，则会直接销毁目标内存块，如果是池化的，则会将其添加到当前线程的缓存中。
+
+## 3.6. 总结
+
+PoolArean内存池弹性伸缩可用下图总结：
+
+![](/assets/images/posts/netty-alloc/netty-alloc-39.png)
+
+# 4. 参考资料
+
+https://mp.weixin.qq.com/s/ucde30LdnK17iSaIJw4nzg
 
 https://mp.weixin.qq.com/s/79GGHdj0ZT3dndDA9GfT0g
+
+《Netty 核心原理剖析与 RPC 实践》
