@@ -9,18 +9,80 @@ permalink: redis-latency.html
 ---
 
 延迟（latency）指从客户端发出一条命令到客户端接受到该命令的反馈所用的最长响应时间
-## 计算延迟时间
+
+# 1. 计算延迟时间
 如果你正在经历响应延迟问题，你或许能够根据应用程序的具体情况算出它的延迟响应时间，或者你的延迟问题非常明显，宏观看来，一目了然。不管怎样吧，用redis-cli可以算出一台Redis 服务器的到底延迟了多少毫秒。
 
-	redis-cli --latency -h `host` -p `port`
+```
+redis-cli --latency -h `host` -p `port`
+```
 
-## 延迟配置
+示例
+
+```
+# src/redis-cli --latency -i 3
+min: 0, max: 4, avg: 0.29 (3903 samples)
+```
+
+```
+# src/redis-cli --intrinsic-latency 120
+Max latency so far: 1 microseconds.
+Max latency so far: 9 microseconds.
+Max latency so far: 20 microseconds.
+Max latency so far: 67 microseconds.
+Max latency so far: 73 microseconds.
+Max latency so far: 90 microseconds.
+Max latency so far: 97 microseconds.
+Max latency so far: 106 microseconds.
+Max latency so far: 197 microseconds.
+Max latency so far: 386 microseconds.
+Max latency so far: 458 microseconds.
+Max latency so far: 1224 microseconds.
+Max latency so far: 5067 microseconds.
+Max latency so far: 8932 microseconds.
+Max latency so far: 15707 microseconds.
+
+3553236533 total runs (avg latency: 0.0338 microseconds / 33.77 nanoseconds per run).
+Worst run took 465089x longer than the average latency.
+```
+
+
+# 2. 延迟配置
+
 开启延迟监控
 
-	CONFIG SET latency-monitor-threshold 100 单位为毫秒
+```
+CONFIG SET latency-monitor-threshold 100 单位为毫秒
+```
 
-默认情况latency-monitor-threshold为0, 即延迟监控是关闭的
-延迟监控功能占用内存很小, 不过对于性能良好的redis也没有必要开启
+默认情况latency-monitor-threshold为0, 即延迟监控是关闭的。延迟监控功能占用内存很小, 不过对于性能良好的redis也没有必要开启。
+
+相关命令
+
+- **LATENCY LATEST** 返回所有事件的最新延迟样本
+- **LATENCY HISTORY event** 返回最多160条的给定 event 的延迟时间序列（延迟发生时的时间戳和延迟毫秒数）
+- **LATENCY RESET event** 重置一个或多个 events 的延迟时间序列数据为零，如果不指定参数 event，则表示重置所有的 events。
+- **LATENCY GRAPH event** 以文本图表方式展示
+- **LATENCY DOCTOR** 回复人类可读的延迟分析报告
+- **LATENCY HELP** 查看使用帮助
+
+支持的事件
+
+- command	常规命令
+- fast-command	时间复杂度为“O(1)”和“O(log N)”的快命令
+- fork	系统调用 fork
+- aof-stat	系统调用 stat
+- aof-write	系统调用 write
+- aof-rename	系统调用 rename
+- aof-fsync-always	设置“appendfsync allways”时的系统调用 fsync
+- aof-write-active-child	子进程执行的系统调用 fsync
+- rdb-unlink-temp-file	系统调用 unlink
+- active-defrag-cycle	主动碎片整理周期
+- aof-rewrite-diff-write	
+- aof-write-alone	主进程执行的 fsync 系统调用
+- aof-write-pending-fsync	
+- expire-cycle	过期周期
+- eviction-cycle	淘汰周期
 
 ## 延迟原因
 ###  网络通信延迟

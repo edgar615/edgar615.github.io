@@ -420,3 +420,113 @@ BEFORE DECODE (16 bytes)                       AFTER DECODE (13 bytes)
 - lengthFieldLength = 2，协议设计的固定长度。
 - lengthAdjustment = -3，Length 字段值（16 字节）需要减去 HDR1（1 字节） 和 Length 自身所占字节长度（2 字节）才能得到 HDR2 和 Content 的内容（1 + 12 = 13 字节）。
 - initialBytesToStrip = 3，解码后跳过 HDR1 和 Length 字段，共占用 3 字节。
+
+# 4. Protobuf编解码
+
+**server**
+
+```
+channel.pipeline()
+        // 解码器，通过Google Protocol Buffers序列化框架动态的切割接收到的ByteBuf
+        .addLast(new ProtobufVarint32FrameDecoder())
+        // 服务器端接收的是客户端对象，所以这边将接收对象进行解码生产实列
+        .addLast(new ProtobufDecoder(HelloRequest.getDefaultInstance()))
+        //Google Protocol Buffers编码器
+        .addLast(new ProtobufVarint32LengthFieldPrepender())
+        .addLast(new ProtobufEncoder())
+        .addLast("handler", new ProtoServerHandler());
+```
+
+**client**
+
+```
+channel.pipeline()
+        .addLast(new ProtobufVarint32FrameDecoder())
+        .addLast(new ProtobufDecoder(HelloReply.getDefaultInstance()))
+        .addLast(new ProtobufVarint32LengthFieldPrepender())
+        .addLast(new ProtobufEncoder())
+        .addLast(new ProtoClientHandler());
+```
+
+# 5. 自定义协议
+
+```
++---------------------------------------------------------------+
+| 魔数 2byte | 协议版本号 1byte | 序列化算法 1byte | 报文类型 1byte  |
++---------------------------------------------------------------+
+| 状态 1byte |        消息 ID 8byte     |      数据长度 4byte     |
++---------------------------------------------------------------+
+|                   数据内容 （长度不定）                          |
++---------------------------------------------------------------+
+```
+
+编码
+
+```
+public class RpcMessageEncoder extends MessageToByteEncoder<RpcMessage> {
+    @Override
+    protected void encode(ChannelHandlerContext ctx, RpcMessage msg, ByteBuf out) throws Exception {
+        MessageHeader header = msg.getHeader();
+        out.writeShort(header.getMagicNumber());
+        out.writeByte(header.getVersion());
+        out.writeByte(header.getSerialization());
+        out.writeByte(header.getMessageType());
+        out.writeByte(header.getStatus());
+        out.writeLong(header.getRequestId());
+        byte[] bytes = msg.getBody().getBytes();
+        out.writeInt(msg.getBody().getBytes().length);
+        out.writeBytes(bytes);
+    }
+}
+```
+
+```
+channel.pipeline().addLast(new RpcMessageEncoder());
+channel.pipeline().addLast(new RpcClientHandler());
+```
+
+解码
+
+```
+public class RpcMessgeDecoder extends MessageToMessageDecoder<ByteBuf> {
+
+    @Override
+    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
+
+        MessageHeader messageHeader = new MessageHeader();
+        // 2byte魔数
+        messageHeader.setMagicNumber(msg.readShort());
+        // 1byte协议版本号
+        messageHeader.setVersion(msg.readByte());
+        // 1byte序列化算法
+        messageHeader.setSerialization(msg.readByte());
+        // 1byte 报文类型
+        messageHeader.setMessageType(msg.readByte());
+        // 1byte 状态
+        messageHeader.setStatus(msg.readByte());
+        // 8byte 请求ID
+        messageHeader.setRequestId(msg.readLong());
+        // 4byte 数据长度
+        messageHeader.setLength(msg.readInt());
+        RpcMessage rpcMessage = new RpcMessage();
+        rpcMessage.setHeader(messageHeader);
+        byte[] bytes = new byte[msg.readableBytes()];
+        msg.readBytes(bytes);
+        rpcMessage.setBody(new String(bytes));
+        out.add(rpcMessage);
+    }
+}
+```
+
+```
+channel.pipeline()
+        // length跳过的长度 14：2byte魔数 + 1byte协议版本号 +  1byte序列化算法 + 1byte报文类型 + 1byte状态 + 8byte消息ID
+        // maxFrameLength 1024（目前是随便定义的一个值）
+        // lengthFieldOffset 16
+        // lengthFieldLength 4
+        // lengthAdjustment 0，length字段仅是body的长度，且长度和body相邻
+        // initialBytesToStrip 0，不跳过任何字节
+        .addLast(new RpcMessgeDecoder())
+        .addLast(new LengthFieldBasedFrameDecoder(1024, 14, 4))
+        .addLast(new RpcServerHandler())
+```

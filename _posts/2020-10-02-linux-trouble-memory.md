@@ -8,9 +8,7 @@ comments: true
 permalink: linux-trouble-cpu.html
 ---
 
-# 1. 内存性能指标
-
-## 1.1. 指标
+# 1. 指标
 
 - 系统内存使用情况
   - 已用内存和剩余内存，就是已经使用和还未使用的内存。
@@ -28,13 +26,13 @@ permalink: linux-trouble-cpu.html
   - 已用空间和剩余空间
   - 换入和换出速度，则表示每秒钟换入和换出内存的大小。
 
-## 1.2. **排查工具**
+# 2. **排查工具**
 
 ![](/assets/images/posts/linux-trouble-memory/linux-trouble-memory-1.png)
 
 ![](/assets/images/posts/linux-trouble-memory/linux-trouble-memory-2.png)
 
-## 1.3. 排查过程
+# 3. 排查过程
 
 ![](/assets/images/posts/linux-trouble-memory/linux-trouble-memory-3.png)
 
@@ -42,6 +40,6 @@ permalink: linux-trouble-cpu.html
 - 再用 vmstat 和 pidstat，查看一段时间的趋势，从而判断出内存问题的类型。
 - 最后进行详细分析，比如内存分配分析、缓存 / 缓冲区分析、具体进程的内存使用分析等。
 
-# 2. 参考资料
+# 4. 参考资料
 
 《Linux性能优化实战》
