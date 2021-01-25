@@ -1,6 +1,6 @@
 ---
 layout: post
-title: redis有那些阻塞操作
+title: redis有哪些阻塞操作
 date: 2020-04-10
 categories:
     - redis

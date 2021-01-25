@@ -61,6 +61,7 @@ SYNC done. Logging commands from master.
 - --rdb 生成并发送RDB持久化文件，保留在本地，可以使用它做定时备份
 - --pipe 将命令封装成redis通信协议的数据格式，批量发送给redis执行
 - --bigkeys 使用scan对redis的键进行采样，从中找到内存占用比较大的键值，这些键可能是系统的瓶颈
+- --hotkeys 使用scan查找热点key
 - --eval 执行lua脚本
 - --latency 用于检测网络延时，它有三个选项
   - --latency 测试客户端到目标redis的网络延迟，示例redis-cli -h hostB --latency

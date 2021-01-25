@@ -133,11 +133,11 @@ stats 部分记录了一般统计信息，它包含以下域：
 
 ```
 # Stats
-total_connections_received:1 #服务器已接受的连接请求数量。
-total_commands_processed:1 #服务器已执行的命令数量。
+total_connections_received:2 #服务器已接受的连接请求数量。
+total_commands_processed:6 #服务器已执行的命令数量。
 instantaneous_ops_per_sec:0 #服务器每秒钟执行的命令数量。
-total_net_input_bytes:31
-total_net_output_bytes:10162
+total_net_input_bytes:135
+total_net_output_bytes:39295
 instantaneous_input_kbps:0.00
 instantaneous_output_kbps:0.00
 rejected_connections:0 #因为最大客户端数量限制而被拒绝的连接请求数量。
@@ -145,6 +145,9 @@ sync_full:0
 sync_partial_ok:0
 sync_partial_err:0
 expired_keys:0 # 因为过期而被自动删除的数据库键数量。
+expired_stale_perc:0.00 
+expired_time_cap_reached_count:0 # 被动过期键删除超时次数，如果每次都超时，意味着Redis要拿出四分之一（25毫秒 * 10）的时间来干这个事情。
+expire_cycle_cpu_milliseconds:62
 evicted_keys:0 #因为最大内存容量限制而被驱逐（evict）的键数量。
 keyspace_hits:0 #查找数据库键成功的次数。
 keyspace_misses:0 #查找数据库键失败的次数。
@@ -157,6 +160,14 @@ active_defrag_hits:0
 active_defrag_misses:0
 active_defrag_key_hits:0
 active_defrag_key_misses:0
+tracking_total_keys:0
+tracking_total_items:0
+tracking_total_prefixes:0
+unexpected_error_replies:0
+total_reads_processed:7
+total_writes_processed:5
+io_threaded_reads_processed:0
+io_threaded_writes_processed:0
 ```
 
 ## Replication
@@ -258,3 +269,4 @@ default : 返回默认选择的信息
 ```
 
 当不带参数直接调用 INFO 命令时，使用 default 作为默认参数。
+```
