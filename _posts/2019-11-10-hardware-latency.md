@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 常见硬件组件的延时情况
+title: 高性能（2）- 常见硬件组件的延时情况
 date: 2019-11-10
 categories:
     - 架构设计
