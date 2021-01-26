@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 高并发（3）- 设计手段
+title: 高性能（3）- 设计手段
 date: 2020-06-27
 categories:
     - 架构设计

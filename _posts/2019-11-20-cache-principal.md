@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 缓存（8）-一些实践经验
+title: 缓存（8）- 一些实践经验
 date: 2019-11-20
 categories:
     - 架构设计
