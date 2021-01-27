@@ -1,7 +1,7 @@
 ---
 layout: post
 title: redis过期删除策略
-date: 2020-04-05
+date: 2020-04-01
 categories:
     - redis
 comments: true

@@ -52,7 +52,35 @@ public class RecycleExample {
 
 ```
 
-# 2. 原理
+# 2. Recycler 在 Netty 中的应用
+
+Recycler 在 Netty 里面使用也是非常频繁的，Netty通过RecyclerObjectPool封装了Recycler。
+
+```
+private static final class RecyclerObjectPool<T> extends ObjectPool<T> {
+    private final Recycler<T> recycler;
+
+    RecyclerObjectPool(final ObjectCreator<T> creator) {
+         recycler = new Recycler<T>() {
+            @Override
+            protected T newObject(Handle<T> handle) {
+                return creator.newObject(handle);
+            }
+        };
+    }
+
+    @Override
+    public T get() {
+        return recycler.get();
+    }
+}
+```
+
+通过调用跟踪，我们可以发现很多类都使用了RecyclerObjectPool的get方法来获取对象。
+
+其中比较常用的有 PooledHeapByteBuf 和 PooledDirectByteBuf，分别对应的堆内存和堆外内存的池化实现。例如我们在使用 PooledDirectByteBuf 的时候，并不是每次都去创建新的对象实例，而是从对象池中获取预先分配好的对象实例，不再使用 PooledDirectByteBuf 时，被回收归还到对象池中。
+
+# 3. 原理
 
  Recycler一共包含四个核心组件：Stack、WeakOrderQueue、Link、DefaultHandle。
 
@@ -96,7 +124,7 @@ private static final class Stack<T> {
 }
 ```
 
-## 2.1. 从 Recycler 中回收对象
+## 3.1. 从 Recycler 中回收对象
 
 Recycler#recycle方法已经标记为过期，对象回收的源码入口 DefaultHandle#recycle
 
@@ -256,7 +284,7 @@ void add(DefaultHandle<?> handle) {
 }
 ```
 
-## 2.2. 从 Recycler 中获取对象
+## 3.2. 从 Recycler 中获取对象
 
 Recycler#get() 方法首先通过 FastThreadLocal 获取当前线程的唯一栈缓存 Stack，然后尝试从栈顶弹出 DefaultHandle 对象实例，如果 Stack 中没有可用的 DefaultHandle 对象实例，那么会调用 newObject 生成一个新的对象，完成 handle 与用户对象和 Stack 的绑定。
 
@@ -387,6 +415,8 @@ private boolean scavenge() {
 
 WeakOrderQueue 中有对象且线程没有消亡的情况下，Netty 是怎么回收对象的？
 
+每次回收时 Netty 会回收一个 Link 的对象。一个 Link 内部有两个指针，读指针和写指针，读指针指向上次回收的位置，而写指针指向 Link 的尾端，这两个指针中间的对象就是可回收对象。Netty 会先统计出 Link 内部可回收对象的数量，如果超出 Stack 剩余容量，会先把 Stack 扩容。然后依次将对象从 Link  转移到 Stack。转移的时候为了防止 Stack 扩张太快，Netty 会谨慎地回收从未被回收过的对象，具体来说，每 8  个从未被回收过的对象中只会选择一个进行回收。这主要是为了防止应用程序因为某些原因创建了大量一次性对象而使对象池过度扩张。
+
 ```
 boolean transfer(Stack<?> dst) {
     Link head = this.head.link;
@@ -411,11 +441,12 @@ boolean transfer(Stack<?> dst) {
     if (srcSize == 0) {
         return false;
     }
-
+	// 获取 Stack 的栈顶位置
     final int dstSize = dst.size;
     final int expectedCapacity = dstSize + srcSize;
-
+	// 计算回收后 Stack 的栈顶位置
     if (expectedCapacity > dst.elements.length) {
+    	// 扩容
         final int actualCapacity = dst.increaseCapacity(expectedCapacity);
         srcEnd = min(srcStart + actualCapacity - dstSize, srcEnd);
     }
@@ -432,7 +463,7 @@ boolean transfer(Stack<?> dst) {
                 throw new IllegalStateException("recycled already");
             }
             srcElems[i] = null;
-
+			// 为了防止 Stack 扩张太快, 实际每 8 个初次回收的对象中只回收 1 个，7 个都被丢弃了
             if (dst.dropHandle(element)) {
                 // Drop the object.
                 continue;
@@ -459,8 +490,14 @@ boolean transfer(Stack<?> dst) {
 }
 ```
 
+**那么是如何判断消亡的线程内还有数据呢？**答案很简单，只要看 WeakOrderQueue 中 tail 节点的 Link 的读指针是不是指向 Link 的末端就行：
+
+```
+boolean hasFinalData() {
+    return tail.readIndex != tail.get();
+}
+```
+
 # 4. 参考资料
-
-
 
 《Netty 核心原理剖析与 RPC 实践》
