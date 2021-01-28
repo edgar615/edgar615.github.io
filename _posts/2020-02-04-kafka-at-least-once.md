@@ -1,12 +1,14 @@
 ---
 layout: post
-title: kafka的三种语义
-date: 2020-04-21
+title: kafka消息投递的三种语义
+date: 2020-02-04
 categories:
     - kafka
 comments: true
 permalink: kafka-at-least-once.html
 ---
+
+# 1. 三种语义
 
 [投递有三种语义](https://edgar615.github.io/at-least-once.html)
 
@@ -35,11 +37,11 @@ Producer 端用来保存发送请求且没有响应的队列，保证 Producer�
 
 在 0.10 之前并不能保证 exactly-once，需要使用 Consumer 自带的幂等性保证。0.11.0 使用事务保证了。
 
-**如何实现 exactly-once**
+# 2. **如何实现 exactly-once**
 
 要实现 exactly-once 在 Kafka 0.11.0 中有两个官方策略：
 
-- **单 Producer 单 Topic**
+## 2.1.  **单 Producer 单 Topic**
 
 每个 Producer 在初始化的时候都会被分配一个唯一的 PID，对于每个唯一的 PID，Producer 向指定的 Topic 中某个特定的 Partition 发送的消息都会携带一个从 0 单调递增的 Sequence Number。
 
@@ -56,7 +58,7 @@ Producer 端用来保存发送请求且没有响应的队列，保证 Producer�
 
 上面所说的都是在同一个 PID 下面，意味着必须保证在单个 Producer 中的同一个 Seesion 内，如果 Producer 挂了，被分配了新的 PID，这样就无法保证了，所以 Kafka 中又有事务机制去保证。
 
-**事务**
+## 2.2. **事务**
 
 在 Kafka 中事务的作用是：
 
@@ -82,7 +84,7 @@ Transactin ID 与 PID 可能一一对应，区别在于 Transaction ID 由用户
 
 Transaction Log 的设计与 Offset Log 用于保存 Consumer 的 Offset 类似。
 
-# 幂等性 Producer
+# 3. 幂等性 Producer
 
 在 Kafka 中，Producer 默认不是幂等性的，但我们可以创建幂等性 Producer。它其实是 0.11.0.0 版本引入的新功能。在此之前，Kafka 向分区发送数据时，可能会出现同一条消息被发送了多次，导致消息重复的情况。在 0.11 之后，指定 Producer 幂等性的方法很简单，仅需要设置一个参数即可，即 `props.put(“enable.idempotence”, ture)`。
 
@@ -90,7 +92,7 @@ Transaction Log 的设计与 Offset Log 用于保存 Consumer 的 Offset 类似�
 
 看上去，幂等性 Producer 的功能很酷，使用起来也很简单，仅仅设置一个参数就能保证消息不重复了，但实际上，我们必须要了解幂等性 Producer 的作用范围。首先，**它只能保证单分区上的幂等性**，即一个幂等性 Producer 能够保证某个主题的一个分区上不出现重复消息，**它无法实现多个分区的幂等性**。其次，**它只能实现单会话上的幂等性，不能实现跨会话的幂等性**。这里的会话，**你可以理解为 Producer 进程的一次运行。当你重启了 Producer 进程之后，这种幂等性保证就丧失了**。
 
-# 事务
+# 4. 事务
 
 事务型 Producer 能够保证将消息原子性地写入到多个分区中。这批消息要么全部写入成功，要么全部失败。另外，**事务型 Producer 也不惧进程的重启**。Producer 重启回来后，Kafka 依然保证它们发送消息的精确一次处理。
 
@@ -116,7 +118,7 @@ try {
 
 和普通 Producer 代码相比，事务型 Producer 的显著特点是调用了一些事务 API，如 initTransaction、beginTransaction、commitTransaction 和 abortTransaction，它们分别对应事务的初始化、事务开始、事务提交以及事务终止。
 
-段代码能够保证 Record1 和 Record2 被当作一个事务统一提交到 Kafka，要么它们全部提交成功，要么全部写入失败。实际上即使写入失败，Kafka 也会把它们写入到底层的日志中，也就是说 Consumer 还是会看到这些消息。因此在 Consumer 端，读取事务型 Producer 发送的消息也是需要一些变更的。修改起来也很简单，设置 isolation.level 参数的值即可。当前这个参数有两个取值：
+段代码能够保证 Record1 和 Record2 被当作一个事务统一提交到 Kafka，要么它们全部提交成功，要么全部写入失败。实际上即使写入失败，Kafka 也会把它们写入到底层的日志中，也就是说 Consumer 还是会看到这些消息。因此在 Consumer 端，读取事务型 Producer 发送的消息也是需要一些变更的。修改起来也很简单，设置 **isolation.level** 参数的值即可。当前这个参数有两个取值：
 
 - read_uncommitted：这是默认值，表明 Consumer 能够读取到 Kafka 写入的任何消息，不论事务型 Producer 提交事务还是终止事务，其写入的消息都可以读取。很显然，如果你用了事务型 Producer，那么对应的 Consumer 就不要使用这个值。
 - read_committed：表明 Consumer 只会读取事务型 Producer 成功提交事务写入的消息。当然了，它也能看到非事务型 Producer 写入的所有消息。
@@ -131,7 +133,9 @@ try {
 
   在集群中会有多个 Transaction Coordinator，每个 Tid 对应唯一一个 Transaction Coordinator。
 
-  注：Transaction Log 删除策略是 Compact，已完成的事务会标记成 Null，Compact 后不保留。
+  
+
+注：Transaction Log 删除策略是 Compact，已完成的事务会标记成 Null，Compact 后不保留。
 
 做事务时，先标记开启事务，写入数据，全部成功就在 Transaction Log 中记录为 Prepare Commit 状态，否则写入 Prepare Abort 的状态。
 
@@ -166,7 +170,7 @@ try {
 Kafka 高性能的一个关键点是 Zero Copy，如果需要在 Broker 中过滤，那么势必需要读取消息内容到内存，就会失去 Zero Copy 的特性。
 
 
-# 参考资料
+# 5. 参考资料
 
 《Kafka核心技术与实战》
 

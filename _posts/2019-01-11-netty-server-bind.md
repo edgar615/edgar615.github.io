@@ -8,8 +8,6 @@ comments: true
 permalink: netty-server-bind.html
 ---
 
-> 未完成，肝不动了
-
 在服务端启动之前，需要配置 ServerBootstrap 的相关参数，这一步大致可以分为以下几个步骤：
 
 - 配置 EventLoopGroup 线程组；
@@ -82,7 +80,7 @@ private ChannelFuture doBind(final SocketAddress localAddress) {
 
 我们着重看两个方法 **initAndRegister**和**doBind0**
 
-initAndRegister主要做了3件事
+**initAndRegister**主要做了3件事
 
 - 创建 Channel
 - 初始化 Channel 
@@ -173,7 +171,7 @@ void init(Channel channel) {
         currentChildOptions = childOptions.entrySet().toArray(EMPTY_OPTION_ARRAY);
     }
     final Entry<AttributeKey<?>, Object>[] currentChildAttrs = childAttrs.entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY);
-	// 添加特殊的 Handler 处理器
+	// 添加特殊的 Handler 处理器，在Channel注册后回调，需要结合后面的代码才能看明白
     p.addLast(new ChannelInitializer<Channel>() {
         @Override
         public void initChannel(final Channel ch) {
@@ -242,10 +240,6 @@ private void register0(ChannelPromise promise) {
 			// Channel 当前状态为活跃时，触发 channelActive 事件
 			pipeline.fireChannelActive();
 		} else if (config().isAutoRead()) {
-			// This channel was registered before and autoRead() is set. This means we need to begin read
-			// again so that we process inbound data.
-			//
-			// See https://github.com/netty/netty/issues/4805
 			beginRead();
 		}
 	}
@@ -254,3 +248,241 @@ private void register0(ChannelPromise promise) {
 ```
 
 register0() 主要做了四件事：调用 JDK 底层进行 Channel 注册、触发 handlerAdded 事件、触发 channelRegistered 事件、Channel 当前状态为活跃时，触发 channelActive 事件。
+
+我们先看一下**调用 JDK 底层进行 Channel 注册**
+
+```
+@Override
+protected void doRegister() throws Exception {
+    boolean selected = false;
+    for (;;) {
+        try {
+        	// javaChannel()返回了一个SelectableChannel，这个channel是前面initAndRegister创建的NioServerSocketChannel创建的ServerSocketChannel
+        	// 这里的selector就是我们在构造NioEventLoopGroup传入的Selector
+            selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
+            return;
+        } catch (CancelledKeyException e) {
+			...
+        }
+    }
+}
+```
+
+我们可以注意到，通过JDK的AbstractSelectableChannel注册channel传入的**ops是0**
+
+常见的op在SelectionKey这个类中有：
+
+- OP_READ： 1
+- OP_WRITE： 4
+- OP_CONNECT：8
+- OP_ACCEPT：16
+
+在JDK内部是通过`if ((ops & ~validOps()) != 0)`判断非法，所以0不会判为非法，但是却也没有任何的作用。
+
+回过头来看register0中的`pipeline.invokeHandlerAddedIfNeeded();`它会触发**handlerAdded**方法
+
+> 原理在pipeline中分析
+
+在返回ServerBootstrap#init方法中，有有一段之前不太明白的代码
+
+```
+p.addLast(new ChannelInitializer<Channel>() {
+    @Override
+    public void initChannel(final Channel ch) {
+        final ChannelPipeline pipeline = ch.pipeline();
+        ChannelHandler handler = config.handler();
+        if (handler != null) {
+            pipeline.addLast(handler);
+        }
+
+        ch.eventLoop().execute(new Runnable() {
+            @Override
+            public void run() {
+                pipeline.addLast(new ServerBootstrapAcceptor(
+                        ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs));
+            }
+        });
+    }
+});
+```
+
+这里的ChannelInitializer就实现了ChannelHandler的handlerAdded方法
+
+```
+public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+    if (ctx.channel().isRegistered()) {
+        if (initChannel(ctx)) {
+            removeState(ctx);
+        }
+    }
+}
+```
+
+继续跟踪调用链，可以发现initChannel(ctx)最终又调用了我们我们创建的ChannelInitializer的initChannel方法。
+
+```
+private boolean initChannel(ChannelHandlerContext ctx) throws Exception {
+    if (initMap.add(ctx)) { // Guard against re-entrance.
+        try {
+        	// 调用我们自己实现的initChannel方法
+            initChannel((C) ctx.channel());
+        } catch (Throwable cause) {
+			...
+        } finally {
+            ChannelPipeline pipeline = ctx.pipeline();
+            if (pipeline.context(this) != null) {
+            	// 移除ChannelInitializer 
+                pipeline.remove(this);
+            }
+        }
+        return true;
+    }
+    return false;
+}
+```
+
+我们自己实现的ChannelInitializer做了什么动作呢？
+
+它先向 Pipeline 中添加 ServerSocketChannel 对应的 Handler，这个handler我们是通过ServerBootstrap#handler方法指定。
+
+然后通过异步 task 的方式向 Pipeline 添加 ServerBootstrapAcceptor 处理器。
+
+```
+p.addLast(new ChannelInitializer<Channel>() {
+    @Override
+    public void initChannel(final Channel ch) {
+        final ChannelPipeline pipeline = ch.pipeline();
+        ChannelHandler handler = config.handler();
+        // 注册ServerBootstrap#handler方法指定的handler，这个handler是加在服务端的pipeline上
+        if (handler != null) {
+            pipeline.addLast(handler);
+        }
+
+        ch.eventLoop().execute(new Runnable() {
+            @Override
+            public void run() {
+            	// currentChildHandler是通过ServerBootstrap#childHandler方法指定的，会绑定在客户端的pipeline上
+                pipeline.addLast(new ServerBootstrapAcceptor(
+                        ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs));
+            }
+        });
+    }
+});
+```
+
+了解了**initAndRegister**对Channel的注册绑定后，现在来看**doBind0**方法
+
+```
+private static void doBind0(
+        final ChannelFuture regFuture, final Channel channel,
+        final SocketAddress localAddress, final ChannelPromise promise) {
+
+    channel.eventLoop().execute(new Runnable() {
+        @Override
+        public void run() {
+            if (regFuture.isSuccess()) {
+            	// 调用NioServerSocketChannel的bind方法
+                channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+            } else {
+                promise.setFailure(regFuture.cause());
+            }
+        }
+    });
+}
+```
+
+一路跟踪，可以发现，它最终通过pipeline的头结点调用了AbstractUnsafe#bind方法，而这个方法又调用了NioServerSocketChannel的doBind方法。
+
+```
+protected void doBind(SocketAddress localAddress) throws Exception {
+    if (PlatformDependent.javaVersion() >= 7) {
+        javaChannel().bind(localAddress, config.getBacklog());
+    } else {
+        javaChannel().socket().bind(localAddress, config.getBacklog());
+    }
+}
+```
+
+最终也是通过JDK的ServerSocketChannel实现了bind。
+
+```
+//AbstractUnsafe#bind
+@Override
+public final void bind(final SocketAddress localAddress, final ChannelPromise promise) {
+    ...
+    boolean wasActive = isActive();
+    try {
+        doBind(localAddress);
+    } catch (Throwable t) {
+	...
+    }
+
+    if (!wasActive && isActive()) {
+        invokeLater(new Runnable() {
+            @Override
+            public void run() {
+            	// 触发 channelActive 事件
+                pipeline.fireChannelActive();
+            }
+        });
+    }
+
+    safeSetSuccess(promise);
+}
+```
+
+继续跟踪channelActive方法，可以看到最终还是调用了pipeline的头结点的
+
+```
+@Override
+public void channelActive(ChannelHandlerContext ctx) {
+    ctx.fireChannelActive();
+
+    readIfIsAutoRead();
+}
+
+private void readIfIsAutoRead() {
+	if (channel.config().isAutoRead()) {
+		channel.read();
+	}
+}
+```
+
+channelActive在绕了一圈后最终又调用了NioServerSocketChannel的doBeginRead方法（实际由AbstractNioChannel实现）
+
+```
+@Override
+protected void doBeginRead() throws Exception {
+    // Channel.read() or ChannelHandlerContext.read() was called
+    final SelectionKey selectionKey = this.selectionKey;
+    if (!selectionKey.isValid()) {
+        return;
+    }
+
+    readPending = true;
+	
+	// selectionKey是前面注册Channel时返回
+    final int interestOps = selectionKey.interestOps();
+    // readInterestOp是前面初始化 Channel 所传入的 SelectionKey.OP_ACCEPT 事件
+    if ((interestOps & readInterestOp) == 0) {
+    	// OP_ACCEPT 事件会被注册到 Channel 的事件集合中。
+        selectionKey.interestOps(interestOps | readInterestOp);
+    }
+}
+```
+
+```
+public NioServerSocketChannel(ServerSocketChannel channel) {
+    super(null, channel, SelectionKey.OP_ACCEPT);
+    config = new NioServerSocketChannelConfig(this, javaChannel().socket());
+}
+```
+
+**总结一下**
+
+1. 先创建Channel，在创建Channel的同时会生成pipeline
+2. 注册一个handler到pipeline，用于添加我们手动设置的Server的handler，一个接收客户端请求的handler:ServerBootstrapAcceptor
+3. 将Channel与JDK的ServerSocketChannel绑定后触发handlerAdded，执行上面的2个添加动作
+4. 将第二部这个handler删除
+5. 使用ServerSocketChannel绑定本地端口，触发channelActive事件，注册 SelectionKey.OP_ACCEPT 事件
+
