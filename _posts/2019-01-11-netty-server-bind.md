@@ -486,3 +486,5 @@ public NioServerSocketChannel(ServerSocketChannel channel) {
 4. 将第二部这个handler删除
 5. 使用ServerSocketChannel绑定本地端口，触发channelActive事件，注册 SelectionKey.OP_ACCEPT 事件
 
+
+

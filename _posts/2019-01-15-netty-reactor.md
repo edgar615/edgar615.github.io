@@ -35,7 +35,7 @@ b.group(bossGroup, workerGroup)
     }
 ```
 
-其中**主Reactor**（parent）是定义在AbstractBootstrap类中，我们看一下那个方法调用了它。通过IDE跟踪，我们可以发现AbstractBootstrap的**initAndRegister**方法调用了AbstractBootstrapConfig中的group方法来获取主Reactor，并与一个Channel绑定。
+其中**主Reactor**（parent）是定义在AbstractBootstrap类中，我们看一下那个方法调用了它。通过IDE跟踪，我们可以发现AbstractBootstrap的**initAndRegister**方法调用了AbstractBootstrapConfig中的group方法来获取主Reactor，并与一个NioServerSocketChannel绑定。
 
 ```
 final ChannelFuture initAndRegister() {
@@ -53,59 +53,7 @@ final ChannelFuture initAndRegister() {
 }
 ```
 
-我们知道，Channel有很多种，那么这里绑定的Channel是哪个？
-
-通过上面的代码可以看到，Channel是通过ChannelFactory来创建的`channelFactory.newChannel()`,而ChannelFactory是通过构造函数传入。
-
-```
-AbstractBootstrap(AbstractBootstrap<B, C> bootstrap) {
-	...
-	// 初始化channelFactory
-	channelFactory = bootstrap.channelFactory;
-	...
-}
-```
-
-通过IDE跟踪，我们可以发现channelFactory是通过channelFactory方法来指定
-
-```
-public B channelFactory(io.netty.channel.ChannelFactory<? extends C> channelFactory) {
-    return channelFactory((ChannelFactory<C>) channelFactory);
-}
-```
-
-而channelFactory方法又是通过channel方法传入的Channel类找到对应的ChannelFactory
-
-```
-public B channel(Class<? extends C> channelClass) {
-	// 
-    return channelFactory(new ReflectiveChannelFactory<C>(
-            ObjectUtil.checkNotNull(channelClass, "channelClass")
-    ));
-}
-```
-
-这个Channel类就是在我们在引导类中设置的NioServerSocketChannel.class
-
-```
-ServerBootstrap b = new ServerBootstrap();
-// 配置线程池
-b.group(bossGroup, workerGroup)
-		.channel(NioServerSocketChannel.class)
-```
-
-ReflectiveChannelFactory直接通过反射创建一个NioServerSocketChannel对象
-
-```
-@Override
-public T newChannel() {
-    try {
-        return constructor.newInstance();
-    } catch (Throwable t) {
-		...
-    }
-}
-```
+> https://edgar615.github.io/netty-server-bind.html
 
 我们在回到ServerBootstrap方法中查找从 Reactor（childGroup）被哪个方法调用，结果发现AbstractBootstrapConfig中的childGroup方法并没有被任何地方调用。再在ServerBootstrap的源码中搜索childGroup，发现在**`init(Channel channel)`**方法中childGroup被赋值给了一个新的变量`EventLoopGroup currentChildGroup`，而currentChildGroup最终又被传入了**ServerBootstrapAcceptor**对象
 
@@ -133,16 +81,7 @@ void init(Channel channel) {
 }
 ```
 
->  这里的childHandler就是引导类传入的childHandler
->
-> ServerBootstrap b = new ServerBootstrap();
-> b.group(bossGroup, workerGroup)
-> 		.childHandler(new ChannelInitializer<Channel>() {
-> 			protected void initChannel(Channel channel) throws Exception {
-> 				channel.pipeline()
-> 						.addLast("handler", new EchoServerHandler());
-> 			}
-> 		})
+> https://edgar615.github.io/netty-server-bind.html
 
 到ServerBootstrapAcceptor中看一下childGroup被谁调用了。
 
