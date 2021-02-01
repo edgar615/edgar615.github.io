@@ -657,7 +657,7 @@ $ curl -s http://127.0.0.1:8500/v1/catalog/services
 
 -server参数表示节点运行在server模式
 
--bootstrap-expec参数用来暗示Consul服务器：还有会有多少个其他节点加入集群。这个标志的目的是延迟复制日志的引导直到预期的节点成功加入。
+-bootstrap-expec参数用来暗示Consul服务器：**还有会有多少个其他节点加入集群**。这个标志的目的是延迟复制日志的引导直到预期的节点成功加入。
 
 -config-dir参数表示配件文件的目录
 

@@ -12,6 +12,8 @@ permalink: kafka-compression.html
 
 Kafka 的消息层次都分为两层：消息集合（message set）以及消息（message）。一个消息集合中包含若干条日志项（record item），而日志项才是真正封装消息的地方。Kafka 底层的消息日志由一系列消息集合日志项组成。Kafka 通常不会直接操作具体的一条条消息，它总是在消息集合这个层面上进行写入操作。
 
+也就是说MessageSet是由多条记录组成的，而不是消息，这就决定了一个MessageSet实际上不需要借助其它信息就可以从它对应的字节流中切分出消息，而这决定了更重要的性质：**Kafka的压缩是以MessageSet为单位的**。而以MessageSet为单位压缩，决定了对于压缩后的MessageSet，不需要在它的外部记录这个MessageSet的结构。
+
 # 1. 何时压缩
 
 在 Kafka 中，压缩可能发生在两个地方：**生产者端和 Broker 端**。生产者程序中配置 **compression.type** 参数即表示启用指定类型的压缩算法。比如下面这段程序代码展示了如何构建一个开启 GZIP 的 Producer 对象：
