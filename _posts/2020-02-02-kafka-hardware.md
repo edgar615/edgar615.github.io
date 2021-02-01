@@ -53,6 +53,55 @@ Kafka 需要将消息保存在底层的磁盘上，这些消息默认会被保�
 
 > 注意：带宽的单位是bit
 
+# 4. 操作系统参数
+
+## 4.1. swap的调优
+
+swap可以设置成一个较小的值而不是0。因为一旦设置成0，当物理内存耗尽时，操作系统会触发OOM  killer这个组件，它会随机挑选一个进程然后kill掉，即根本不给用户任何的预警。但如果设置成一个比较小的值，当开始使用swap空间时，我们至少能够观测到Broker性能开始出现急剧下降，从而给我们进一步调优和诊断问题的时间。基于这个考虑，建议将swappniess配置成一个接近0 但不为0的值，比如1。
+
+## 4.2. 提交时间或者说是Flush落盘时间
+
+向Kafka发送数据并不是真要等数据被写入磁盘才会认为成功，而是**只要数据被写入到操作系统的页缓存（Page Cache）上**就可以了，随后操作系统根据LRU算法会定期将页缓存上的“脏”数据落盘到物理磁盘上。这个定期就是由提交时间来确定的，默认是5秒。一般情况下我们会认为这个时间太频繁了，**可以适当地增加提交间隔来降低物理磁盘的写操作**。当然一般可能会有这样的疑问：如果在页缓存中的数据在写入到磁盘前机器宕机了，那岂不是数据就丢失了。的确，这种情况数据确实就丢失了，但鉴于Kafka在软件层面已经提供了多副本的冗余机制，因此这里稍微拉大提交间隔去换取性能还是一个合理的做法。
+
+**Page Cache刷写磁盘策略**
+
+1. 页高速缓存变得太满，但还需要更多的页，或者脏页的数量已经太多。
+2. 自从页变成脏页以来已过去太长的时间。
+3. 用户进程通过调用sync()、fsync()或者fdatasync()系统调动来触发。
+
+前两项都可以通过系统参数配置来调整。
+使用`sysctl -a | grep dirty`命令可以查看默认配置：
+
+```
+# sysctl -a | grep dirty
+vm.dirty_background_bytes = 0
+# 占系统内存的百分比，可以设为5
+vm.dirty_background_ratio = 10
+vm.dirty_bytes = 0
+vm.dirty_expire_centisecs = 3000
+# 脏页的总量
+vm.dirty_ratio = 20
+# 理论上调小这个参数，可以提高刷磁盘的频率，从而尽快把脏数据刷新到磁盘上。但一定要保证间隔时间内一定可以让数据刷盘完成
+vm.dirty_writeback_centisecs = 500
+vm.dirtytime_expire_seconds = 43200
+```
+
+# 5. JVM参数
+
+JVM堆大小设置成6GB，业界比较公认的一个合理值。Java8 GC手动指定为G1收集器。
+设置两个环境变量：
+
+- KAFKA_HEAP_OPTS：指定堆大小。
+- KAFKA_JVM_PERFORMANCE_OPTS：指定GC参数。
+
+```
+$ export KAFKA_HEAP_OPTS=--Xms6g --Xmx6g
+$ export KAFKA_JVM_PERFORMANCE_OPTS= -server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true
+$ bin/kafka-server-start.sh config/server.properties
+```
+
+
+
 # 4. 参考资料
 
 《Kafka核心技术与实战》
