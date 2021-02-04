@@ -8,9 +8,64 @@ comments: true
 permalink: metaspace.html
 ---
 
+# 1. 元空间
+
 在JVM运行时数据区域已经了解了[元空间](https://edgar615.github.io/jvm-runtime-data-area.html)，后面看了你假笨的一些文章有了更深的了解，这里抄一下内容做备份
 
-# metaspace的组成
+元数据区的概念出现在Java8以后，在Java8以前成为方法区，元数据区也是一块线程共享的内存区域，主要用来保存被虚拟机加载的**类信息、常量、静态变量以及即时编译器编译后的代码等数据。**
+
+由于元数据存储的信息不容易变动，因此它被安置在一块堆外内存，大小由**-XX:MaxMetaspaceSize**指定。
+
+指定参数运行`-XX:MaxMetaspaceSize=100M -XX:+PrintGCDetails`下面的程序
+
+```
+public class MetaSpaceTest {
+
+    public static void main(String[] args) {
+        int i = 0;
+        try {
+            for (i = 0; i < 100000; i++) {
+                new CglibBean(new HashMap<>());
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        } finally {
+            System.out.println("total create count:" + i);
+        }
+    }
+
+    public static class CglibBean {
+
+        public CglibBean(Object object) {
+            Enhancer enhancer = new Enhancer();
+            enhancer.setUseCache(false);
+            enhancer.setCallback((MethodInterceptor) (obj, method, args, proxy) -> obj);
+            enhancer.setSuperclass(object.getClass());
+            enhancer.create();
+        }
+    }
+}
+```
+
+上述代码通过Cglib生成大量的HashMap代理，当我们程序循环至3693次，也就是说我们大约在生成了约3660个代理类以后元数据区发生了内存溢出，
+
+```
+total create count:3693
+Heap
+ PSYoungGen      total 885760K, used 34530K [0x00000007a5a00000, 0x00000007df580000, 0x00000007fa400000)
+  eden space 866304K, 3% used [0x00000007a5a00000,0x00000007a7bb88f0,0x00000007da800000)
+  from space 19456K, 0% used [0x00000007dcf80000,0x00000007dcf80000,0x00000007de280000)
+  to   space 18944K, 0% used [0x00000007de300000,0x00000007de300000,0x00000007df580000)
+ ParOldGen       total 663040K, used 26670K [0x00000006fc600000, 0x0000000724d80000, 0x00000007a5a00000)
+  object space 663040K, 4% used [0x00000006fc600000,0x00000006fe00b868,0x0000000724d80000)
+ Metaspace       used 102151K, capacity 102292K, committed 102400K, reserved 1146880K
+  class space    used 4849K, capacity 4916K, committed 4992K, reserved 1048576K
+Exception in thread "main" java.lang.OutOfMemoryError: Metaspace
+```
+
+下面将MaxMetaspaceSize改为50M执行，可以看出当我们生成了1726个代理类以后元数据区发生了内存溢出，可见**一个元数据区的大小决定了Java虚拟机可以装载的类的多少。**
+
+# 2. metaspace的组成
 
 metaspace其实由两大部分组成
 
@@ -25,20 +80,20 @@ NoKlass Metaspace专门来存klass相关的其他的内容，比如method，cons
 
 Klass Metaspace和NoKlass Mestaspace都是所有classloader共享的，所以类加载器们要分配内存，但是每个类加载器都有一个SpaceManager，来管理属于这个类加载的内存小块。如果Klass Metaspace用完了，那就会OOM了，不过一般情况下不会，NoKlass Mestaspace是由一块块内存慢慢组合起来的，在没有达到限制条件的情况下，会不断加长这条链，让它可以持续工作。
 
-# 参数
+# 3. 参数
 
-## UseLargePagesInMetaspace
+**UseLargePagesInMetaspace**
 
 默认false，这个参数是说是否在metaspace里使用LargePage，一般情况下我们使用4KB的page size，这个参数依赖于UseLargePages这个参数开启，不过这个参数我们一般不开
 
-## InitialBootClassLoaderMetaspaceSize
+**InitialBootClassLoaderMetaspaceSize**
 
 64位下默认4M，32位下默认2200K，metasapce前面已经提到主要分了两大块，Klass Metaspace以及NoKlass 
 Metaspace，而NoKlass Metaspace是由一块块内存组合起来的，**这个参数决定了NoKlass Metaspace的第一个内存Block的大小，即2*InitialBootClassLoaderMetaspaceSize**，同时为bootstrapClassLoader的第一块内存chunk分配了InitialBootClassLoaderMetaspaceSize的大小
 
-## MetaspaceSize
+**MetaspaceSize**
 
-默认20.8M左右(x86下开启c2模式)，主要是控制metaspaceGC发生的初始阈值，也是最小阈值，但是触发metaspaceGC的阈值是不断变化的，与之对比的主要是指Klass Metaspace与NoKlass Metaspace两块**committed**的内存和。
+默认20.8M左右(x86下开启c2模式)，主要是控制metaspaceGC发生的初始阈值，也是**最小阈值**，但是触发metaspaceGC的阈值是不断变化的，与之对比的主要是指Klass Metaspace与NoKlass Metaspace两块**committed**的内存和。
 
 这个JVM参数是指**Metaspace扩容时触发FGC的初始化阈值**，表示metaspace**首次**使用不够而触发FGC的阈值，只对触发起作用，原因是：垃圾搜集器内部是根据变量`_capacity_until_GC`来判断metaspace区域是否达到阈值的，初始化代码如下所示：
 
@@ -54,7 +109,7 @@ GC收集器会在发生对metaspace的回收后，会计算新的_capacity_until
 
 1. 如果没有配置参数`-XX:MetaspaceSize`，那么触发FGC的阈值就是21807104（约20.8M）；
 2. 如果配置了参数`-XX:MetaspaceSize=256m`，那么触发FGC的阈值就是配置的值256M；
-3. Metaspace由于使用不断扩容到`-XX:MetaspaceSize`参数指定的量，就会发生FGC；且之后每次Metaspace扩容可能发生FGC；
+3. Metaspace由于使用不断扩容到`-XX:MetaspaceSize`参数指定的量，就会发生FGC；**且之后每次Metaspace扩容可能发生FGC；**
 4. 如果Old区配置CMS垃圾回收，那么扩容引起的FGC也会使用CMS算法进行回收；
 5. 如果MaxMetaspaceSize设置太小，可能会导致频繁FGC，甚至OOM；
 
@@ -62,17 +117,17 @@ Metaspace触发Full GC，是因为Metaspace committed的内存加上这次要分
 
 当 Metaspace 内存占用**未**达到 -XX:MetaspaceSize 时，Metaspace 只扩容，不会引起 Full GC。当 Metaspace 内存占用达到 -XX:MetaspaceSize 时，会发生 Full GC。在发生第一次 Full GC 之后，Metaspace 依然会扩容。
 
-第二次触发 Full GC 的条件目前还不明确，还需要多查资料。
+> 第二次触发 Full GC 的条件目前还不明确，还需要多查资料。
 
-## MaxMetaspaceSize
+**MaxMetaspaceSize**
 
 默认基本是无穷大，建议设置这个参数，因为很可能会因为没有限制而导致metaspace被无止境使用(一般是内存泄漏)而被OS Kill。这个参数会限制metaspace(包括了Klass Metaspace以及NoKlass Metaspace)被committed的内存大小，**会保证committed的内存不会超过这个值**，一旦超过就会触发GC，这里要注意和MaxPermSize的区别，**MaxMetaspaceSize并不会在jvm启动的时候分配一块这么大的内存出来**，而MaxPermSize是会分配一块这么大的内存的。
 
-## CompressedClassSpaceSize
+**CompressedClassSpaceSize**
 
 默认1G，这个参数主要是设置Klass Metaspace的大小，不过这个参数设置了也不一定起作用，前提是能开启压缩指针，假如-Xmx超过了32G，压缩指针是开启不来的。如果有Klass Metaspace，那这块内存是和Heap连着的。
 
-## MinMetaspaceFreeRatio
+**MinMetaspaceFreeRatio**
 
 MinMetaspaceFreeRatio和下面的MaxMetaspaceFreeRatio，主要是影响触发metaspaceGC的阈值
 
@@ -82,11 +137,11 @@ MinMetaspaceFreeRatio和下面的MaxMetaspaceFreeRatio，主要是影响触发me
 
 一般情况下在gc完之后，如果被committed的量还是比较大的时候，换个说法就是离触发metaspaceGC的阈值比较接近的时候，这个调整会比较明显
 
-## MaxMetaspaceFreeRatio
+**MaxMetaspaceFreeRatio**
 
 默认70，这个参数和上面的参数基本是相反的，是为了避免触发metaspaceGC的阈值过大，而想对这个值进行缩小。这个参数在gc之后committed的内存比较小的时候并且离触发metaspaceGC的阈值比较远的时候，调整会比较明显
 
-## MinMetaspaceExpansion
+**MinMetaspaceExpansion**
 
 MinMetaspaceExpansion和MaxMetaspaceExpansion这两个参数和扩容其实并没有直接的关系，也就是并不是为了增大committed的内存，**而是为了增大触发metaspace GC的阈值**
 
@@ -94,25 +149,25 @@ MinMetaspaceExpansion和MaxMetaspaceExpansion这两个参数和扩容其实并�
 
 默认332.8K，增大触发metaspace  GC阈值的最小要求。假如我们要救急分配的内存很小，没有达到MinMetaspaceExpansion，但是我们会将这次触发metaspace  GC的阈值提升MinMetaspaceExpansion，之所以要大于这次要分配的内存大小主要是为了防止别的线程也有类似的请求而频繁触发相关的操作，不过如果要分配的内存超过了MaxMetaspaceExpansion，那MinMetaspaceExpansion将会是要分配的内存大小基础上的一个增量
 
-## MaxMetaspaceExpansion
+**MaxMetaspaceExpansion**
 
 默认5.2M，增大触发metaspace  GC阈值的最大要求。假如说我们要分配的内存超过了MinMetaspaceExpansion但是低于MaxMetaspaceExpansion，那增量是MaxMetaspaceExpansion，如果超过了MaxMetaspaceExpansion，那增量是MinMetaspaceExpansion加上要分配的内存大小
 
 注：每次分配只会给对应的线程一次扩展触发metaspace GC阈值的机会，如果扩展了，但是还不能分配，那就只能等着做GC了
 
-# 元空间的内存泄漏
+# 4. 元空间的内存泄漏
 
 > 只摘录了部分内容，完整内容查看你假笨的文章：https://mp.weixin.qq.com/s/3sb_ovHhhTXTid3G5iZUew
 
 当我们多次调用ClassLoader的defineClass方法的时候哪怕是同一个类加载器加载同一个类文件，在JVM里也会在对应的Perm或者Metaspace里创建多份Klass结构，当然一般情况下我们不会直接这么调用。
 
-## 重复类定义带来的影响
+**重复类定义带来的影响**
 
 正常的类加载都会先走一遍缓存查找，看是否已经有了对应的类，如果有了就直接返回，如果没有就进行定义，如果直接调用类定义的方法，在JVM里会创建多份临时的类结构实例，这些相关的结构是存在Perm或者Metaspace里的，也就是说会消耗Perm或Metaspace的内存，但是这些类在定义出来之后，最终会做一次约束检查，如果发现已经定义了，那就直接抛出LinkageError的异常。
 
 这样这些临时创建的结构，只能等待GC的时候去回收掉了，因为它们不可达，所以在GC的时候会被回收，这些结构在Perm下能正常回收，但是在Metaspace里不能正常回收。
 
-## Perm和Metaspace在类卸载上的差异
+**Perm和Metaspace在类卸载上的差异**
 
 在JDK7 CMS下，Perm的结构其实和Old的内存结构是一样的，如果Perm不够的时候我们会做一次Full GC，这个Full GC默认情况下是会对各个分代做压缩的，包括Perm，这样一来根据对象的可达性，任何一个类都只会和一个活着的类加载器绑定，在标记阶段将这些类标记成活的，并将他们进行**新地址的计算及移动压缩**，而之前因为重复定义生成的类结构等，因为没有将它们和任何一个活着的类加载器关联(有个叫做SystemDictionary的Hashtable结构来记录这种关联)，从而在压缩过程中会被回收掉。
 
@@ -120,13 +175,13 @@ MinMetaspaceExpansion和MaxMetaspaceExpansion这两个参数和扩容其实并�
 
 JDK7里会对Perm做压缩，然后JDK8里并不会对Metaspace做压缩，从而只要和那些重复定义的类相关的类加载一直存活，那将一直不会被回收，但是如果类加载死了，那就会被回收，这是因为那些重复类都是在和这个类加载器关联的内存块里分配的，如果这个类加载器死了，那整块内存会被清理并被下次重用。
 
-# 类加载器过多为什么会导致Full GC
+# 5. 类加载器过多为什么会导致Full GC
 
 > https://mp.weixin.qq.com/s/qgpMMR8-493-Y9uwWiMdRg
 
 类加载器创建过多，带来的一个问题是，**在类加载器第一次加载类的时候，会在Metaspace里会给它分配内存块，为了分配高效，每个类加载器用来存放类信息的内存块都是独立的，所以哪怕你这个类加载器只加载一个类，也会为之分配一块空的内存给这个类加载器**，其实是至少两个内存块，于是你有可能会发现Metaspace的内存使用率非常低，但是committed的内存已经达到了阈值，从而触发了Full GC，如果这种只加载很少类的类加载器非常多，那造成的后果就是很多碎片化的内存
 
-# 参考资料
+# 6. 参考资料
 
 https://mp.weixin.qq.com/s/SsXbRvtvawKDHstFpU4uog
 

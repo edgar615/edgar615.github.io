@@ -8,6 +8,39 @@ comments: true
 permalink: java-gc-tuning.html
 ---
 
+# 1. GC参数
+
+**内存调整参数**
+
+![](/assets/images/posts/java-gc-tuning/java-gc-tuning-1.png)
+
+**JIT调整参数**
+
+![](/assets/images/posts/java-gc-tuning/java-gc-tuning-2.png)
+
+**分代比例和并发**
+
+![](/assets/images/posts/java-gc-tuning/java-gc-tuning-3.png)
+
+**GC选择**
+
+![](/assets/images/posts/java-gc-tuning/java-gc-tuning-4.png)
+
+**G1**
+
+![](/assets/images/posts/java-gc-tuning/java-gc-tuning-5.png)
+
+**TLAB**
+
+![](/assets/images/posts/java-gc-tuning/java-gc-tuning-6.png)
+
+**可以参考的健康GC标准**
+
+1. YoungGC频率不超过2秒/次；
+2. CMS GC频率不超过1天/次；
+3. 每次YoungGC的时间不超过15ms；
+4. FullGC频率尽可能完全杜绝；
+
 # 调优基础
 
 ## 调整堆的大小
