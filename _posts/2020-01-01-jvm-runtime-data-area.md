@@ -1,7 +1,7 @@
 ---
 layout: post
 title: JVM运行时数据区域
-date: 2019-12-23
+date: 2020-01-01
 categories:
     - jvm
 comments: true
