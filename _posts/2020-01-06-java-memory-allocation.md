@@ -1,14 +1,12 @@
 ---
 layout: post
-title: JAVA内存分配策略
-date: 2020-04-24
+title: JVM内存与GC（6）- 内存分配策略
+date: 2020-01-06
 categories:
     - jvm
 comments: true
 permalink: java-memory-allocation.html
 ---
-
-# Java内存分配策略
 
 Java 提供的自动内存管理，可以归结为解决了对象的内存分配和回收的问题。下面介绍几条最普遍的内存分配策略：
 
@@ -34,9 +32,7 @@ JVM 提供了一个对象大小阈值参数（-XX:PretenureSizeThreshold，默�
 
 如果 Young GC 之后，新生代存活对象达到相同年龄所有对象大小的总和大于任意 Survivor 空间（S0+S1空间）的一半，此时 S0 或者 S1 区即将容纳不了存活的新生代对象。
 
-年龄大于或等于该年龄的对象就可以直接进入老年代，无须等到 MaxTenuringThreshold 中要求的年龄。
+**年龄大于或等于该年龄的对象就可以直接进入老年代，无须等到 MaxTenuringThreshold 中要求的年龄。**
 
 另外，如果 Young GC 后 S0 或 S1 区不足以容纳：未达到晋升老年代条件的新生代存活对象，会导致这些存活对象直接进入老年代，需要尽量避免。
-
-# 参考资料
 

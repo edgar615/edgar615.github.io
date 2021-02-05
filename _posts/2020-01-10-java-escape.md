@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Java逃逸分析
-date: 2020-04-24
+title: JVM内存与GC（10）- 逃逸分析
+date: 2020-01-10
 categories:
     - jvm
 comments: true

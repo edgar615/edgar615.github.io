@@ -1,7 +1,7 @@
 ---
 layout: post
-title: 生成Heap Dump的几种方式
-date: 2019-12-26
+title: JVM内存与GC（9）- 生成Heap Dump的几种方式
+date: 2020-01-09
 categories:
     - jvm
 comments: true
@@ -19,20 +19,19 @@ Heap Dump 包含的信息
 - 线程栈及局部变量
 - 包含了转储时刻的线程调用栈信息和栈帧中的局部变量信息
 
-# 使用 jmap 命令生成 dump 文件
+**使用 jmap 命令生成 dump 文件**
 
 ```
 jmap -dump:live,format=b,file=d:\dump\heap.hprof <pid>
 ```
 
-
-# 使用 jcmd 命令生成 dump 文件
+**使用 jcmd 命令生成 dump 文件**
 
 ```
 jcmd <pid> GC.heap_dump d:\dump\heap.hprof
 ```
 
-# 使用 JVM 参数获取 dump 文件
+**使用 JVM 参数获取 dump 文件**
 
 - `-XX:+HeapDumpOnOutOfMemoryError` 当OutOfMemoryError发生时自动生成 Heap Dump 文件
 - `-XX:+HeapDumpBeforeFullGC` 当 JVM 执行 FullGC 前执行 dump

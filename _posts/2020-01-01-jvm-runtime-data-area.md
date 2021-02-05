@@ -1,6 +1,6 @@
 ---
 layout: post
-title: JVM运行时数据区域
+title: JVM内存与GC（1）- 运行时数据区域
 date: 2020-01-01
 categories:
     - jvm

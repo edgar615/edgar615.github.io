@@ -1,6 +1,6 @@
 ---
 layout: post
-title: GC调优
+title: JVM内存与GC（13）- GC调优
 date: 2020-04-25
 categories:
     - jvm

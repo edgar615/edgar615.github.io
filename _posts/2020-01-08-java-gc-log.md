@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Java GC日志
-date: 2020-01-16
+title: JVM内存与GC（8）- GC日志
+date: 2020-01-08
 categories:
     - jvm
 comments: true

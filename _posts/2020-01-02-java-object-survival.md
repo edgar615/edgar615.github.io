@@ -1,7 +1,7 @@
 ---
 layout: post
-title: 如何判断一个对象是否存活
-date: 2020-01-13
+title: JVM内存与GC（2）- 如何判断一个对象是否存活
+date: 2020-01-02
 categories:
     - jvm
 comments: true

@@ -1,7 +1,7 @@
 ---
 layout: post
-title: JVM虚拟机如何枚举根节点
-date: 2020-01-18
+title: JVM内存与GC（3）- 虚拟机如何枚举根节点
+date: 2020-01-03
 categories:
     - jvm
 comments: true
