@@ -18,7 +18,7 @@ permalink: java-object-survival.html
 - 引用计数算法
 - 可达性分析算法
 
-# 引用计数算法
+# 1. 引用计数算法
 
 引用计数算法（Reachability Counting）是通过在对象头中分配一个空间来保存该对象被引用的次数（Reference Count）。如果该对象被其它对象引用，则它的引用计数加 1，如果删除对该对象的引用，那么它的引用计数就减 1，当该对象的引用计数为 0 时，那么该对象就会被回收。
 
@@ -61,7 +61,7 @@ public static void testGC(){
 
 ![](/assets/images/posts/java-object-survival/java-object-survival-3.jpg)
 
-# 可达性分析算法
+# 2. 可达性分析算法
 
 可达性分析算法的基本思路是通过一系列的称为“GC Roots”的对象作为起始点，从这些节点开始向下搜索，搜索所走过的路径称为引用链（Reference Chain），当一个对象到GC Root没有任何引用链相连时，则证明此对象是不可用的。
 
@@ -71,7 +71,7 @@ public static void testGC(){
 
 而对象的可达性与[引用类型](https://edgar615.github.io/java-reference.html)密切相关
 
-# GC Root
+# 3. GC Root
 GC Root的对象是可以从堆外部访问的对象
 
 > 摘自https://help.eclipse.org/2019-12/index.jsp?topic=%2Forg.eclipse.mat.ui.help%2Fconcepts%2Fgcroots.html
@@ -92,7 +92,7 @@ GC Root的对象是可以从堆外部访问的对象
 - **Java Stack Frame**  A Java stack frame, holding local variables. Only generated when the dump is parsed with the preference set to treat Java stack frames as objects. Java栈的一帧, 持有本地变量. 仅当heap dump被设置成作为Java stack frames时才会产生.
 - **Unknown**   An object of unknown root type. Some dumps, such as IBM Portable Heap Dump files, do not have root information. For these dumps the MAT parser marks objects which are have no inbound references or are unreachable from any other root as roots of this type. This ensures that MAT retains all the objects in the dump. 其他未知的root
 
-# 生存还是死亡
+# 4. 生存还是死亡
 
 即使在可达性分析算法中不可达的对象，也并非是“非死不可”的，这时候它们暂时处于“缓刑”阶段，要真正宣告一个对象死亡，**至少要经历两次标记过程：**
 
@@ -168,7 +168,7 @@ no, i am dead :(
 
 大部分场景finalizer线程清理finalizer队列是比较快的,但是一旦你在finalize方法里执行一些耗时的操作,可能导致内存无法及时释放进而导致内存溢出的错误,在实际场景还是推荐尽量少用finalize方法.
 
-## 分析
+## 4.1. 分析
 如果我们在finalize方法上打上断点，可以看到，一个 FinalizerThread 的线程执行了我们的 finalize 方法。
 
 ![](/assets/images/posts/java-object-survival/java-object-survival-5.png)
@@ -228,7 +228,7 @@ private void runFinalizer(JavaLangAccess jla) {
 
 到这里，一个对象的 finalize 方法就执行结束了
 
-## 如何放入队列？
+## 4.2. 如何放入队列？
 
 > 后面的分析的核心内容来自你假笨的文章https://mp.weixin.qq.com/s/fftHK8gZXHCXWpHxhPQpBg
 
@@ -258,7 +258,7 @@ static void register(Object finalizee) {
 
 类的修饰有很多，比如 final，abstract，public 等，如果某个类用 final 修饰，我们就说这个类是 final 类，上面列的都是语法层面我们可以显式指定的，在 JVM 里其实还会给类标记一些其他符号，比如`finalizer`，表示这个类是一个`finalizer`类（为了和`java.lang.ref.Fianlizer`类区分，下文在提到的`finalizer`类时会简称为 f 类），GC 在处理这种类的对象时要做一些特殊的处理，如在这个对象被回收之前会调用它的`finalize`方法。
 
-## 如何判断一个类是不是一个f类
+## 4.3. 如何判断一个类是不是一个f类
 在`java.lang.Object`里的有一个finalize的空方法
 
 ```java
@@ -301,7 +301,7 @@ protected void finalize() throws Throwable { }
 
 > 这部分原理可以查看https://edgar615.github.io/java-reference.html
 
-## finalize导致的内存溢出
+## 4.4. finalize导致的内存溢出
 通过上面的分析，我们知道Jvm会给每个实现了finalize方法的实例创建一个监听Finalizer并加入到全局的ReferenceQueue，只要finalize没有执行，那么这些对象就会一直存在堆区，当对象数量较多时,就会导致Eden区空间满了,经历多次youngGC后可能对象就进入到老年代了.甚至导致内存溢出
 
 测试代码
@@ -346,7 +346,7 @@ Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
 	at com.xxxx.FinalizeTest.main(FinalizeTest.java:20)
 ```
 
-## 小结
+## 4.5. 小结
 f 对象因为Finalizer的引用而变成了一个临时的强引用，即使没有其他的强引用，还是无法立即被回收
 
 finalize对象至少经历两次GC才能被回收,因为只有在FinalizerThread执行完了finalize对象的finalize方法的情况下才有可能被下次GC回收，而有可能期间已经经历过多次GC了，但是一直还没执行finalize对象的finalize方法;
@@ -385,7 +385,7 @@ f 对象的finalize方法被调用后，这个对象其实还并没有被回收�
 > JDK有提供一个标准API，System.runFinalization() ，来让当前Java线程在处理完finalize queue之前block住。这个API的描述也就是“尽力而为”，并不保证任何行为，但现实来说它是会等到finalize queue真的空了才返回的。JDK8u里HotSpot VM的实现方法是调用 [java.lang.ref.Finalizer.runFinalization()](https://link.zhihu.com/?target=http%3A//hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/e74259b3eadc/src/share/classes/java/lang/ref/Finalizer.java%23l111) ，其中会在 FinalizeThread 之外再开**一个** Secondary Finalize Thread 来尝试加速处理finalize queue。那么如果我们的finalize queue上挂着两个调皮的对象都有无限循环，这就还是能把两个处理线程都卡住，于是queue里剩下的对象还是得到无限远的未来才能得到处理
 
 
-# 回收方法区
+# 4.6. 回收方法区
 
 Java虚拟机规范中确实说过可以不要求虚拟机在方法区中实现垃圾回收，而且在方法区中进行垃圾回收的“性价比”一般比较低，方法区的垃圾收集主要回收两部分内容：废弃的常量和无用的类。
 
@@ -397,7 +397,7 @@ Java虚拟机规范中确实说过可以不要求虚拟机在方法区中实现�
 2. 加载该类的ClassLoader已经被回收
 3. 该类对应的java.lang.Class对象已经没有任何地方被引用，无法在任何地方通过反射访问该类的方法。
 
-# 参考资料
+# 7. 参考资料
 
 https://www.jianshu.com/p/09a574dcd5df
 
