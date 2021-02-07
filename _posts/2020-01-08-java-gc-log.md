@@ -263,9 +263,29 @@ new threshold 7即标识新的存活周期的阈值为7。
 >
 > 安全点的相关知识查看 https://edgar615.github.io/java-gc-root.html
 
+# -XX:PrintFLSStatistics
 
+通过这个参数可以在gc日志中输出free list方式分配内存后内存统计情况和碎片情况；
 
 不同的垃圾收集器打印的日志会有些不同
+
+- 第一部分即BinaryTreeDictionary统计信息：
+
+输出free list统计信息，gc日志中输出内容如下：
+
+```
+Total Free Space: 25165824
+Max  Chunk Size: 25165824
+Number of Blocks: 1
+Av.  Block  Size: 25165824
+Tree    Height: 1
+```
+
+第二部分即IndexedFreeLists统计信息
+
+如果JVM参数为PrintFLSStatistics 大于1，例如**-XX:PrintFLSStatistics=2**，那么还会输出IndexedFreeLists的统计信息，以及如下的gc日志，能够直观的看到碎片率，frag的值越大碎片化越严重，JVM的初始化时frag的值为0.0000，即没有任何碎片：
+
+
 
 ## Serial垃圾收集器
 
