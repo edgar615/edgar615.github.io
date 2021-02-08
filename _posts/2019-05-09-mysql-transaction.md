@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL事务(part1)
+title: MySQL事务
 date: 2019-05-09
 categories:
     - MySQL
