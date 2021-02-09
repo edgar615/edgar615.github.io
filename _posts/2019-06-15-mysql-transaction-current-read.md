@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL事务-当前读(part3)
-date: 2019-06-17
+title: MySQL事务（3）- 当前读
+date: 2019-06-15
 categories:
     - MySQL
 comments: true

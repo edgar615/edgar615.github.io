@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL事务-MVCC(part1)
+title: MySQL事务（2）- MVCC
 date: 2019-05-12
 categories:
     - MySQL

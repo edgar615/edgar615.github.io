@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL日志（3）- undo日志
-date: 2019-06-27
+date: 2018-06-27
 categories:
     - MySQL
 comments: true
