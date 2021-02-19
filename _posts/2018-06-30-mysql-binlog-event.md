@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL binlog事件类型
-date: 2019-06-10
+title: MySQL日志（5）- MySQL binlog事件类型
+date: 2018-06-30
 categories:
     - MySQL
 comments: true

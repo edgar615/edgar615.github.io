@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL日志（3）-慢查询日志
-date: 2019-06-28
+date: 2018-06-28
 categories:
     - MySQL
 comments: true
