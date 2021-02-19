@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Mysql修改数据库字符集
-date: 2019-03-29
+title: MySQL安装与使用（8）- 修改数据库字符集
+date: 2018-03-08
 categories:
     - MySQL
 comments: true

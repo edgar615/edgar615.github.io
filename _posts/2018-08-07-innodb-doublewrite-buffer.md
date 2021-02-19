@@ -1,11 +1,11 @@
 ---
 layout: post
-title: InnoDB架构-doublewrite buffer（part6）
-date: 2019-12-13
+title: InnoDB架构（7） - doublewrite buffer
+date: 2018-08-07
 categories:
     - MySQL
 comments: true
-permalink: innodb-doublewrite-buffer.html
+permalink: doublewrite-buffer.html
 ---
 
 InnoDB默认每页大小是16KB，其数据校验也是针对这16KB来计算的，将数据写入到磁盘是以页为单位进行操作的。操作系统的一页是4KB，写文件也是以页作为单位操作的，那么每写一个InnoDB的page到磁盘上，操作系统需要写4个块。

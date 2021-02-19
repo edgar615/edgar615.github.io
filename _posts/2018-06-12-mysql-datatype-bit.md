@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL数据类型（3）-bit
+title: MySQL数据类型（3）- bit
 date: 2018-06-12
 categories:
     - MySQL

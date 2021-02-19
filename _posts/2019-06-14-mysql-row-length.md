@@ -1,7 +1,7 @@
 ---
 layout: post
 title: 单条记录最大长度的限制
-date: 2019-06-14
+date: 2019-05-13
 categories:
     - MySQL
 comments: true

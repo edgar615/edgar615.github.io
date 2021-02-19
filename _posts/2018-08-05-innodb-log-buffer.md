@@ -1,7 +1,7 @@
 ---
 layout: post
-title: InnoDB架构-Log Buffer（part4）
-date: 2019-10-26
+title: InnoDB架构（5） - Log Buffer
+date: 2018-08-05
 categories:
     - MySQL
 comments: true
@@ -28,8 +28,8 @@ mysql> show variables like "innodb_flush_log_%";
 2 rows in set (0.06 sec)
 ```
 
-# 参数
-## innodb_log_buffer_size
+**innodb_log_buffer_size**
+
 该参数就是用来设置 InnoDB 的 Log Buffer 大小，系统默认值为 16MB，主要作用就是缓冲 redo log 数据，增加缓存可以使大事务在提交前不用写入磁盘，从而提高写 IO 性能。因此对于会在一个事务中更新、插入、或删除大量记录的应用，我们可以通过增大`innodb_log_buffer_size`来减少日志写磁盘操作，从而提高事务处理的性能
 
 ```
@@ -56,7 +56,7 @@ mysql> SHOW STATUS LIKE 'innodb_log%';
 3 rows in set (0.03 sec)
 ```
 
-## innodb_flush_log_at_trx_commit
+**innodb_flush_log_at_trx_commit**
 
 `innodb_flush_log_at_trx_commit`参数可以控制将 log buffer 中的更新记录写入到日志文件以及将日志文件数据刷新到磁盘的操作时机。通过调整这个参数，可以在性能和数据安全之间做取舍。
 
@@ -77,10 +77,11 @@ innodb_flush_log_at_trx_commit 参数的默认值是 1，即每个事务提交�
 - 配置为2和0，性能差异并不大，因为将数据从log buffer拷贝到os cache虽然跨越了用户态和内核态，但仍然只是内存的数据拷贝，速度很快
 - 配置为2和0，安全差异很大，操作系统崩溃的概率相比MySQL崩溃的概率要小得多，设置为2，只要操作系统不崩溃，就不会丢失数据
 
-## innodb_flush_log_at_timeout
+**innodb_flush_log_at_timeout**
+
 控制缓存写到redo log文件的频率，5.6+才有。`innodb_flush_log_at_trx_commit`这个参数一般都是 1，这样的话，`innodb_flush_log_at_timeout` 的设置对其就不起作用。`innodb_flush_log_at_timeout` 的设置只针对` innodb_flush_log_at_trx_commit`为0/2 起作用
 
-# 参考资料
+**参考资料**
 
 http://blog.itpub.net/29654823/viewspace-2143511/
 

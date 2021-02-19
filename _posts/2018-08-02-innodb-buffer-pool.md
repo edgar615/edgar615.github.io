@@ -1,7 +1,7 @@
 ---
 layout: post
-title: InnoDB内存（1）- Buffer Pool
-date: 2019-06-21
+title: InnoDB架构（2）- Buffer Pool
+date: 2018-08-02
 categories:
     - MySQL
 comments: true

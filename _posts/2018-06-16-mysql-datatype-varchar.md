@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL数据类型-数据库varchar长度最佳实践（part4）
-date: 2019-12-10
+title: MySQL数据类型（7）- 数据库varchar长度最佳实践
+date: 2018-06-16
 categories:
     - MySQL
 comments: true

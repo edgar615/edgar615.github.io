@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL数据类型（2）-NULL
+title: MySQL数据类型（2）- NULL
 date: 2018-06-11
 categories:
     - MySQL

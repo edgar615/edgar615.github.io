@@ -5,7 +5,7 @@ date: 2019-06-15
 categories:
     - MySQL
 comments: true
-permalink: mysql-transaction-3.html
+permalink: mysql-transaction-current-read.html
 ---
 
 这个题目来着极客时间的收费课程，首先要说明一个小知识，事务一致性视图ReadView的创建时间有两种

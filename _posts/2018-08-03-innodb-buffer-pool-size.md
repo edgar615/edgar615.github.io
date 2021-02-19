@@ -1,7 +1,7 @@
 ---
 layout: post
-title: InnoDB内存（2）- 设置Buffer Pool大小
-date: 2019-06-22
+title: InnoDB架构（3） - 设置Buffer Pool大小
+date: 2018-08-03
 categories:
     - MySQL
 comments: true

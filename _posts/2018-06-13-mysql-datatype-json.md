@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL数据类型（3）-JSON
+title: MySQL数据类型（3）- JSON
 date: 2018-06-13
 categories:
     - MySQL

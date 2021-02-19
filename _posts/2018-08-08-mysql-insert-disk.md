@@ -1,11 +1,11 @@
 ---
 layout: post
-title: MySQL insert 语句的磁盘写入之旅
-date: 2018-09-30
+title:  InnoDB架构（8）- insert 语句的磁盘写入之旅
+date: 2018-08-08
 categories:
     - MySQL
 comments: true
-permalink: mysql-insert-disk.html
+permalink: innodb-insert-disk.html
 ---
 
 > 完全复制自https://mp.weixin.qq.com/s/lYTd_mW83Zs0tccIlGGZig

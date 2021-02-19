@@ -1,7 +1,7 @@
 ---
 layout: post
-title: InnoDB架构-Change Buffer（part3）
-date: 2019-07-23
+title: InnoDB架构（4） - Change Buffer
+date: 2018-08-04
 categories:
     - MySQL
 comments: true
