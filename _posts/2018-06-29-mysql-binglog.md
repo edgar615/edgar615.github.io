@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL日志（4）- binlog
-date: 2018-06-27
+date: 2018-06-29
 categories:
     - MySQL
 comments: true

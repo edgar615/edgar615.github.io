@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL caching-sha2-password
+title: MySQL安装与使用（4）- caching-sha2-password
 date: 2018-03-04
 categories:
     - MySQL

@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Ubuntu安装MySQL8
-date: 2018-03-02
+title: MySQL安装与使用（3）- Ubuntu安装MySQL8
+date: 2018-03-03
 categories:
     - MySQL
 comments: true

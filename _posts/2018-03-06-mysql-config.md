@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL配置文件说明
-date: 2019-06-10
+title: MySQL安装与使用（6）- 配置文件说明
+date: 2018-03-06
 categories:
     - MySQL
 comments: true

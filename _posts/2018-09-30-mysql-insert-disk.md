@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL insert 语句的磁盘写入之旅
-date: 2018-06-27
+date: 2018-09-30
 categories:
     - MySQL
 comments: true
