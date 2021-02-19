@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引（5）-MRR和ICP
+title: MySQL索引（5）- MRR和ICP
 date: 2018-04-05
 categories:
     - MySQL

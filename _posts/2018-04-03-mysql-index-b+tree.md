@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引（3）-B+树
+title: MySQL索引（3）- B+树
 date: 2018-04-03
 categories:
     - MySQL

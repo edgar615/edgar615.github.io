@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引（11）-索引长度
+title: MySQL索引（11）- 索引长度
 date: 2018-04-11
 categories:
     - MySQL

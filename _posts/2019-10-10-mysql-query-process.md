@@ -85,9 +85,7 @@ MySQL的查询缓存系统会跟踪查询中涉及的每个表，如果这些表
 
 注意：**不要轻易打开查询缓存，特别是写密集型应用**。如果你实在是忍不住，可以将query_cache_type设置为DEMAND，这时只有加入SQL_CACHE的查询才会走缓存，其他查询则不会，这样可以非常自由地控制哪些查询需要被缓存。
 
-MySQL 8.0 版本后删除了查询缓存的功能，官方认为该功能应用场景较少，所以将其删除。
-
-果打开了缓存可以通过“show status like 'Qcache%'”命令查看缓存的情况。
+如果打开了缓存可以通过“show status like 'Qcache%'”命令查看缓存的情况。
 
 ![](/assets/images/posts/mysql-query-process/mysql-query-process-4.png)
 
@@ -96,6 +94,46 @@ MySQL 8.0 版本后删除了查询缓存的功能，官方认为该功能应用�
 - Qcache_inserts 是否有新的数据添加，每有一条数据添加Value会加一。
 - Qcache_hits 查询语句是否命中缓存，每有一条语句命中Value会加一。
 - Qcache_free_memory 缓存空闲大小。
+
+**MySQL 8.0 版本后删除了查询缓存的功能，官方认为该功能应用场景较少，所以将其删除。**
+
+由于QC需要缓存最新数据结果，因此表数据发生任何变化（INSERT、UPDATE、DELETE或其他可能产生数据变化的操作），都会导致QC被刷新。
+
+**QC严格要求2次SQL请求要完全一样，包括SQL语句，连接的数据库、协议版本、字符集等因素都会影响**，下面几个例子中的SQL会被认为是完全不一样而不会使用同一个QC内存块：
+
+```
+mysql> set names latin1; SELECT * FROM table_name;
+
+mysql> set names latin1; select * from table_name;
+
+mysql> set names utf8; select * from table_name;
+```
+
+此外，QC也**不适用于**下面几个场景：
+
+1、子查询或者外层查询；
+
+2、存储过程、存储函数、触发器、event中调用的SQL，或者引用到这些结果的；
+
+3、包含一些特殊函数时，例如：BENCHMARK()、CURDATE()、CURRENT_TIMESTAMP()、NOW()、RAND()、UUID()等等；
+
+4、读取mysql、INFORMATION_SCHEMA、performance_schema 库数据的；
+
+5、类似SELECT…LOCK IN SHARE MODE、SELECT…FOR UPDATE、SELECT..INTO OUTFILE/DUMPFILE、SELECT..WHRE…IS NULL等语句；
+
+6、SELECT执行计划用到临时表（TEMPORARY TABLE）；
+
+7、未引用任何表的查询，例如 SELECT 1+1 这种；
+
+8、产生了 warnings 的查询；
+
+9、SELECT语句里加了 SQL_NO_CACHE 关键字；
+
+更加奇葩的是，MySQL在从QC中取回结果前，会先判断执行SQL的用户是否有全部库、表的SELECT权限，如果没有，则也不会使用QC。
+
+相比下面这个，其实上面所说的都不重要。最为重要的是，在MySQL里QC是由一个**全局锁**在控制，**每次更新QC的内存块都需要进行锁定**。
+
+例如，一次查询结果是20KB，当前 **query_cache_min_res_unit** 值设置为 4KB（默认值就是4KB，可调整），那么么本次查询结果共需要分为**5次**写入QC，**每次都要锁定**，可见其成本有多高。
 
 ## 2.3. 分析器
 

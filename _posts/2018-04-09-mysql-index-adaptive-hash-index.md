@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引（9）-自适应哈希索引
+title: MySQL索引（9）- 自适应哈希索引
 date: 2018-04-09
 categories:
     - MySQL

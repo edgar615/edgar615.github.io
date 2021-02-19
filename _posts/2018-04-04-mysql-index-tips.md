@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引（4）-索引使用
+title: MySQL索引（4）- 索引使用
 date: 2018-04-04
 categories:
     - MySQL

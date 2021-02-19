@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引（6）-字符串前缀索引
+title: MySQL索引（6）- 字符串前缀索引
 date: 2018-04-06
 categories:
     - MySQL

@@ -5,8 +5,26 @@ date: 2018-08-03
 categories:
     - MySQL
 comments: true
-permalink: innodb-buffer-pool-size.html
+permalink: innodb-buffer-pool-change.html
 ---
+
+从MySQL  5.7.5开始，我们可以动态修改InnoDB Buffer  Pool的大小。这个新特性同时也引入了一个参数--innodb_buffer_pool_chunk_size，buffer  pool会根据这个参数值的整数倍增加或减小。这个参数不是动态修改的，如果配置错误，可能会导致不想看到的结果。
+
+buffer pool可以存放多个instance，每个instance由多个chunk组成。instance的数量范围和chunk的总数量范围分别为1-64，1-1000。
+
+> Let’s see first how innodb_buffer_pool_size , innodb_buffer_pool_instances and innodb_buffer_pool_chunk_size interact: 
+>
+> ![](/assets/images/posts/mysql-buffer/innodb-buffer-pool-3.png)
+>
+> The buffer pool can hold several  instances and each instance is divided into chunks. There is some  information that we need to take into account: the number of instances  can go from 1 to 64 and the total amount of chunks should not exceed  1000.
+
+一个3G内存的服务器，128MB的chunk值，2GB的buffer pool，8个instance，那么每个instance就有2个chunk。
+
+> So, for a server with 3GB RAM, a  buffer pool of 2GB with 8 instances and chunks at default value (128MB)  we are going to get 2 chunks per instance: 
+>
+> ![](/assets/images/posts/mysql-buffer/innodb-buffer-pool-4.png)
+>
+>  这意味着一共有16个chunks。 This means that there will be 16 chunks.
 
 # 1. Buffer Pool Size
 
@@ -67,3 +85,5 @@ SHOW STATUS WHERE Variable_name='InnoDB_buffer_pool_resize_status';
 # 3. 参考资料
 
 https://mp.weixin.qq.com/s/ZPXcsogmO9BkKMKNLQxNLA
+
+https://mp.weixin.qq.com/s/C3LBjsRMeCIM9RDFKEMBkg

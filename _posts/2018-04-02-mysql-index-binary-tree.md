@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL索引（2）-二叉树
+title: MySQL索引（2）- 二叉树
 date: 2018-04-02
 categories:
     - MySQL
