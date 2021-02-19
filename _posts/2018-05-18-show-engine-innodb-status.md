@@ -1,11 +1,11 @@
 ---
 layout: post
-title: MySQL查看innodb状态
-date: 2018-04-20
+title: MySQL运维与监控（3）- 查看innodb状态
+date: 2018-05-18
 categories:
     - MySQL
 comments: true
-permalink: mysql-show-engine-innodb-status.html
+permalink: show-engine-innodb-status.html
 ---
 
 首先我们来看一个`show engine innodb status;`返回结果

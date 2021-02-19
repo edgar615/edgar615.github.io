@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL查看连接数
-date: 2019-06-10
+title: MySQL运维与监控（1）- 查看连接数
+date: 2018-05-16
 categories:
     - MySQL
 comments: true
@@ -56,7 +56,7 @@ show processlist;只列出前100条，如果想全列出请使用show full proce
 mysqladmin -uroot processlist
 
  mysqladmin -uroot status  
- 
+
 ```
 Uptime: 1046381  Threads: 37  Questions: 5102026  Slow queries: 1714559  Opens: 187  Flush tables: 1  Open tables: 125  Queries per second avg: 4.875
 ```

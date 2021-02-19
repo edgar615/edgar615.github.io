@@ -1,7 +1,7 @@
 ---
 layout: post
-title: show processlist命令
-date: 2020-09-09
+title: MySQL运维与监控（2）- show processlist命令
+date: 2018-05-17
 categories:
     - MySQL
 comments: true
