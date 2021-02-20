@@ -1,7 +1,7 @@
 ---
 layout: post
 title: MySQL事务（2）- MVCC
-date: 2019-05-12
+date: 2018-09-02
 categories:
     - MySQL
 comments: true

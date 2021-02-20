@@ -3,7 +3,7 @@ layout: post
 title: 团队管理-项目
 date: 2020-07-17
 categories:
-    - 团队管理
+    - 管理
 comments: true
 permalink: team-leader-project.html
 ---

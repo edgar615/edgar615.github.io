@@ -1,6 +1,6 @@
 ---
 layout: post
-title: MySQL锁（1）-死锁
+title: MySQL锁（2）-死锁
 date: 2018-04-26
 categories:
     - MySQL

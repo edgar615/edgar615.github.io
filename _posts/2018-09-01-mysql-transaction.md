@@ -1,7 +1,7 @@
 ---
 layout: post
-title: MySQL事务
-date: 2019-05-09
+title: MySQL事务（1）
+date: 2018-09-01
 categories:
     - MySQL
 comments: true
@@ -468,16 +468,14 @@ mysql> select * from user where id = 1;
 
 如果将binglog的格式修改为row格式，此时是基于行的复制，自然就不会出现sql执行顺序不一样的问题。但是这个格式在mysql5.1版本开始才引入。因此由于历史原因，mysql将默认的隔离级别设为可重复读(Repeatable Read)，保证主从复制不出问题！
 
-**互联网项目为什么选read committed隔离级别**
-
-> 网上看的，没有考证
+# **互联网项目为什么选read committed隔离级别**
 
 - 在RR隔离级别下，存在间隙锁，导致出现死锁的几率比RC大的多
 - 在RR隔离级别下，条件列未命中索引会锁表！而在RC隔离级别下，只锁行。
 
 > 在RC隔离级别下，其先走聚簇索引，进行全部扫描。但在实际中，MySQL做了优化，在MySQL Server过滤条件，发现不满足后，会调用unlock_row方法，把不满足条件的记录释放锁。在RR隔离级别下，会使用间隙锁将表都锁上
 
-- 在RC隔离级别下，半一致性读(semi-consistent)特性增加了update操作的并发性！
+- 在RC隔离级别下，[半一致性读(semi-consistent)](https://edgar615.github.io/mysql-transaction-semi-consistent.html)特性增加了update操作的并发性！
 
 在5.1.15的时候，innodb引入了一个概念叫做“semi-consistent”，减少了更新同一行记录时的冲突，减少锁等待。
 所谓半一致性读就是，一个update语句，如果读到一行已经加锁的记录，此时InnoDB返回记录最近提交的版本，由MySQL上层判断此版本是否满足update的where条件。若满足(需要更新)，则MySQL会重新发起一次读操作，此时会读取行的最新版本(并加锁)！

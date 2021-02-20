@@ -526,6 +526,161 @@ pt-query-digest进程所分配的虚拟内存大小
 -  V/M：响应时间Variance-to-mean的比率
 -  Item：查询对象
 
+第三部分：输出每列查询的详细信息
+
+```text
+# Query 1: 1.02k QPS, 10.94x concurrency, ID 0xFFFCA4D67EA0A788813031B8BBC3B329 at byte 26111916
+说明：查询队列1：每秒查询量，查询的并发，队列1的ID值，26111916：表示文中偏移量（查看方法在下面‘偏1’中）
+
+# This item is included in the report because it matches --limit.
+# Scores: V/M = 0.01
+# Time range: 2020-09-02T11:21:59 to 2020-09-02T11:22:29
+# Attribute    pct   total     min     max     avg     95%  stddev  median
+# ============ === ======= ======= ======= ======= ======= ======= =======
+# Count         81   30520
+# Exec time     90    328s     1ms   129ms    11ms    23ms     8ms     9ms
+# Lock time      0       0       0       0       0       0       0       0
+# Rows sent      0       0       0       0       0       0       0       0
+# Rows examine   0       0       0       0       0       0       0       0
+# Query size     0 178.83k       6       6       6       6       0       6
+说明：查询的详细说明，在第一部分/第二部分有相关参数说明
+# String:
+# Databases    test
+说明：使用的数据库名称
+# Hosts        10.186.60.147
+说明：使用的主机IP
+# Users        root
+说明：使用的用户名
+# Query_time distribution
+#   1us
+#  10us
+# 100us
+#   1ms  ################################################################
+#  10ms  ###########################################################
+# 100ms  #
+#    1s
+#  10s+
+说明：查询时间分布
+COMMIT\G
+说明：执行的慢语句信息
+# Query 2: 41.66 QPS, 0.28x concurrency, ID 0xB2249CB854EE3C2AD30AD7E3079ABCE7 at byte 24161590
+# This item is included in the report because it matches --limit.
+# Scores: V/M = 0.01
+# Time range: 2020-09-02T11:21:59 to 2020-09-02T11:22:28
+# Attribute    pct   total     min     max     avg     95%  stddev  median
+# ============ === ======= ======= ======= ======= ======= ======= =======
+# Count          3    1208
+# Exec time      2      8s     1ms   115ms     7ms    24ms     9ms     3ms
+# Lock time     38   518ms    17us    34ms   428us    73us     2ms    36us
+# Rows sent      0       0       0       0       0       0       0       0
+# Rows examine   0   1.18k       1       1       1       1       0       1
+# Query size     0  46.01k      39      39      39      39       0      39
+# String:
+# Databases    test
+# Hosts        10.186.60.147
+# Users        root
+# Query_time distribution
+#   1us
+#  10us
+# 100us
+#   1ms  ################################################################
+#  10ms  ##############
+# 100ms  #
+#    1s
+#  10s+
+# Tables
+#    SHOW TABLE STATUS FROM `test` LIKE 'sbtest1'\G
+#    SHOW CREATE TABLE `test`.`sbtest1`\G
+UPDATE sbtest1 SET k=k+1 WHERE id=50313\G
+# Converted for EXPLAIN
+# EXPLAIN /*!50100 PARTITIONS*/
+select  k=k+1 from sbtest1 where  id=50313\G
+
+# Query 3: 56.52 QPS, 0.23x concurrency, ID 0xE81D0B3DB4FB31BC558CAEF5F387E929 at byte 22020829
+# This item is included in the report because it matches --limit.
+# Scores: V/M = 0.01
+# Time range: 2020-09-02T11:21:59 to 2020-09-02T11:22:28
+# Attribute    pct   total     min     max     avg     95%  stddev  median
+# ============ === ======= ======= ======= ======= ======= ======= =======
+# Count          4    1639
+# Exec time      1      7s     1ms    61ms     4ms    14ms     5ms     2ms
+# Lock time      3    45ms    11us   958us    27us    44us    30us    23us
+# Rows sent      0   1.60k       1       1       1       1       0       1
+# Rows examine   0   1.60k       1       1       1       1       0       1
+# Query size     0  57.62k      36      36      36      36       0      36
+# String:
+# Databases    test
+# Hosts        10.186.60.147
+# Users        root
+# Query_time distribution
+#   1us
+#  10us
+# 100us
+#   1ms  ################################################################
+#  10ms  ######
+# 100ms
+#    1s
+#  10s+
+# Tables
+#    SHOW TABLE STATUS FROM `test` LIKE 'sbtest1'\G
+#    SHOW CREATE TABLE `test`.`sbtest1`\G
+# EXPLAIN /*!50100 PARTITIONS*/
+SELECT c FROM sbtest1 WHERE id=61690\G
+
+# Query 4: 26.07 QPS, 0.19x concurrency, ID 0xDDBF88031795EC65EAB8A8A8BEEFF705 at byte 21045172
+# This item is included in the report because it matches --limit.
+# Scores: V/M = 0.02
+# Time range: 2020-09-02T11:21:59 to 2020-09-02T11:22:28
+# Attribute    pct   total     min     max     avg     95%  stddev  median
+# ============ === ======= ======= ======= ======= ======= ======= =======
+# Count          2     756
+# Exec time      1      6s     1ms   104ms     7ms    26ms    10ms     3ms
+# Lock time     18   252ms    13us    19ms   333us    54us     2ms    26us
+# Rows sent      0       0       0       0       0       0       0       0
+# Rows examine   0     756       1       1       1       1       0       1
+# Query size     0  25.10k      34      34      34      34       0      34
+# String:
+# Databases    test
+# Hosts        10.186.60.147
+# Users        root
+# Query_time distribution
+#   1us
+#  10us
+# 100us
+#   1ms  ################################################################
+#  10ms  #################
+# 100ms  #
+#    1s
+#  10s+
+# Tables
+#    SHOW TABLE STATUS FROM `test` LIKE 'sbtest1'\G
+#    SHOW CREATE TABLE `test`.`sbtest1`\G
+DELETE FROM sbtest1 WHERE id=50296\G
+# Converted for EXPLAIN
+# EXPLAIN /*!50100 PARTITIONS*/
+select * from  sbtest1 WHERE id=50296\G
+```
+
+偏 1：
+
+可以利用偏移量在慢查询日志文件中到查找到具体的 SQL 语句，查找方法如下：
+
+```text
+[root@xxx 7777]# tail -c +26111916 ./mysql-slow.log | head
+# Time: 2020-09-02T11:22:21.062995-00:00
+# User@Host: root[root] @  [10.186.60.147]  Id:  1177
+# Query_time: 0.128524  Lock_time: 0.000000 Rows_sent: 0  Rows_examined: 0
+SET timestamp=1599045741;
+COMMIT;
+# Time: 2020-09-02T11:22:21.063202-00:00
+# User@Host: root[root] @  [10.186.60.147]  Id:  1179
+# Query_time: 0.126925  Lock_time: 0.000000 Rows_sent: 0  Rows_examined: 0
+SET timestamp=1599045741;
+COMMIT;
+```
+
+在生产环境中，可根据输出的慢SQL详情进行合理的语句调整。
+
 # 5. 如何在线安全清空 slow.log 文件
 
 在开启 log_queries_not_using_indexes 后，slow log  文件不仅仅会记录慢查询日志，还会把查询过程中未使用索引或全表扫描的 SQL  记录到日志中，久而久之日志的空间便会变得越来越大，那么如何在线且安全的清空这些 slow log 日志，为磁盘释放空间呢？
@@ -690,7 +845,7 @@ mysql> drop table old_slow_log;
 
 
 
-# 参考资料
+# 6.参考资料
 
 https://mp.weixin.qq.com/s/-2Xaw7UTvb6oFEGd3HApeg
 

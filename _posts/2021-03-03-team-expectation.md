@@ -1,9 +1,9 @@
 ---
 layout: post
-title: 预期管理
-date: 2020-07-18
+title: 团队管理（4）- 预期管理
+date: 2021-03-03
 categories:
-    - 团队管理
+    - 管理
 comments: true
 permalink: team-expectation.html
 ---
