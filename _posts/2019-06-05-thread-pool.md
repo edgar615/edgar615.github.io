@@ -168,7 +168,26 @@ public ThreadPoolExecutor(int corePoolSize,
 
 corePoolSize，maximumPoolSize，workQueue之间关系，会在后面任务调度部分介绍。
 
-## 3.3. 线程池的状态（生命周期）
+## 3.3.  JUC同步器
+
+`ThreadPoolExecutor`里面使用到JUC同步器框架，主要用于四个方面：
+
+- 全局锁`mainLock`成员属性，是可重入锁`ReentrantLock`类型，主要是用于访问工作线程`Worker`集合和进行数据统计记录时候的加锁操作。
+- 条件变量`termination`，`Condition`类型，主要用于线程进行等待终结`awaitTermination()`方法时的带期限阻塞。
+- 任务队列`workQueue`，`BlockingQueue<Runnable>`类型，任务队列，用于存放待执行的任务。
+- 工作线程，内部类`Worker`类型，是线程池中真正的工作线程对象。
+
+```private final BlockingQueue<Runnable> workQueue;
+private final BlockingQueue<Runnable> workQueue;
+
+private final ReentrantLock mainLock = new ReentrantLock();
+
+private final HashSet<Worker> workers = new HashSet<Worker>();
+
+private final Condition termination = mainLock.newCondition();
+```
+
+## 3.4. 线程池的状态（生命周期）
 
 线程池运行的状态，并不是用户显式设置的，而是伴随着线程池的运行，由内部来维护。线程池内部使用一个变量维护两个值：运行状态(runState)和线程数量 (workerCount)。在具体实现中，线程池将运行状态(runState)、线程数量 (workerCount)两个关键参数的维护放在了一起，如下代码所示：
 
@@ -183,7 +202,9 @@ corePoolSize，maximumPoolSize，workQueue之间关系，会在后面任务调�
     private static int ctlOf(int rs, int wc) { return rs | wc; }
 ```
 
-ctl这个AtomicInteger类型，是对线程池的运行状态和线程池中有效线程的数量进行控制的一个字段， 它同时包含两部分的信息：线程池的运行状态 (runState) 和线程池内有效线程的数量 (workerCount)，高3位保存runState，低29位保存workerCount，两个变量之间互不干扰。用一个变量去存储两个值，可避免在做相关决策时，出现不一致的情况，不必为了维护两者的一致，而占用锁资源。
+ctl这个AtomicInteger类型，是对线程池的运行状态和线程池中有效线程的数量进行控制的一个字段， 它同时包含两部分的信息：**线程池的运行状态 (runState) 和线程池内有效线程的数量 (workerCount)，高3位保存runState，低29位保存workerCount**，两个变量之间互不干扰。用一个变量去存储两个值，可避免在做相关决策时，出现不一致的情况，不必为了维护两者的一致，而占用锁资源。
+
+> 线程池源码中有很多中间变量用了简单的单字母表示，例如c就是表示ctl、wc就是表示worker count、rs就是表示running status。
 
 线程池共有五种状态
 
@@ -203,6 +224,80 @@ ctl这个AtomicInteger类型，是对线程池的运行状态和线程池中有�
 - TERMINATED 终止状态，当执行 terminated() 后会更新为这个状态。
 
 ![](/assets/images/posts/thread-pool/thread-pool-3.jpg)
+
+我们知道，整型包装类型Integer实例的大小是4 byte，一共32  bit，也就是一共有32个位用于存放0或者1。在ThreadPoolExecutor实现中，使用32位的整型包装类型存放工作线程数和线程池状态。其中，低29位用于存放工作线程数，而高3位用于存放线程池状态，所以线程池的状态最多只能有2^3种。工作线程上限数量为2^29 - 1，超过5亿，这个数量在短时间内不用考虑会超限。
+
+接着看工作线程上限数量掩码`COUNT_MASK`，它的值是`(1 < COUNT_BITS) - l`，也就是1左移29位，再减去1，如果补全32位，它的位视图如下：
+
+![](/assets/images/posts/thread-pool/thread-pool-21.png)
+
+这里看`RUNNING`状态：
+
+```
+// -1的补码为：111-11111111111111111111111111111
+// 左移29位后：111-00000000000000000000000000000
+// 10进制值为：-536870912
+// 高3位111的值就是表示线程池正在处于运行状态
+private static final int RUNNING = -1 << COUNT_BITS;
+```
+
+控制变量`ctl`的组成就是通过线程池运行状态`rs`和工作线程数`wc`通过**「或运算」**得到的：
+
+```
+// rs=RUNNING值为：111-00000000000000000000000000000
+// wc的值为0：000-00000000000000000000000000000
+// rs | wc的结果为：111-00000000000000000000000000000
+private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));
+private static int ctlOf(int rs, int wc) { 
+    return rs | wc; 
+}
+```
+
+那么我们怎么从`ctl`中取出高3位？上面源码中提供的`runStateOf()`方法就是提取运行状态：
+
+```
+// 先把COUNT_MASK取反(~COUNT_MASK)，得到：111-00000000000000000000000000000
+// ctl位图特点是：xxx-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+// 两者做一次与运算即可得到高3位xxx
+private static int runStateOf(int c){ 
+    return c & ~COUNT_MASK; 
+}
+```
+
+同理，取出低29位只需要把`ctl`和`COUNT_MASK`(`000-11111111111111111111111111111`)做一次与运算即可。
+
+小结一下线程池的运行状态常量：
+
+|   状态名称   |                位图                 |  十进制值  |                             描述                             |
+| :----------: | :---------------------------------: | :--------: | :----------------------------------------------------------: |
+|  `RUNNING`   | `111-00000000000000000000000000000` | -536870912 |      运行中状态，可以接收新的任务和执行任务队列中的任务      |
+|  `SHUTDOWN`  | `000-00000000000000000000000000000` |     0      |  shutdown状态，不再接收新的任务，但是会执行任务队列中的任务  |
+|    `STOP`    | `001-00000000000000000000000000000` | 536870912  | 停止状态，不再接收新的任务，也不会执行任务队列中的任务，中断所有执行中的任务 |
+|  `TIDYING`   | `010-00000000000000000000000000000` | 1073741824 | 整理中状态，所有任务已经终结，工作线程数为0，过渡到此状态的工作线程会调用钩子方法`terminated()` |
+| `TERMINATED` | `011-00000000000000000000000000000` | 1610612736 |           终结状态，钩子方法`terminated()`执行完毕           |
+
+这里有一个比较特殊的技巧，由于运行状态值存放在高3位，所以可以直接通过十进制值（**「甚至可以忽略低29位，直接用`ctl`进行比较，或者使用`ctl`和线程池状态常量进行比较」**）来比较和判断线程池的状态：
+
+> RUNNING(-536870912) < SHUTDOWN(0) < STOP(536870912) < TIDYING(1073741824) < TERMINATED(1610612736)
+
+下面这三个方法就是使用这种技巧：
+
+```
+// ctl和状态常量比较，判断是否小于
+private static boolean runStateLessThan(int c, int s) {
+    return c < s;
+}
+
+// ctl和状态常量比较，判断是否小于或等于
+private static boolean runStateAtLeast(int c, int s) {
+    return c >= s;
+}
+
+// ctl和状态常量SHUTDOWN比较，判断是否处于RUNNING状态
+private static boolean isRunning(int c) {
+    return c < SHUTDOWN;
+}
+```
 
 ## 3.5. 任务调度
 
@@ -699,15 +794,15 @@ public static class CallerRunsPolicy implements RejectedExecutionHandler {
 
 **使用场景**：一般在不允许失败的、对性能要求不高、并发量较小的场景下使用，因为线程池一般情况下不会关闭，也就是提交的任务一定会被运行，但是由于是调用者线程自己执行的，当多次提交任务时，就会阻塞后续任务执行，性能和效率自然就慢了。
 
-# 常见问题
-## Worker为什么不使用ReentrantLock来实现呢？
+# 6. 常见问题
+**Worker为什么不使用ReentrantLock来实现呢？**
 
 tryAcquire方法它是不允许重入的，而ReentrantLock是允许重入的。对于线程来说，如果线程正在执行是不允许其它锁重入进来的。
 
 线程只需要两个状态，一个是独占锁，表明正在执行任务；一个是不加锁，表明是空闲状态。
 在runWorker方法中，为什么要在执行任务的时候对每个工作线程都加锁呢？
 
-## afterExecute
+**afterExecute**
 
 ```java
 
@@ -732,7 +827,7 @@ class ExtendedExecutor extends ThreadPoolExecutor {
 }
 ```
 
-## 如何正确关闭一个线程池
+**如何正确关闭一个线程池**
 
 为了实现优雅停机的目标，我们应当先调用shutdown方法，调用这个方法也就意味着，这个线程池不会再接收任何新的任务，但是已经提交的任务还会继续执行，包括队列中的。所以，之后你还应当调用awaitTermination方法，这个方法可以设定线程池在关闭之前的最大超时时间，如果在超时时间结束之前线程池能够正常关闭，这个方法会返回true，否则，一旦超时，就会返回false。通常来说我们不可能无限制地等待下去，因此需要我们事先预估一个合理的超时时间，然后去使用这个方法。
 
@@ -748,10 +843,11 @@ while (!executorService.awaitTermination(100, TimeUnit.MILLISECONDS)) {
 }
 ```
 
-## prestartAllCoreThreads方法一次性创建所有核心线程
+**prestartAllCoreThreads方法一次性创建所有核心线程**
+
 我们知道一个线程池创建出来之后，在没有给它提交任何任务之前，这个线程池中的线程数为0。有时候我们事先知道会有很多任务会提交给这个线程池，但是等它一个个去创建新线程开销太大，影响系统性能，因此可以考虑在创建线程池的时候就将所有的核心线程全部一次性创建完毕，这样系统起来之后就可以直接使用了。
 
-## 线程池创建完毕之后也是可以更改其线程数的
+**线程池创建完毕之后也是可以更改其线程数的**
 
 因为线程池提供了设置核心线程数和最大线程数的方法，它们分别是setCorePoolSize方法和setMaximumPoolSize方法。
 
@@ -761,7 +857,7 @@ while (!executorService.awaitTermination(100, TimeUnit.MILLISECONDS)) {
 - 当发现线程数超过了核心线程数大小时，可以考虑将CorePoolSize和MaximumPoolSize的数值同时乘以2，当然这里不建议设置很大的线程数，因为并不是线程越多越好的，可以考虑设置一个上限值，比如50、100之类的。
 - 同时，去获取队列中的任务数，具体来说是调用getQueue方法再调用size方法。当队列中的任务数少于队列大小的二分之一时，我们可以认为现在线程池的负载没有那么高了，因此可以考虑在线程池先前有扩容过的情况下，将CorePoolSize和MaximumPoolSize还原回去，也就是除以2。
 
-## 简化线程池配置
+**简化线程池配置**
 
 线程池构造参数有8个，但是最核心的是3个：corePoolSize、maximumPoolSize，workQueue，它们最大程度地决定了线程池的任务分配和线程分配策略。考虑到在实际应用中我们获取并发性的场景主要是两种：
 
@@ -770,7 +866,7 @@ while (!executorService.awaitTermination(100, TimeUnit.MILLISECONDS)) {
 
 所以线程池只需要提供这三个关键参数的配置，并且提供两种队列的选择，就可以满足绝大多数的业务需求，
 
-## `Executors`创建的线程池存在OOM的风险
+**`Executors`创建的线程池存在OOM的风险**
 
 真正的导致OOM的其实是`LinkedBlockingQueue.offer`方法。
 
@@ -788,10 +884,12 @@ Java中的`BlockingQueue`主要有两种实现，分别是`ArrayBlockingQueue` �
 
 **所以相比较而言，我们自己手动创建会更好，因为我们可以更加明确线程池的运行规则，不仅可以选择适合自己的线程数量，更可以在必要的时候拒绝新任务的提交，避免资源耗尽的风险。**
 
-# 参考资料
+# 7. 参考资料
 
 https://mp.weixin.qq.com/s/baYuX8aCwQ9PP6k7TDl2Ww
 
 https://mp.weixin.qq.com/s/FVfuwIQ08mRrQy_PAd6WLw
 
 https://mp.weixin.qq.com/s/owrAeEDf4wpgEWjKPueFaA
+
+https://mp.weixin.qq.com/s/84mbRLSC_WR1ASM8ncUk_Q

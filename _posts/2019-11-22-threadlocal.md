@@ -1,11 +1,11 @@
 ---
 layout: post
-title: java的ThreadLocal对象
+title: ThreadLocal对象
 date: 2019-11-22
 categories:
-    - java
+    -  多线程
 comments: true
-permalink: java-threadlocal.html
+permalink: threadlocal.html
 ---
 
 ThreadLocal是什么？我们先看JDK中的描述
@@ -72,7 +72,7 @@ void createMap(Thread t, T firstValue) {
 
 `set`方法的过程和get类似，下面我们把关注的重点转移到`ThreadLocalMap`
 
-# ThreadLocalMap
+# 1. ThreadLocalMap
 我们先看一下`ThreadLocalMap`的成员变量
 
 ```
@@ -97,15 +97,13 @@ static class ThreadLocalMap {
 	private int threshold; // Default to 0
 ```
 
-`Entry`类继承了`WeakReference<ThreadLocal<?>>`，即每个`Entry`对象都有一个`ThreadLocal`的弱引用（作为key），这是为了防止内存泄露。一旦线程结束，key变为一个不可达的对象，这个Entry就可以被GC了。
+- `Entry`类继承了`WeakReference<ThreadLocal<?>>`，即每个`Entry`对象都有一个`ThreadLocal`的弱引用（作为key），这是为了防止内存泄露。一旦线程结束，key变为一个不可达的对象，这个Entry就可以被GC了。
+- `INITIAL_CAPACITY ` ThreadLocalMap 的初始容量，必须为2的倍数，默认为16
 
-`INITIAL_CAPACITY ` ThreadLocalMap 的初始容量，必须为2的倍数，默认为16
+- `Entry[] table` resized时候需要的table
+- `size` table中的entry个数
 
-`Entry[] table` resized时候需要的table
-
-`size` table中的entry个数
-
-`threshold` 扩容数值
+- `threshold` 扩容数值
 
 再看看它的构造函数
 
@@ -135,7 +133,7 @@ private static int nextHashCode() {
 }
 ```
 
-ThreadLocalMap中解决Hash冲突的方式并非像HashMap一样用链表的方式，而是采用线性探测的方式。所谓线性探测，就是根据初始key的hashcode值确定元素在table数组中的位置，如果发现这个位置上已经有其他key值的元素被占用，则利用固定的算法寻找一定步长的下个位置，依次判断，直至找到能够存放的位置。
+**ThreadLocalMap中解决Hash冲突的方式并非像HashMap一样用链表的方式，而是采用线性探测的方式。所谓线性探测，就是根据初始key的hashcode值确定元素在table数组中的位置，如果发现这个位置上已经有其他key值的元素被占用，则利用固定的算法寻找一定步长的下个位置，依次判断，直至找到能够存放的位置。**
 
 `HASH_INCREMENT = 0x61c88647`就是每次增加的步长`1640531527`，根据JAVADOC所说，选择这个数字是为了让冲突概率最小
 
@@ -302,7 +300,7 @@ remove 方法的思想类似，就不看了。
 
 ![](/assets/images/posts/threadlocal/threadlocal-1.png)
 
-# key为什么用弱引用
+# 2. key为什么用弱引用
 下面我们分两种情况讨论：
 
 - key 使用强引用：引用的ThreadLocal的对象被回收了，但是ThreadLocalMap还持有ThreadLocal的强引用，如果没有手动删除，ThreadLocal不会被回收，导致Entry内存泄漏。
@@ -311,7 +309,7 @@ remove 方法的思想类似，就不看了。
 比较两种情况，我们可以发现：由于ThreadLocalMap的生命周期跟Thread一样长，如果都没有手动删除对应key，都会导致内存泄漏，但是使用弱引用可以多一层保障：弱引用ThreadLocal不会内存泄漏，对应的value在下一次ThreadLocalMap调用set,get,remove的时候会被清除。
 
 
-# ThreadLocal的内存泄漏问题
+# 3. ThreadLocal的内存泄漏问题
 
 ThreadLocalMap中的key是ThreadLocal对象，然后ThreadLocal对象时被WeakReference包装的，这样当没有强引用指向该ThreadLocal对象之后，或者说Map中的ThreadLocal对象被判定为弱引用可达时，就会在垃圾收集中被回收掉。
 
@@ -323,7 +321,7 @@ ThreadLocalMap中的key是ThreadLocal对象，然后ThreadLocal对象时被WeakR
 
 正确的处理方式是：每次使用完 ThreadLocal，都调用它的 remove() 方法清除数据 ，这样才能从根源上避免内存泄漏问题。
 
-# ThreadLocal存放在哪里
+# 4. ThreadLocal存放在哪里
 
 在Java中，栈内存归属于单个线程，每个线程都会有一个栈内存，其存储的变量只能在其所属线程中可见，即栈内存可以理解成线程的私有内存。而堆内存中的对象对所有线程可见。堆内存中的对象可以被所有线程访问。
 
@@ -333,7 +331,7 @@ ThreadLocalMap中的key是ThreadLocal对象，然后ThreadLocal对象时被WeakR
 
 它们都是位于堆上，只是通过一些技巧将可见性修改成了线程可见。
 
-# InheritableThreadLocal
+# 5. InheritableThreadLocal
 
 使用`InheritableThreadLocal`可以实现多个线程访问`ThreadLocal`的值。
 
@@ -352,13 +350,13 @@ ThreadLocalMap中的key是ThreadLocal对象，然后ThreadLocal对象时被WeakR
   t.start();
 ```
 
-# 使用场景
+# 6. 使用场景
 
-    实现单个线程单例以及单个线程上下文信息存储，比如交易id等
-    实现线程安全，非线程安全的对象使用ThreadLocal之后就会变得线程安全，因为每个线程都会有一个对应的实例
-    承载一些线程相关的数据，避免在方法中来回传递参数
+- 实现单个线程单例以及单个线程上下文信息存储，比如交易id等
+- 实现线程安全，非线程安全的对象使用ThreadLocal之后就会变得线程安全，因为每个线程都会有一个对应的实例
+- 承载一些线程相关的数据，避免在方法中来回传递参数
 
-# 散列算法-魔数0x61c88647
+# 7. 散列算法-魔数0x61c88647
 
 前面提过：`HASH_INCREMENT = 0x61c88647`就是每次增加的步长`1640531527`，根据JAVADOC所说，选择这个数字是为了让冲突概率最小
 
@@ -412,5 +410,5 @@ public class ThreadLocalHashCodeTest {
 
 可以看到元素索引值完美的散列在数组当中，并没有出现冲突
 
-# 参考资料
+
 
