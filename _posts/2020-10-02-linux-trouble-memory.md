@@ -5,7 +5,7 @@ date: 2020-10-02
 categories:
     - linux
 comments: true
-permalink: linux-trouble-cpu.html
+permalink: linux-trouble-memory.html
 ---
 
 # 1. 指标
