@@ -4,7 +4,7 @@ title: 认证（1）-认证、授权、凭证
 description: 
 date: 2019-03-01
 categories:
-    - 设计
+    - 架构设计
 comments: true
 permalink: authentication.html
 ---
