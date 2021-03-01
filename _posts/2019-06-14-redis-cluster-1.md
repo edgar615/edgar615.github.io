@@ -1,7 +1,7 @@
 ---
 layout: post
-title: redis集群搭建
-date: 2019-06-13
+title: redis集群（1） - 部署
+date: 2019-06-14
 categories:
     - redis
 comments: true

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Spring Boot - 自动配置原理
-date: 2019-03-21
+date: 2019-03-22
 categories:
     - Spring
 comments: true
@@ -195,6 +195,10 @@ protected Class<?> getSpringFactoriesLoaderFactoryClass() {
 通过这个文件，Spring可以找到这些配置类的位置，于是去加载其中的配置。
 
 ![](/assets/images/posts/spring-auto-config/spring-auto-config-1.png)
+
+> 网上找到的一个图
+
+![](/assets/images/posts/spring-auto-config/spring-auto-config-2.png)
 
 # 2. @ConditionalOn 条件注解
 
