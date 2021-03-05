@@ -165,3 +165,6 @@ public int doUpdate(MappedStatement ms, Object parameter) throws SQLException {
 }
 ```
 
+总结一下下Mybatis的执行过程
+
+![](/assets/images/posts/mybatis-executor/mybatis-executor-2.png)
