@@ -3,7 +3,7 @@ layout: post
 title: 按顺序处理同一用户的消息
 date: 2019-05-11
 categories:
-    - 消息队列
+    - 设计
 comments: true
 permalink: Processing-messages-in-sequence.html
 ---
