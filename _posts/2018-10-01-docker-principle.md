@@ -5,7 +5,7 @@ date: 2018-10-01
 categories:
     - Docker
 comments: true
-permalink: docker-principlehtml
+permalink: docker-principle.html
 ---
 
 # 1. chroot
